@@ -1,0 +1,102 @@
+# SENTRAVYN Phase 1 baseline pipeline.
+#
+# Runs the reproducible local-setup gate from docs/ROADMAP.md Phase 1:
+# format/lint/typecheck/tests/build for every workspace, with the local
+# Postgres+PostGIS and Redis services available to the backend tests.
+#
+# This is a GREEN BASELINE. It does not assert deployment, search-engine or
+# security posture beyond the checks listed here.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "11.9.0"
+
+jobs:
+  baseline:
+    name: "Install, lint, typecheck, test, build"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: sentravyn
+          POSTGRES_PASSWORD: sentravyn_local_password
+          POSTGRES_DB: sentravyn
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sentravyn"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # Local Postgres+PostGIS (ADR-004: the extension is enabled here for
+      # the dev/CI data model). The CI user creates it on first connection.
+      - name: Enable PostGIS extension
+        run: |
+          PGPASSWORD=sentravyn_local_password psql \
+            -h localhost -U sentravyn -d sentravyn \
+            -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @sentravyn/backend exec prisma generate
+
+      - name: Apply database migrations
+        run: pnpm --filter @sentravyn/backend exec prisma migrate deploy
+
+      - name: Lint (all workspaces)
+        run: pnpm lint
+
+      - name: Typecheck (all workspaces)
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build (all workspaces)
+        run: pnpm build
+
+      - name: Backend e2e tests
+        env:
+          DATABASE_URL: postgresql://sentravyn:sentravyn_local_password@localhost:5432/sentravyn?schema=public
+          REDIS_URL: redis://localhost:6379
+        run: pnpm --filter @sentravyn/backend test:e2e

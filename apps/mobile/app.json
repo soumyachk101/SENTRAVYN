@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "SENTRAVYN",
+    "slug": "sentravyn-mobile",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "sentravyn",
+    "backgroundColor": "#101418",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "app.sentravyn.mobile"
+    },
+    "android": {
+      "package": "app.sentravyn.mobile"
+    }
+  }
+}

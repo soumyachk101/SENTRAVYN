@@ -1,0 +1,29 @@
+{
+  "name": "SENTRAVYN — Global Emergency Intelligence & Public Safety",
+  "short_name": "SENTRAVYN",
+  "description": "Access authoritative emergency alerts, reviewed protective guidance, nearby emergency services and household preparedness. An information and preparedness platform, not an operational emergency service.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#101418",
+  "theme_color": "#101418",
+  "categories": ["lifestyle", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

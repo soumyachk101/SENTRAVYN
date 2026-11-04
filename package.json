@@ -1,0 +1,27 @@
+{
+  "name": "sentravyn",
+  "version": "0.0.0",
+  "private": true,
+  "description": "SENTRAVYN — Global Emergency Intelligence & Public Safety Platform",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter @sentravyn/web dev",
+    "dev:admin": "pnpm --filter @sentravyn/admin dev",
+    "dev:backend": "pnpm --filter @sentravyn/backend dev",
+    "db:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
+    "db:down": "docker compose -f infrastructure/docker/docker-compose.yml down",
+    "db:logs": "docker compose -f infrastructure/docker/docker-compose.yml logs -f",
+    "db:migrate": "pnpm --filter @sentravyn/backend prisma:migrate:dev"
+  },
+  "devDependencies": {
+    "turbo": "2.11.10"
+  }
+}

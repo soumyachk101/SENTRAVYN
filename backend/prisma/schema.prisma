@@ -1,0 +1,416 @@
+// SENTRAVYN core data model (Phase 1 baseline).
+//
+// Design references:
+//   - docs/ARCHITECTURE.md section 5 (data model concepts)
+//   - ADR-004 (PostGIS policy: geography/geometry columns are added in Phase 4
+//     via reviewed raw SQL, so this schema intentionally uses standard
+//     Postgres types and defers spatial columns).
+//   - ADR-006 (trust model: place/shelter verification attributes).
+//   - ADR-007 (quarantine-by-default ingestion: RawSourceRecord is immutable).
+//
+// Identifier strategy: UUIDv7-like UUIDs (see ARCHITECTURE.md section 5).
+// Every entity carries created/updated timestamps and appropriate indexes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  PUBLIC
+  REVIEWER
+  OPERATOR
+  ADMIN
+}
+
+enum AlertStatus {
+  RECEIVED
+  PARSED
+  VALIDATED
+  QUARANTINED
+  PUBLISHED
+  UPDATED
+  EXPIRED
+  CANCELLED
+}
+
+enum AlertVerification {
+  UNVERIFIED
+  REVIEWED
+  OFFICIAL
+}
+
+enum PlaceVerification {
+  UNVERIFIED
+  REVIEWED
+  VERIFIED
+}
+
+enum ShelterVerification {
+  UNVERIFIED
+  EVIDENCE_REVIEW
+  VERIFIED
+}
+
+enum GuideApprovalState {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  RETIRED
+}
+
+enum InformationClass {
+  OFFICIAL_SOURCE
+  SENTRAVYN_SUMMARY
+  THIRD_PARTY
+  USER_SUBMISSION
+  DERIVED_CALCULATION
+  UNVERIFIED_OR_STALE
+}
+
+enum FetchStatus {
+  PENDING
+  SUCCESS
+  PARTIAL
+  FAILED
+  RATE_LIMITED
+  OUTAGE
+}
+
+enum NotificationChannel {
+  WEBSOCKET
+  PUSH_WEB
+  PUSH_FCM
+  PUSH_APNS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  DROPPED
+}
+
+// ---------------------------------------------------------------------------
+// Identity and users
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  displayName  String?
+  role         Role     @default(PUBLIC)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  preferences     UserPreference[]
+  emergencyContacts EmergencyContact[]
+  auditEvents     AuditEvent[]
+}
+
+model UserPreference {
+  id             String @id @default(uuid())
+  userId         String
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Region, hazard-interests, language, reduced-motion and other per-user settings.
+  regionIso      String?
+  language       String @default("en")
+  reducedMotion  Boolean @default(false)
+  notificationOptIn Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Family safety (consent-based)
+// ---------------------------------------------------------------------------
+
+model EmergencyContact {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  relation  String?
+  phone     String?
+  // Consent fields are part of the trust model (ADR-006). Never track without
+  // explicit, informed consent.
+  consent   Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Data providers and ingestion (ADR-007)
+// ---------------------------------------------------------------------------
+
+model DataProvider {
+  id            String   @id @default(uuid())
+  key           String   @unique // stable provider identifier, e.g. "usgs"
+  name          String
+  docUrl        String?
+  category      String   @default("alerts")
+  license       String?
+  attribution   String?
+  enabled       Boolean  @default(false)
+  freshnessPolicyHours Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  fetches ProviderFetch[]
+  records RawSourceRecord[]
+}
+
+model ProviderFetch {
+  id           String   @id @default(uuid())
+  providerId   String
+  provider     DataProvider @relation(fields: [providerId], references: [id])
+  status       FetchStatus
+  requestedAt  DateTime @default(now())
+  completedAt  DateTime?
+  itemCount    Int      @default(0)
+  error        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([providerId, requestedAt])
+}
+
+// Immutable raw payload. Never mutated after ingestion (ADR-007).
+model RawSourceRecord {
+  id           String   @id @default(uuid())
+  providerId   String
+  provider     DataProvider @relation(fields: [providerId], references: [id])
+  sourceId     String   // provider-native identifier, preserved
+  sourceUrl    String?
+  payloadHash  String   // content hash for replay/corruption detection
+  rawPayload   String   // original payload, stored verbatim
+  fetchedAt    DateTime
+  ingestedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  // One source record can underlie multiple alerts (one-to-many).
+  alerts Alert[]
+
+  @@index([providerId, sourceId])
+  @@index([ingestedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Alerts and incidents (ADR-005 lifecycle, ADR-007 provenance)
+// ---------------------------------------------------------------------------
+
+model Alert {
+  id            String     @id @default(uuid())
+  providerId    String?
+  sourceRecordId String?
+  sourceRecord  RawSourceRecord? @relation(fields: [sourceRecordId], references: [id])
+  externalRef   String?   // CAP / provider reference, used for dedup + update/cancel
+  status        AlertStatus @default(RECEIVED)
+  verification  AlertVerification @default(UNVERIFIED)
+  informationClass InformationClass @default(OFFICIAL_SOURCE)
+  headline      String
+  issuer        String?
+  severity      String?
+  urgency       String?
+  certainty     String?
+  issuedAt      DateTime?
+  effectiveAt   DateTime?
+  expiresAt     DateTime?
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  revisions  AlertRevision[]
+  incidents  Incident[]
+
+  @@index([status, publishedAt])
+  @@index([externalRef])
+  @@index([verification])
+}
+
+// Alert revisions carry the immutable history (ADR-005 update/cancel).
+model AlertRevision {
+  id         String  @id @default(uuid())
+  alertId    String
+  alert      Alert   @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  revision   Int     @default(1)
+  status     AlertStatus
+  body       String?
+  createdAt  DateTime @default(now())
+
+  @@index([alertId, revision])
+}
+
+model Incident {
+  id          String   @id @default(uuid())
+  alertId     String?
+  alert       Alert?   @relation(fields: [alertId], references: [id])
+  type        String
+  title       String
+  occurredAt  DateTime?
+  affectedRegion String?
+  // Spatial footprint (polygon) is added in Phase 4 as a PostGIS column via
+  // reviewed SQL (ADR-004). Placeholder kept here so the field exists without
+  // a native spatial type.
+  summary     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type, occurredAt])
+}
+
+// ---------------------------------------------------------------------------
+// Places, evidence and shelters (ADR-006 trust model)
+// ---------------------------------------------------------------------------
+
+model Place {
+  id              String @id @default(uuid())
+  name            String
+  kind            String // e.g. "hospital", "shelter", "fire_station"
+  verification    PlaceVerification @default(UNVERIFIED)
+  sourceAuthority String?
+  operationalStatus String?
+  operationalEvidence String?
+  accessibility   String?
+  capacityNote    String?
+  staleSince      DateTime?
+  // Coordinates are staged as plain doubles for Phase 1. Phase 4 adds the
+  // PostGIS geography(Point,4326) column and migrates these values (ADR-004).
+  lat             Float?
+  lng             Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  evidence   PlaceEvidence[]
+  shelters   ShelterProfile[]
+
+  @@index([kind, verification])
+}
+
+model PlaceEvidence {
+  id        String  @id @default(uuid())
+  placeId   String
+  place     Place   @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  claim     String
+  sourceUrl String?
+  recordedByUserId String?
+  createdAt DateTime @default(now())
+
+  @@index([placeId])
+}
+
+model ShelterProfile {
+  id           String @id @default(uuid())
+  placeId      String
+  place        Place  @relation(fields: [placeId], references: [id])
+  classification String?
+  hazardApplicability String[]
+  capacity      String?
+  inspectAuthority String?
+  inspectionDate  DateTime?
+  verification  ShelterVerification @default(UNVERIFIED)
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([placeId, verification])
+}
+
+// ---------------------------------------------------------------------------
+// Safety guides and revisions (ADR-009: summary-only, cited)
+// ---------------------------------------------------------------------------
+
+model SafetyGuide {
+  id          String @id @default(uuid())
+  hazardType  String
+  jurisdiction String?
+  language    String @default("en")
+  author      String?
+  reviewer    String?
+  authority   String?
+  approval    GuideApprovalState @default(DRAFT)
+  version     Int @default(1)
+  lastReviewedAt DateTime?
+  references  String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  revisions  GuideRevision[]
+
+  @@index([hazardType, approval])
+}
+
+model GuideRevision {
+  id        String  @id @default(uuid())
+  guideId   String
+  guide     SafetyGuide @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  revision  Int
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([guideId, revision])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (ADR-005 durable fan-out)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String @id @default(uuid())
+  alertId   String?
+  channel   NotificationChannel
+  status    NotificationStatus @default(PENDING)
+  dedupKey  String?
+  receipt   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attempts NotificationAttempt[]
+
+  @@index([alertId, channel])
+  @@index([dedupKey])
+}
+
+model NotificationAttempt {
+  id          String @id @default(uuid())
+  notificationId String
+  notification  Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  attempt     Int
+  sentAt      DateTime @default(now())
+  outcome     NotificationStatus
+  error       String?
+
+  @@index([notificationId, attempt])
+}
+
+// ---------------------------------------------------------------------------
+// Audit (SECURITY.md section 6; Gate E)
+// ---------------------------------------------------------------------------
+
+model AuditEvent {
+  id        String   @id @default(uuid())
+  actorUserId String?
+  actor     User?    @relation(fields: [actorUserId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nestjs/nest-cli/master/schema/reference-schema.json",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "tsConfigPath": "tsconfig.build.json"
+  }
+}

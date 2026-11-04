@@ -86,6 +86,28 @@ Status: Phase 0. These ADRs record the owner-approved decisions from `CLAUDE.md`
 - Decision: Three environments (dev/staging/prod), Terraform-managed. Next.js web/admin may deploy to Vercel; NestJS API + BullMQ workers deploy as containers (ECS/EKS/EC2 decision in Phase 9); managed Postgres+PostGIS, managed Redis, S3, WAF/CDN in front. RPO/RTO defined by operational risk assessment before launch (Phase 9).
 - Consequences: No production infrastructure may be claimed as existing anywhere; `docs/SEARCH-CONSOLE-SETUP.md` stays PENDING until real domain + owner access.
 
+## ADR-013 — NestJS v11 (CommonJS) for Phase 1, not NestJS v12 (ESM-only)
+
+- Status: Accepted (engineering decision, Phase 1)
+- Context: `docs/ARCHITECTURE.md` §2 specifies "NestJS + TypeScript" but no
+  major version. The initial Phase 1 attempt pinned the current line, which
+  is NestJS v12 — and NestJS v12 packages are published as ESM-only
+  (`@nestjs/common`, `@nestjs/core`, `@nestjs/config`, `@nestjs/swagger` all
+  declare `"type": "module"`). The approved CJS toolchain (Prisma CJS client,
+  ts-jest, `nest build` CommonJS output) cannot `require()` ESM-only Nest v12
+  at test/runtime without a full ESM re-architecture of the backend.
+- Decision: Pin the backend to the mature CommonJS NestJS line:
+  `@nestjs/common|core|platform-express|testing@11.2.8`,
+  `@nestjs/config@4.0.4` (its CJS line, supports Nest 10/11),
+  `@nestjs/swagger@11.4.8`, `@nestjs/terminus@11.1.1`, `@nestjs/cli@11.0.24`.
+  This is within "NestJS + TypeScript" (the approved stack) and gives a
+  reproducible green baseline. Revisit an ESM backend (Nest v12) in a later
+  phase as a deliberate migration, not mid-foundation.
+- Consequences: CJS throughout the backend; no `"type": "module"` in the
+  backend workspace; Jest uses the `ts-jest` preset unchanged. If the project
+  later adopts ESM (e.g. to share a code path with a Node ESM tool), this ADR
+  is the point to migrate.
+
 ## Open questions (not blockers for Phase 1)
 
 | # | Question | Owner | Needed by |
