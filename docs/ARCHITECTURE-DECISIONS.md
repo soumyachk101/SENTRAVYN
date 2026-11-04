@@ -108,6 +108,41 @@ Status: Phase 0. These ADRs record the owner-approved decisions from `CLAUDE.md`
   later adopts ESM (e.g. to share a code path with a Node ESM tool), this ADR
   is the point to migrate.
 
+## ADR-014 — CAP XML parsing via fast-xml-parser
+
+- Status: Accepted (Phase 3)
+- Context: `docs/DATA-SOURCES.md` section 4 requires CAP 1.2 parsing where source formats support it; all feed content is untrusted data (ADR-007, `docs/SAFETY-POLICY.md` §7), so the parser must never interpret XML as instructions.
+- Decision: Parse CAP with `fast-xml-parser`, pinned in `backend/package.json` (pure JS, no native dependencies). XML is treated as data only: no entity expansion, values trimmed and used as data, never interpreted. First-`<alert>`-of-document rule: only the first `<alert>` element is parsed; a document without one is a parse rejection. Unknown `msgType` normalises to `'unknown'`, never guessed. An XML size cap is enforced at parse time, before the parser runs.
+- Consequences: Fixtures + parser tests are the delivery gate (Gate C, Phase 3); the parser stays pure and unit-testable without a database; oversized or malformed payloads surface as rejections, not crashes.
+
+## ADR-015 — Phase 3 ingestion is on-demand; scheduled fetching defers to Phase 6
+
+- Status: Accepted (Phase 3)
+- Context: BullMQ scheduling is Phase 6 scope per `docs/ROADMAP.md` (Notifications and offline), so Phase 3 must ingest without a queue and without inventing a scheduler.
+- Decision: `IngestService.ingest()` is called on demand — by tests and later by Phase 6 workers. Each call writes one `ProviderFetch` bookkeeping row (status, item count, error, timestamps); no queue, no cron, no retry loop in Phase 3. GDACS retrieval uses Node 22 global `fetch` with timeouts and bounded retries when a fetch is attempted.
+- Consequences: No cron drift to debug; replay idempotency by `fetchRef` + `payloadHash` (the `RawSourceRecord` composite unique is the write backstop); the Phase 6 scheduler wraps the same service rather than a second pipeline.
+
+## ADR-016 — Phase 4 geospatial: PostGIS extension + geography columns via reviewed raw SQL (ADR-004 policy)
+
+- Status: Accepted (Phase 4)
+- Context: Prisma cannot model PostGIS types (`geography`, GIST spatial indexes), so ADR-004 defers the spatial columns out of the schema file; the local and CI databases run `postgis/postgis:16-3.4`, where the app user is a superuser capable of `CREATE EXTENSION`.
+- Decision: Two migration folders — `20260214000001_phase4_postgis_extension` (`CREATE EXTENSION IF NOT EXISTS postgis`) and `20260214000002_phase4_place_location` (`Place.location geography(Point, 4326)`, `Incident.footprint geography`, backfill from staged `lat`/`lng`, GIST index). The columns are intentionally absent from `schema.prisma`; `GeoService` exposes `nearby`/`updatePlaceLocation`/`backfillLocations` via `$queryRaw`. `prisma migrate deploy` is the only migration path — `prisma db push` and `migrate dev` are forbidden (hard CI rule) because they reconcile the database against the Prisma schema and would drop or drift the unmodelled columns.
+- Consequences: Reviewed raw SQL is the spatial source of truth and must be reviewed like any migration. Prisma Client lacks the columns by design — never add them "for completeness". Spatial tests run against the real PostGIS engine and log `SKIP` without a database; a skip is never a pass.
+
+## ADR-017 — Map tiles and geocoding: OSM standard raster tiles in dev, geocoding deferred
+
+- Status: Accepted (Phase 4)
+- Context: `docs/ARCHITECTURE.md` section 2 requires MapLibre with a properly licensed tile/data provider; `docs/DATA-SOURCES.md` section 3 warns against assuming OSM public tiles are suitable for production-scale usage, and section 6 forbids claiming coverage a provider does not provide.
+- Decision: The web map ships an inline OSM standard raster style with the `MapAttributionControl` mandatory (ODbL + copyright OpenStreetMap contributors) and a `NEXT_PUBLIC_MAP_STYLE_URL`/`MAP_STYLE_URL` override slot for a later reviewed provider. Geocoding stays unconfigured until `GEOCODING_PROVIDER` and its key exist; no geocoding coverage is claimed in the meantime.
+- Consequences: OSM tiles are a dev-time data source now; a production tile host plus terms review lands before launch (Phase 9 legal gate). A missing attribution control is a license violation; the Phase 4 UI check should catch it.
+
+## ADR-018 — Distance is a calculation, not a safety claim
+
+- Status: Accepted (Phase 4)
+- Context: `docs/PRODUCT-SPEC.md` section 5 and `docs/SAFETY-POLICY.md` sections 1 and 6: a map point is not a verified safe location, and AI/derivation must not infer safe routes or convert uncertainty into certainty.
+- Decision: Every `/places/nearby` item carries `distanceMeters` plus the literal `distanceIsCalculation: true`; the UI prints the disclosure line and, on an empty radius, the fixed coverage note. No "safe", "clear" or "all good" phrasing anywhere in the places surface. Verification labels are computed via `evaluateShelterPolicy` and a failing policy suppresses a stored `VERIFIED` label.
+- Consequences: The shared type encodes the guarantee — `distanceIsCalculation: true` is a literal type, so a consumer cannot set it `false`. The Phase 4 gate checklist includes "no false shelter claims".
+
 ## Open questions (not blockers for Phase 1)
 
 | # | Question | Owner | Needed by |

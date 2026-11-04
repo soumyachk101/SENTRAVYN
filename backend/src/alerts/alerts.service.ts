@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { evaluateFreshness, FreshnessResult } from '../common/freshness';
+import {
+  DEFAULT_FRESHNESS_POLICY_HOURS,
+  evaluateFreshness,
+  FreshnessResult,
+} from '../common/freshness';
 
 export interface AlertListQuery {
   page?: number;
@@ -28,6 +32,50 @@ export interface AlertResponse {
   freshness: FreshnessResult;
   createdAt: string;
   updatedAt: string;
+}
+
+/** One alert revision (ADR-005 update/cancel history). */
+export interface AlertRevisionView {
+  revision: number;
+  status: string;
+  body: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+}
+
+/**
+ * Source provenance of an alert (ADR-007 quarantine-by-default, immutable
+ * RawSourceRecord). `providerKey` is null when the underlying DataProvider
+ * row was deleted; the nested `provider` carries the registry row's display
+ * fields, or null in that case.
+ */
+export interface AlertProvenanceView {
+  sourceRecordId: string;
+  sourceUrl: string | null;
+  payloadHash: string;
+  /** ISO 8601. */
+  fetchedAt: string;
+  providerKey: string | null;
+  provider: {
+    name: string;
+    docUrl: string | null;
+    license: string | null;
+    attribution: string | null;
+    enabled: boolean;
+    freshnessPolicyHours: number | null;
+  } | null;
+}
+
+/**
+ * Single-alert detail payload: the alert itself, its revision history and
+ * its source provenance (SAFETY-POLICY.md 8 freshness, ADR-007 provenance).
+ */
+export interface AlertDetail {
+  alert: AlertResponse;
+  /** Revision history in ascending revision order. */
+  revisions: AlertRevisionView[];
+  /** null when the alert has no source record. */
+  provenance: AlertProvenanceView | null;
 }
 
 /** The columns AlertsService reads, independent of the generated Prisma model. */
@@ -89,12 +137,109 @@ export class AlertsService {
     if (!alert) return null;
     return toAlertResponse(alert as unknown as AlertRecord);
   }
+
+  /**
+   * Single-alert detail: the alert, its revision history (ADR-005) and its
+   * source-record provenance (ADR-007).
+   *
+   * Freshness uses the source provider's freshness policy: the alert's
+   * source record points at the owning DataProvider row, whose
+   * `freshnessPolicyHours` is passed to evaluateFreshness. Fallback to
+   * DEFAULT_FRESHNESS_POLICY_HOURS happens when the alert has no source
+   * record, the provider row was deleted, or the row has no policy set -
+   * never throwing, since a deleted registry row must not break the read.
+   */
+  async getDetail(id: string): Promise<AlertDetail | null> {
+    const alert = await this.prisma.alert.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        externalRef: true,
+        status: true,
+        verification: true,
+        informationClass: true,
+        headline: true,
+        issuer: true,
+        severity: true,
+        urgency: true,
+        certainty: true,
+        issuedAt: true,
+        effectiveAt: true,
+        expiresAt: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        sourceRecord: {
+          select: {
+            id: true,
+            providerId: true,
+            sourceUrl: true,
+            payloadHash: true,
+            fetchedAt: true,
+          },
+        },
+      },
+    });
+    if (!alert) return null;
+
+    const { sourceRecord, ...base } = alert;
+
+    // Independent reads: provider lookup (only when a source record exists)
+    // and the full revision history, in ascending revision order.
+    const [provider, revisions] = await Promise.all([
+      sourceRecord
+        ? this.prisma.dataProvider.findUnique({
+            where: { id: sourceRecord.providerId },
+          })
+        : Promise.resolve(null),
+      this.prisma.alertRevision.findMany({
+        where: { alertId: id },
+        orderBy: { revision: 'asc' },
+      }),
+    ]);
+
+    const policyHours =
+      provider?.freshnessPolicyHours ?? DEFAULT_FRESHNESS_POLICY_HOURS;
+    const response = toAlertResponse(base as unknown as AlertRecord, policyHours);
+
+    const provenance: AlertProvenanceView | null = sourceRecord
+      ? {
+          sourceRecordId: sourceRecord.id,
+          sourceUrl: sourceRecord.sourceUrl,
+          payloadHash: sourceRecord.payloadHash,
+          fetchedAt: sourceRecord.fetchedAt.toISOString(),
+          providerKey: provider?.key ?? null,
+          provider: provider
+            ? {
+                name: provider.name,
+                docUrl: provider.docUrl,
+                license: provider.license,
+                attribution: provider.attribution,
+                enabled: provider.enabled,
+                freshnessPolicyHours: provider.freshnessPolicyHours,
+              }
+            : null,
+        }
+      : null;
+
+    return {
+      alert: response,
+      revisions: revisions.map((r) => ({
+        revision: r.revision,
+        status: r.status,
+        body: r.body,
+        createdAt: r.createdAt.toISOString(),
+      })),
+      provenance,
+    };
+  }
 }
 
-function toAlertResponse(r: AlertRecord): AlertResponse {
+function toAlertResponse(r: AlertRecord, policyHours?: number): AlertResponse {
   const freshness = evaluateFreshness({
     updatedAt: r.publishedAt ?? r.issuedAt,
     expiresAt: r.expiresAt,
+    policyHours,
   });
   return {
     id: r.id,

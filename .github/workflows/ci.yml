@@ -81,7 +81,7 @@ jobs:
         run: pnpm --filter @sentravyn/backend exec prisma generate
 
       - name: Apply database migrations
-        run: pnpm --filter @sentravyn/backend exec prisma migrate deploy
+        run: pnpm --filter @sentravyn/backend prisma:migrate
 
       - name: Lint (all workspaces)
         run: pnpm lint
@@ -109,6 +109,8 @@ jobs:
         env:
           GITLEAKS_INSTALL_VERYLATEST: "true"
 
+      # AUTH_JWT_SECRET: no repository secret required. The e2e specs fall
+      # back to an in-process test secret when AUTH_JWT_SECRET is unset.
       - name: Backend e2e tests
         env:
           DATABASE_URL: postgresql://sentravyn:sentravyn_local_password@localhost:5432/sentravyn?schema=public

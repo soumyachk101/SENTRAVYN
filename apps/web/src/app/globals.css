@@ -225,6 +225,220 @@ body {
   max-width: 70ch;
 }
 
+.hero__account {
+  max-width: 480px;
+  margin: 0 0 var(--space-xxl);
+}
+
+.hero__account-heading {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-sm);
+}
+
+.hero__account-panel {
+  padding: var(--space-lg);
+  background: color-mix(in srgb, var(--ink-800) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+}
+
+.hero__account-status {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--slate-300);
+  margin: 0;
+}
+
+/* Signed-in identity. */
+.hero__account-identity {
+  margin-bottom: var(--space-md);
+}
+
+.hero__account-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.125rem;
+  margin: 0 0 var(--space-xxs);
+  overflow-wrap: anywhere;
+}
+
+.hero__account-email {
+  color: var(--slate-300);
+  font-size: 0.875rem;
+  margin: 0 0 var(--space-sm);
+  overflow-wrap: anywhere;
+}
+
+.hero__account-role {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-calm);
+  border: 1px solid color-mix(in srgb, var(--accent-calm) 50%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-xxs) var(--space-xs);
+}
+
+.hero__account-session {
+  padding-top: var(--space-md);
+  border-top: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+}
+
+.hero__account-session h3 {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+  margin: 0 0 var(--space-sm);
+}
+
+/* Tabs and forms. */
+.hero__account-tabs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.hero__account-tabs [role="tab"] {
+  flex: 1 1 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--slate-300);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--slate-500) 25%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+}
+
+.hero__account-tabs [role="tab"][aria-selected="true"] {
+  color: var(--paper-50);
+  background: var(--ink-700);
+  border-color: color-mix(in srgb, var(--accent-calm) 60%, transparent);
+}
+
+.hero__account-tabs [role="tab"]:focus-visible {
+  outline: 2px solid var(--accent-calm);
+  outline-offset: 2px;
+}
+
+.hero__account-form {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.hero__account-field {
+  display: grid;
+  gap: var(--space-xxs);
+}
+
+.hero__account-field label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--slate-300);
+}
+
+.hero__account-field input {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--paper-50);
+  background: color-mix(in srgb, var(--ink-900) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 35%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+  width: 100%;
+}
+
+.hero__account-field input::placeholder {
+  color: var(--slate-500);
+}
+
+.hero__account-field input:focus-visible {
+  outline: 2px solid var(--accent-calm);
+  outline-offset: 1px;
+}
+
+.hero__account-field-error {
+  font-size: 0.8125rem;
+  color: var(--alert-amber);
+  margin: 0;
+}
+
+.hero__account-message {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.hero__account-message--error {
+  color: var(--paper-100);
+  border: 1px solid color-mix(in srgb, var(--alert-red) 55%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--alert-red) 14%, transparent);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.hero__account-message--ok {
+  color: var(--paper-100);
+  border: 1px solid color-mix(in srgb, var(--ok-green) 55%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--ok-green) 14%, transparent);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.hero__account-message--neutral {
+  color: var(--slate-300);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 35%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.hero__account-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.hero__account-btn {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--paper-50);
+  background: var(--accent-calm);
+  border: 1px solid var(--accent-calm);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+}
+
+.hero__account-btn:hover {
+  background: color-mix(in srgb, var(--accent-calm) 80%, var(--ink-700));
+}
+
+.hero__account-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hero__account-btn:focus-visible {
+  outline: 2px solid var(--accent-calm);
+  outline-offset: 2px;
+}
+
+.hero__account-btn--secondary {
+  background: var(--ink-700);
+  border-color: color-mix(in srgb, var(--slate-500) 40%, transparent);
+}
+
+.hero__account-btn--secondary:hover {
+  background: color-mix(in srgb, var(--ink-700) 80%, var(--slate-500));
+}
+
 /* Cinematic ASCII footer (DESIGN.md 4, mandatory). */
 .cinematic-footer {
   position: relative;

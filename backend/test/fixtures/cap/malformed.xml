@@ -1,0 +1,11 @@
+<!--
+  Malformed CAP: truncated XML with missing close tags. Exercises the
+  MALFORMED_XML parse error path (caught by the strict validator).
+-->
+<cap version="2.0" xmlns="urn:us:government:fema">
+  <alert>
+    <id>urn:oid:1.1.2.3-456</id>
+    <msgType>Alert</msgType>
+    <info>
+      <language>en-US</language>
+      <headline>Severe weather warning

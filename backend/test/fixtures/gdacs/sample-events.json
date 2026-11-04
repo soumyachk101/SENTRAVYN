@@ -1,0 +1,13 @@
+[
+  {
+    "eventid": 4242,
+    "title": "M 5.1 earthquake - off the Pacific coast",
+    "datetime": "2026-02-12T06:00:00Z",
+    "description": "Magnitude 5.1 earthquake reported near the continental shelf."
+  },
+  {
+    "eventid": 4243,
+    "title": "Flood warning - River Valley",
+    "datetime": "2026-02-12T07:30:00Z"
+  }
+]

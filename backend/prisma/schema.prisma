@@ -10,6 +10,12 @@
 //
 // Identifier strategy: UUIDv7-like UUIDs (see ARCHITECTURE.md section 5).
 // Every entity carries created/updated timestamps and appropriate indexes.
+//
+// Phase 2 adds Session, AdminReviewDecision, User.passwordHash
+// (docs/ROADMAP.md Phase 2; bcryptjs credential hashing).
+//
+// Phase 4 adds PostGIS geography columns via reviewed SQL migrations
+// (ADR-004; 20260214000002_phase4_place_location), not modeled in Prisma.
 
 generator client {
   provider = "prisma-client-js"
@@ -110,12 +116,34 @@ model User {
   email        String   @unique
   displayName  String?
   role         Role     @default(PUBLIC)
+  // Phase 2 credential (bcryptjs hash; docs/ROADMAP.md Phase 2). Nullable so
+  // seeded and reviewer users can exist without a password.
+  passwordHash String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  preferences     UserPreference[]
-  emergencyContacts EmergencyContact[]
-  auditEvents     AuditEvent[]
+  preferences          UserPreference[]
+  emergencyContacts    EmergencyContact[]
+  sessions             Session[]
+  adminReviewDecisions AdminReviewDecision[]
+  auditEvents          AuditEvent[]
+}
+
+// Phase 2 identity sessions. The raw refresh token is never stored; only its
+// sha256 hash (tokenHash) is, so a DB leak does not leak usable credentials.
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // sha256 hex of the refresh token, never the raw token
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model UserPreference {
@@ -167,6 +195,9 @@ model DataProvider {
   attribution   String?
   enabled       Boolean  @default(false)
   freshnessPolicyHours Int?
+  // Last time fixture/sample payloads for this provider were seeded (see
+  // docs/DATA-SOURCES.md fixtures). Nullable: only set when seeding has run.
+  lastSeededAt DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -205,6 +236,10 @@ model RawSourceRecord {
   // One source record can underlie multiple alerts (one-to-many).
   alerts Alert[]
 
+  // ADR-007 replay-detection backstop: no duplicate source record for the same
+  // (provider, source) payload. The plain (providerId, sourceId) index
+  // stays for provider-ordered scans; the unique covers replay checking.
+  @@unique([providerId, sourceId, payloadHash])
   @@index([providerId, sourceId])
   @@index([ingestedAt])
 }
@@ -263,9 +298,9 @@ model Incident {
   title       String
   occurredAt  DateTime?
   affectedRegion String?
-  // Spatial footprint (polygon) is added in Phase 4 as a PostGIS column via
-  // reviewed SQL (ADR-004). Placeholder kept here so the field exists without
-  // a native spatial type.
+  // Areal footprint (polygon) is added in Phase 4 as a PostGIS geography column
+  // by migration 20260214000002 (ADR-004); no backfill - footprints are
+  // provider-sourced only. The column is not modeled in Prisma.
   summary     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -288,8 +323,10 @@ model Place {
   accessibility   String?
   capacityNote    String?
   staleSince      DateTime?
-  // Coordinates are staged as plain doubles for Phase 1. Phase 4 adds the
-  // PostGIS geography(Point,4326) column and migrates these values (ADR-004).
+  // lat/lng remain the authoritative editable coordinates. The PostGIS
+  // geography(Point,4326) column 'location' is backfilled from them by
+  // migration 20260214000002 (ADR-004) and kept in sync by
+  // GeoService.updatePlaceLocation; it is not modeled in Prisma.
   lat             Float?
   lng             Float?
   createdAt       DateTime @default(now())
@@ -395,6 +432,30 @@ model NotificationAttempt {
   error       String?
 
   @@index([notificationId, attempt])
+}
+
+// ---------------------------------------------------------------------------
+// Admin review (Phase 2: human verification and audit of alert/place/shelter
+// state; decision values are stored as plain strings, see AdminReviewDecision)
+// ---------------------------------------------------------------------------
+
+model AdminReviewDecision {
+  id        String @id @default(uuid())
+  // Exactly one of the entity ids below is set, matching the decision target.
+  alertId   String?
+  placeId   String?
+  shelterId String?
+  // REVIEW_APPROVED, REVIEW_REJECTED, SHELTER_VERIFIED or SHELTER_STALE.
+  decision  String
+  rationale String?
+  actorUserId String
+  actor     User   @relation(fields: [actorUserId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([alertId])
+  @@index([placeId])
+  @@index([shelterId])
+  @@index([actorUserId, createdAt])
 }
 
 // ---------------------------------------------------------------------------

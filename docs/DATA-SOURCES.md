@@ -8,9 +8,12 @@ This document is a starting register, not proof that every endpoint is available
 |---|---|---|
 | GDACS | Global disaster event and alert information | https://www.gdacs.org/ |
 | GDACS API | API documentation | https://www.gdacs.org/gdacsapi/swagger/index.html |
+| GDACS API (Phase 3 as-built feed format) | Minimal JSON array of { eventid, title, datetime, description? }; the adapter is a minimal documented contract, see backend/src/integrations/adapters/gdacs.adapter.ts - verify against the current GDACS API before production enablement | https://www.gdacs.org/gdacsapi/swagger/index.html |
 | USGS | Earthquake events and GeoJSON feeds | https://earthquake.usgs.gov/data/ |
 | Copernicus EMS | Emergency mapping and geospatial products | https://mapping.emergency.copernicus.eu/ |
 | Copernicus Data Space | Service/data documentation | https://documentation.dataspace.copernicus.eu/ |
+| CAP (generic) | Common Alerting Protocol 1.2 (OASIS) - parsed by the Phase 3 generic CAP adapter; no specific CAP publisher is registered yet; a publisher must be added with its terms before enablement | https://docs.ogc.org/standard/cap12/cap12.html (verify before launch) |
+| Maps / tiles / geocoding | OpenStreetMap standard raster tiles: dev-time usage, ODbL, attribution mandatory, production-scale usage pending terms review (section 3). Geocoding: provider chosen only when GEOCODING_PROVIDER and key are configured; no geocoding coverage is claimed until then (section 6) | https://www.openstreetmap.org/ |
 | WHO | Public-health emergency guidance | https://www.who.int/health-topics/emergencies |
 | WMO | Meteorological information and coordination | https://wmo.int/ |
 | OCHA | Humanitarian coordination | https://www.unocha.org/ |
@@ -18,6 +21,8 @@ This document is a starting register, not proof that every endpoint is available
 | EM-DAT | Historical disaster research data | https://www.emdat.be/ |
 | OpenStreetMap | Community geographic data and points of interest | https://www.openstreetmap.org/ |
 | India NDMA SACHET | India-specific official alerts | https://sachet.ndma.gov.in/ |
+
+The Phase 2 provider registry keys the Copernicus/EM-DAT family as `copernicus-emdat` (its seed `docUrl` points at the Copernicus Data Space documentation), with Copernicus EMS and EM-DAT tracked in the attribution text.
 
 ## 2. Source policy
 

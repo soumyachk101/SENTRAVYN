@@ -1,0 +1,27 @@
+<!--
+  CAP 1.2 update: exercises msgType update with <inProg> pointing at
+  sample-alert's id, plus duplicate <inProg> values for reference dedupe.
+-->
+<cap version="2.0" xmlns="urn:us:government:fema">
+  <alert>
+    <id>urn:oid:1.1.2.3-456:2</id>
+    <sender>test@alert.test</sender>
+    <issued>2026-09-01T12:15:00+00:00</issued>
+    <status>Actual</status>
+    <msgType>Update</msgType>
+    <scope>Public</scope>
+    <severity>Severe</severity>
+    <urgency>Expected</urgency>
+    <certainty>Likely</certainty>
+    <effective>2026-09-01T12:30:00+00:00</effective>
+    <expires>2026-09-01T18:00:00+00:00</expires>
+    <inProg>urn:oid:1.1.2.3-456</inProg>
+    <inProg>urn:oid:1.1.2.3-456</inProg>
+    <inProg>urn:oid:1.1.2.3-455</inProg>
+    <info>
+      <language>en-US</language>
+      <headline>Severe weather warning updated</headline>
+      <description>Warning details updated for the test region.</description>
+    </info>
+  </alert>
+</cap>

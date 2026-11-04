@@ -5,6 +5,11 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { AuthModule } from './auth/auth.module';
+import { AuditModule } from './audit/audit.module';
+import { ProvidersModule } from './providers/providers.module';
+import { AdminReviewModule } from './admin/admin-review.module';
+import { IngestModule } from './integrations/ingest.module';
 
 @Module({
   imports: [
@@ -20,6 +25,13 @@ import { AlertsModule } from './alerts/alerts.module';
     PrismaModule,
     HealthModule,
     AlertsModule,
+    // Phase 2: trust and identity.
+    AuthModule,
+    AuditModule,
+    ProvidersModule,
+    AdminReviewModule,
+    // Phase 3: provider adapters + ingestion pipeline.
+    IngestModule,
   ],
   controllers: [AppController],
   providers: [AppService],

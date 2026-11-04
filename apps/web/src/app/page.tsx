@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
+import { AuthPanel } from "@/components/account/AuthPanel";
 import { safety } from "@/content/safety";
+
+export const metadata: Metadata = {
+  description:
+    "Sign in to SENTRAVYN: manage your account and your preparedness profile.",
+};
 
 /**
  * Landing page (DESIGN.md 6). Original hero, immediate access to preparedness
@@ -39,6 +46,13 @@ export default function Home() {
           </li>
         ))}
       </ul>
+
+      <section aria-labelledby="account-heading" className="hero__account">
+        <h2 id="account-heading" className="hero__account-heading">
+          Account
+        </h2>
+        <AuthPanel />
+      </section>
 
       <div className="hero__limitations">
         <h2>What SENTRAVYN is not</h2>

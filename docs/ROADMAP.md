@@ -36,6 +36,8 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 - Place verification model.
 - Admin review foundations.
 
+**Phase 2 status:** Implementation has landed for email and password authentication using bcryptjs, JWT access tokens and rotating database sessions; role-based guards over the PUBLIC/REVIEWER/OPERATOR/ADMIN hierarchy; the audit event framework; a provider registry with the fixtures documented in docs/DATA-SOURCES.md; idempotent raw-record provenance; and the admin review queue with its decisions API. Delivery-gate evidence (the gate B/C/E test runs) is pending final validation by the maintainers, so this status does not claim that the Phase 2 gate has passed. Multi-factor authentication per docs/SECURITY.md section 2 is explicitly deferred to the Phase 9 hardening phase and is recorded here as a known limitation, not as an omission. Known limitations from the Phase 2 security review (token-claim role model, no revoke-all-sessions path, audit-action gaps listed in docs/PHASE-2-PLAN.md) are recorded as deferrals and do not block the Phase 2 gate.
+
 **Gate:** Authorisation and audit tests pass.
 
 ## Phase 3 — Alert ingestion
@@ -47,6 +49,8 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 - Freshness and source metadata.
 - Admin review and publication.
 - Durable alert API.
+
+**Phase 3 status:** implementation has landed for the provider adapter framework (GDACS JSON + generic CAP 1.2 XML), quarantine-by-default ingestion, dedup/update/cancel lifecycle over AlertRevision, verbatim RawSourceRecord provenance, provider fetch bookkeeping, and the durable alert detail API (revisions + provenance + provider freshness policy). Scheduled fetching (BullMQ) remains a Phase 6 item. Delivery-gate evidence (fixture/integration/provenance test runs) is pending final validation by the maintainers, so this status does not claim the Phase 3 gate has passed.
 
 **Gate:** Fixtures, integration tests and source provenance verified.
 
@@ -60,6 +64,8 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 - Shelter-specific evidence workflow.
 - Stale/unknown states.
 - Licensed tile and geocoding provider.
+
+**Phase 4 status:** implementation has landed for the PostGIS place layer (geography column + backfill + GIST index via reviewed SQL migrations, ADR-016), the places API (list, detail, radius search with distance-as-calculation envelopes, 5-value verification display labels computed via the shelter policy, ADR-018), the shelter evidence workflow (user-submitted PlaceEvidence is stored and audited under PLACE_EVIDENCE_ADDED and never changes verification state), and the web place-discovery map (MapLibre raster tiles, mandatory attribution, no geolocation, ADR-017). Spatial-correctness and no-false-shelter-claim gate evidence is pending the maintainers' PostGIS-backed test runs; scheduled/geocoding coverage is out of scope and recorded in docs/PHASE-4-PLAN.md. No production tile host or geocoding provider is claimed.
 
 **Gate:** Spatial correctness and no false shelter claims.
 

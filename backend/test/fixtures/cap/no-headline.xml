@@ -1,0 +1,18 @@
+<!--
+  No headline: exercises <info> carrying only an (empty) <description> and
+  no <headline>; parse yields headline '' and validation flags MISSING_HEADLINE.
+-->
+<cap version="2.0" xmlns="urn:us:government:fema">
+  <alert>
+    <id>urn:oid:1.1.2.3-456:nohead</id>
+    <sender>test@alert.test</sender>
+    <issued>2026-09-01T12:00:00+00:00</issued>
+    <status>Actual</status>
+    <msgType>Alert</msgType>
+    <scope>Public</scope>
+    <info>
+      <language>en-US</language>
+      <description></description>
+    </info>
+  </alert>
+</cap>

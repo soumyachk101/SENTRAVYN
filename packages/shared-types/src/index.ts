@@ -104,3 +104,256 @@ export interface PlaceDistance {
 }
 
 export const API_BASE_PATH = '/api/v1' as const;
+
+// ---------------------------------------------------------------------------
+// Phase 2: identity, provider registry, audit trail and admin review.
+// References: SECURITY.md 2 and 6, DATA-SOURCES.md 2, SAFETY-POLICY.md 3.
+// ---------------------------------------------------------------------------
+
+/**
+ * RBAC role of an account.
+ *
+ * MUST stay in sync with the Prisma `Role` enum
+ * (backend/prisma/schema.prisma); backend/test/rbac.spec.ts asserts the
+ * backend's copy matches. This package is dependency-free, so the sync is
+ * a reviewed invariant, not a compile-time one.
+ */
+export type Role = 'PUBLIC' | 'REVIEWER' | 'OPERATOR' | 'ADMIN';
+
+/**
+ * Public account shape returned by the auth endpoints. Never contains
+ * credential material (backend/src/auth/auth.service.ts).
+ */
+export interface PublicUser {
+  id: string;
+  email: string;
+  role: Role;
+  displayName: string | null;
+}
+
+/** Token pair plus the public user, returned by login and refresh. */
+export interface AuthTokens {
+  accessToken: string;
+  /** Opaque refresh token; only its hash is stored server-side. */
+  refreshToken: string;
+  user: PublicUser;
+}
+
+/**
+ * Body for POST /auth/register. The API lowercases the email and creates a
+ * PUBLIC account; password is 12-128 chars, displayName up to 120 chars.
+ */
+export interface AuthRegisterInput {
+  email: string;
+  displayName?: string;
+  password: string;
+}
+
+/** Registry row returned by GET /providers; no credential material. */
+export interface ProviderView {
+  key: string;
+  name: string;
+  docUrl: string | null;
+  category: string;
+  license: string | null;
+  attribution: string | null;
+  enabled: boolean;
+  freshnessPolicyHours: number | null;
+  /** ISO 8601 timestamp of the last seed, null when never seeded. */
+  lastSeededAt: string | null;
+}
+
+/**
+ * Body for POST /providers and for seed rows
+ * (backend/src/providers/providers.dto.ts). The key is the upsert
+ * identity: an existing provider with the same key is updated in place.
+ */
+export interface ProviderUpsertInput {
+  /**
+   * Stable provider identifier, 2-63 chars, lowercase kebab-case:
+   * /^[a-z0-9][a-z0-9-]{1,62}$/.
+   */
+  key: string;
+  /** Display name, 2-200 chars. */
+  name: string;
+  /** Official documentation URL. */
+  docUrl: string;
+  /** Optional category, up to 100 chars (API default: 'alerts'). */
+  category?: string;
+  /** Optional license note, up to 500 chars. */
+  license?: string;
+  /** Optional attribution note, up to 500 chars. */
+  attribution?: string;
+  /** Optional enablement flag (API default: false; re-seeding never flips it). */
+  enabled?: boolean;
+  /** Maximum data age in whole hours before stale, 1-240 (SAFETY-POLICY.md 8). */
+  freshnessPolicyHours?: number;
+}
+
+/** Result of POST /providers/seed. */
+export interface SeedResult {
+  /** Provider keys upserted in this run, in seed order. */
+  seededKeys: string[];
+  /** ISO 8601 timestamp applied to every seeded row. */
+  lastSeededAt: string;
+}
+
+/**
+ * One row of the admin audit trail (GET /admin/audit, SECURITY.md 6).
+ * Actions come from a closed canonical set: ALERT_PUBLISHED, ALERT_UPDATED,
+ * ALERT_CANCELLED, SHELTER_VERIFIED, SHELTER_REJECTED, PROVIDER_CHANGED,
+ * USER_ROLE_CHANGED, SESSION_REVOKED.
+ */
+export interface AuditEventView {
+  id: string;
+  /** null for system-driven actions (e.g. provider ingestion). */
+  actorUserId: string | null;
+  action: string;
+  entity: string;
+  entityId: string | null;
+  /** Free-text detail, capped at 2000 chars by the API; preserved verbatim. */
+  detail: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+}
+
+/** Kinds of the admin review queue (GET /admin/review/queue). */
+export type ReviewQueueKind = 'alerts' | 'places';
+
+/** Kinds of a review decision target (POST /admin/review/decide). */
+export type ReviewTargetKind = 'alert' | 'place' | 'shelter';
+
+/** Closed set of review decision outcomes (SAFETY-POLICY.md 3). */
+export type ReviewDecision =
+  | 'REVIEW_APPROVED'
+  | 'REVIEW_REJECTED'
+  | 'SHELTER_VERIFIED'
+  | 'SHELTER_STALE';
+
+/**
+ * Body for POST /admin/review/decide.
+ *
+ * SHELTER_VERIFIED additionally requires `authority` and an ISO 8601
+ * `verificationDate`; the API rejects the decision before any state change
+ * (shelter-policy.ts, Gate E) - a shelter is never verified on proximity
+ * alone.
+ */
+export interface ReviewDecisionInput {
+  target: {
+    kind: ReviewTargetKind;
+    /** Target id, up to 64 chars. */
+    id: string;
+  };
+  decision: ReviewDecision;
+  /** Optional rationale, up to 2000 chars. */
+  rationale?: string;
+  /** Verifying authority, up to 300 chars; required for SHELTER_VERIFIED. */
+  authority?: string;
+  /** ISO 8601 date; required for SHELTER_VERIFIED. */
+  verificationDate?: string;
+}
+
+/** Recorded outcome of a review decision, with the audit action it raised. */
+export interface ReviewDecisionResult {
+  decisionId: string;
+  decision: ReviewDecision;
+  targetKind: string;
+  targetId: string;
+  /** Canonical audit action recorded for this decision (SECURITY.md 6). */
+  auditAction: string;
+}
+
+/**
+ * Alert review queue item: a QUARANTINED or RECEIVED alert carrying
+ * source-record provenance (ADR-007) and the source provider key, null
+ * when unresolvable.
+ */
+export interface AlertQueueItem {
+  alert: {
+    id: string;
+    externalRef: string | null;
+    status: string;
+    headline: string;
+    issuer: string | null;
+    issuedAt: string | null;
+    createdAt: string;
+  };
+  /** RawSourceRecord provenance, null when the alert has no source record. */
+  provenance: {
+    sourceUrl: string | null;
+    payloadHash: string | null;
+    fetchedAt: string | null;
+  } | null;
+  /** Source DataProvider key, null when unresolvable. */
+  providerKey: string | null;
+}
+
+/**
+ * Place review queue item: a shelter profile that is not VERIFIED, joined
+ * to its place. The queue organises human review; it never asserts safety.
+ */
+export interface PlaceQueueItem {
+  place: {
+    id: string;
+    name: string;
+    kind: string;
+    verification: string;
+  };
+  shelter: {
+    id: string;
+    verification: string;
+    inspectAuthority: string | null;
+    inspectionDate: string | null;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3: durable alert detail (GET /alerts/:id).
+// ADR-005 (alert revision history) + ADR-007 (immutable source-record
+// provenance); SAFETY-POLICY.md 8 (explicit freshness, never stale-as-live).
+// ---------------------------------------------------------------------------
+
+/** One alert revision (ADR-005 update/cancel history). */
+export interface AlertRevisionView {
+  revision: number;
+  status: string;
+  body: string | null;
+  /** ISO 8601 timestamp. */
+  createdAt: string;
+}
+
+/**
+ * Source provenance of an alert (ADR-007). `providerKey` is null when the
+ * underlying DataProvider row was deleted; the nested `provider` carries the
+ * registry row's display fields, or null in that case.
+ */
+export interface AlertProvenanceView {
+  sourceRecordId: string;
+  sourceUrl: string | null;
+  payloadHash: string;
+  /** ISO 8601 timestamp. */
+  fetchedAt: string;
+  providerKey: string | null;
+  provider: {
+    name: string;
+    docUrl: string | null;
+    license: string | null;
+    attribution: string | null;
+    enabled: boolean;
+    freshnessPolicyHours: number | null;
+  } | null;
+}
+
+/**
+ * Single-alert detail payload (GET /alerts/:id): the alert itself, its
+ * revision history in ascending revision order and its source provenance.
+ * Mirrors backend/src/alerts/alerts.service.ts (AlertDetail); freshness uses
+ * the source provider's freshnessPolicyHours, falling back to the default
+ * when unresolvable (SAFETY-POLICY.md 8).
+ */
+export interface AlertDetail {
+  alert: Alert;
+  revisions: AlertRevisionView[];
+  /** null when the alert has no source record. */
+  provenance: AlertProvenanceView | null;
+}

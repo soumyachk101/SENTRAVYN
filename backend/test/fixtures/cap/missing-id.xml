@@ -1,0 +1,14 @@
+<!--
+  Missing <id>: CAP root and alert present but no <id> element. Exercises
+  the MISSING_ID parse error path.
+-->
+<cap version="2.0" xmlns="urn:us:government:fema">
+  <alert>
+    <msgType>Alert</msgType>
+    <scope>Public</scope>
+    <info>
+      <language>en-US</language>
+      <headline>No id here</headline>
+    </info>
+  </alert>
+</cap>
