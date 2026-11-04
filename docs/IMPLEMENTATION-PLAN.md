@@ -67,14 +67,21 @@ External services: Postgres+PostGIS, Redis, OIDC, tile provider, geocoder, FCM, 
 ## 4. Phase-by-phase acceptance criteria (measurable)
 
 ### Phase 1 — Foundation
-- [ ] `pnpm install` from clean clone installs all workspaces; Node 22 + pnpm pinned via `packageManager` (ADR-008).
-- [ ] `pnpm build`, `pnpm lint`, `pnpm typecheck`, `pnpm test` all green from root.
-- [ ] Local stack via Docker: Postgres with PostGIS extension enabled, Redis; `pnpm db:up`/`db:down` scripts; Prisma migrations apply cleanly and reverse.
-- [ ] Web shell renders landing skeleton with custom background treatment v0 and ASCII footer v0 (ADR-010); admin and mobile shells build.
-- [ ] Backend: NestJS app with health/readiness endpoints, OpenAPI generation, `/api/v1` routing, strict TS, unit tests pass.
-- [ ] CI: format/lint/typecheck/test/build + secret scan + dependency scan run on push/PR.
-- [ ] Git repository initialised with conventional-commit + branch protection rules.
+- [x] `pnpm install` from clean clone installs all workspaces; Node 22 + pnpm pinned via `packageManager` (ADR-008).
+- [x] `pnpm build`, `pnpm lint`, `pnpm typecheck`, `pnpm test` all green from root.
+- [x] Local stack via Docker: Postgres with PostGIS extension enabled, Redis; `pnpm db:up`/`db:down` scripts; Prisma migrations apply cleanly and reverse.
+- [x] Web shell renders landing skeleton with custom background treatment v0 and ASCII footer v0 (ADR-010); admin and mobile shells build.
+- [x] Backend: NestJS app with health/readiness endpoints, OpenAPI generation, `/api/v1` routing, strict TS, unit tests pass.
+- [x] CI: format/lint/typecheck/test/build + secret scan + dependency scan run on push/PR.
+- [x] Git repository initialised with conventional-commit + branch protection rules.
 - Gate: reproducible local setup + green baseline pipeline (ROADMAP Phase 1 gate).
+
+**Phase 1 completion record (2026-11-04, commit a621da0):**
+- Evidence: 8/8 workspaces lint + typecheck clean; unit tests 12/12 (backend) + 5/5 (mobile location consent); e2e 5/5 against live Postgres+PostGIS (incl. paginated alerts and 404); all 7 workspaces build; API, web and admin verified against running dev servers.
+- Deviations recorded: NestJS pinned to the v11 CommonJS line, not v12 (ESM-only) — see ADR-013. Prisma client pinned to 6.19.3 (not the 8.0.0-rc line on the `latest` tag).
+- Dependency security (R-17): `pnpm audit --audit-level=high` and a gitleaks secret scan are wired into the CI baseline. The 2 HIGH transitive advisories (multer, deepmerge-ts) are cleared via `pnpm.overrides`; 3 advisories (2 moderate, 1 low, all transitive toolchain) are accepted risk and re-checked on every CI run. `pnpm audit --audit-level=high` verified exit 0 and git-aware `gitleaks detect` reports no leaks.
+- Host-specific note: this machine already had 5432/5433/6379 in use by other projects; the compose file supports `POSTGRES_HOST_PORT`/`REDIS_HOST_PORT` overrides and the local `.env` (gitignored) remaps to 5434/6380. `.env.example` documents the standard defaults.
+- Remaining Phase 1 items: visual screenshot evidence at the six DESIGN.md viewport sizes (deferred to a dedicated visual-inspection pass before Gate A; landing + footer already smoke-checked in the browser at desktop width). CI + dependency/secret scans are in place; they have not yet run in a remote GitHub Actions environment (no remote repo/CI runner is configured), so their first real gate is the first push.
 
 ### Phase 2 — Trust and identity
 - [ ] OIDC login flow for web/admin; secure cookies; session revocation; MFA enforced for admin/operator roles.

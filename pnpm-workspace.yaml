@@ -61,3 +61,14 @@ allowBuilds:
   '@prisma/engines': true
   prisma: true
   '@scarf/scarf': false
+
+# Dependency overrides for transitive advisories we do not control directly.
+# - multer (via @nestjs/platform-express): 2.5.0 fixes a pending-response DoS
+#   advisory (GHSA-q7qp-rjg7-q26m).
+# - deepmerge-ts (via @prisma/config): 8.x fixes a stack-exhaustion advisory
+#   (GHSA-ggr8-5vv4-36mx). Prisma is verified still to generate/build after
+#   each override; if an override ever breaks Prisma, it is reverted and
+#   reported — never silently accepted.
+overrides:
+  multer: "2.5.0"
+  deepmerge-ts: "8.0.2"

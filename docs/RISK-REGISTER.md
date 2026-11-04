@@ -53,9 +53,12 @@ Threats: fake alert injection; provider/API compromise; admin account takeover; 
 | R-14 | Single-team monolith hides scaling hotspots until surge events | 2 | 3 | Medium | ADR-003 predefined split seams; Phase 9 load/stress testing | Engineering |
 | R-15 | Design rework late if footer/background system starts at Phase 8 | 2 | 3 | Medium | ADR-010: background system + ASCII footer begin in Phase 1 web shell; Phase 8 completes all surfaces | Design + Engineering |
 | R-16 | Mobile builds (iOS/Android) blocked by signing/store prerequisites | 3 | 2 | Medium | Phase 7 gate includes permission/privacy review and device test; EAS/Expo config early in Phase 7 | Engineering |
+| R-17 | Transitive dependency advisories reach HIGH/CRITICAL severity | 2 | 3 | Medium | Phase 1: `pnpm audit --audit-level=high` fails the build on any HIGH/CRITICAL in the resolved tree. The 2 HIGH advisories (multer DoS, deepmerge-ts stack-exhaustion) are cleared via `pnpm.overrides` (multer 2.5.0, deepmerge-ts 8.0.2) with Prisma verified still to generate/build. 3 remaining advisories (2 moderate, 1 low: minimatch, glob, deepmerge) are transitive toolchain issues (jest/eslint/nest-cli) with no direct bump that clears them without moving major toolchain lines; they are accepted risk, re-checked on every `pnpm audit` and at each major toolchain bump. | Engineering + Security |
 
 ## 5. Watch items (revisit triggers)
 
 - GSC/Bing/IndexNow: remains `NOT CONFIGURED` until owner domain + keys exist (`docs/SEARCH-CONSOLE-SETUP.md`).
 - OSM usage: do not scale against public Nominatim/tile servers (DATA-SOURCES §3) — revisit when OQ-2 answered.
 - Nuclear-content policy: any new nuclear-related feature or artwork change requires SAFETY-POLICY §4 re-review.
+- Dependency overrides (R-17): re-run `pnpm audit` after any major toolchain bump (jest, eslint, prisma, Nest) to clear the 3 accepted advisories or update the overrides; the CI gate already fails on HIGH/CRITICAL.
+- NestJS version: backend is pinned to the v11 CommonJS line (ADR-013). Revisit migrating to NestJS v12 (ESM-only) as a deliberate later change; until then the backend stays CJS.
