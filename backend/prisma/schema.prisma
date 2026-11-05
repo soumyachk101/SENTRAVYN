@@ -124,6 +124,8 @@ model User {
 
   preferences          UserPreference[]
   emergencyContacts    EmergencyContact[]
+  locationShares       LocationShare[]
+  householdPlan        HouseholdPlan?
   sessions             Session[]
   adminReviewDecisions AdminReviewDecision[]
   auditEvents          AuditEvent[]
@@ -179,6 +181,67 @@ model EmergencyContact {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Consent-based location sharing (Phase 7, SECURITY.md 5).
+//
+// A LocationShare is a user-granted, bounded right for OTHERS (the named
+// recipient) to see this user's location for a stated purpose until expiry.
+// The row stores only what is needed: purpose, recipient, a coarse last-known
+// position (round-down to ~1 km, never a precise coordinate) and a precise
+// flag that records whether precise coordinates are permitted. Precise
+// coordinates are never persisted to analytics or logs (SECURITY.md 5:
+// minimize retention; ask at the moment of need; revocable). `active` is a
+// read-time computed flag in the API, not a stored column: a share is active
+// when not revoked and now < expiresAt.
+// ---------------------------------------------------------------------------
+
+model LocationShare {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Who may see the location (a person's name or handle), and why.
+  recipient String
+  purpose   String
+  // Whether this share permits precise coordinates (explicit consent flag).
+  // Coarse-only shares may store a coarse last-known position.
+  preciseConsent Boolean @default(false)
+  // Coarse last-known position (rounded by the client; ~km level). NULL
+  // until the user actually shares a position. Never a precise coordinate.
+  lastKnownLat Float?
+  lastKnownLng Float?
+  lastKnownAt  DateTime?
+  consented   Boolean  @default(true) // created only with explicit consent
+  expiresAt   DateTime // bounded; a share is never open-ended
+  revoked     Boolean  @default(false)
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Household plan (Phase 7). Preparedness data the user maintains about their
+// own household: meeting point, kit checklist and pet considerations. The
+// checklist is a JSON array of { label, done } items, validated at the API
+// boundary. Stored as a single JSONB column (user-private, small, free-form)
+// rather than a second table: it is the user's own scratch data, never a
+// live operational claim, so it has no review/verification lifecycle.
+// ---------------------------------------------------------------------------
+
+model HouseholdPlan {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meetingPoint     String?
+  meetingPointNote String?
+  // JSON: [{ label: string, done: boolean }]
+  kitChecklist Json   @default("[]")
+  petConsiderations String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
 }
 
 // ---------------------------------------------------------------------------

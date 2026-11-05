@@ -357,3 +357,190 @@ export interface AlertDetail {
   /** null when the alert has no source record. */
   provenance: AlertProvenanceView | null;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 4: places API (public). Mirrors backend/src/geospatial/geo.service.ts
+// (PlaceGeoRow) and backend/src/shelters/shelter-policy.ts (VerificationLabel)
+// so surfaces can assert on one contract; `kind` is a free string on the
+// backend (schema comment: "hospital", "shelter", "fire_station", ...).
+// ---------------------------------------------------------------------------
+
+/**
+ * Read-path display label for a place (ADR-018). Computed on read, never
+ * stored: a stored VERIFIED place downgrades to STALE / EXPIRED / INCOMPLETE
+ * when its shelter evidence is no longer current, so a lapsed shelter can
+ * never be shown as VERIFIED. Surfaces must render the label as TEXT, not
+ * colour alone (DESIGN.md 3).
+ */
+export type VerificationLabel =
+  | 'UNVERIFIED'
+  | 'REVIEWED'
+  | 'VERIFIED'
+  | 'STALE'
+  | 'EXPIRED'
+  | 'INCOMPLETE';
+
+/**
+ * One place row from GET /places (radius and list modes share this shape;
+ * in radius mode distanceMeters is always present; in list mode it is absent).
+ * Distance is a calculation, never a safety recommendation (PRODUCT-SPEC 5).
+ */
+export interface PlaceGeoRow {
+  id: string;
+  name: string;
+  kind: string;
+  /** Stored place verification: UNVERIFIED / REVIEWED / VERIFIED. */
+  verification: string;
+  operationalStatus: string | null;
+  operationalEvidence: string | null;
+  /** ISO 8601; set when the place is flagged stale. */
+  staleSince: string | null;
+  lat: number | null;
+  lng: number | null;
+  /** Radius mode only: geodetic metres from the query centre. */
+  distanceMeters?: number | null;
+  /** The computed display label the surface must show. */
+  verificationLabel: VerificationLabel;
+  /** Human-readable reasons the label is not plain VERIFIED (empty when it is). */
+  verificationLabelReasons: string[];
+}
+
+/** Envelope for GET /places radius mode: { items, pagination }. */
+export interface PlacesRadiusResult {
+  items: PlaceGeoRow[];
+  pagination: { total: number };
+}
+
+/** One shelter profile inside a place detail (verification, inspection, expiry). */
+export interface ShelterProfileView {
+  id: string;
+  classification: string | null;
+  hazardApplicability: string[];
+  capacity: string | null;
+  inspectAuthority: string | null;
+  inspectionDate: string | null;
+  /** UNVERIFIED / EVIDENCE_REVIEW / VERIFIED. */
+  verification: string;
+  expiresAt: string | null;
+}
+
+/** One piece of evidence a user submitted about a place (never safety proof). */
+export interface PlaceEvidenceView {
+  id: string;
+  claim: string;
+  sourceUrl: string | null;
+  recordedByUserId: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+}
+
+/**
+ * Full place detail: GET /places/:id. Carries the place row, its shelter
+ * profiles and evidence, and the computed verification label plus the
+ * human-readable reasons it is (or is not) plain VERIFIED.
+ */
+export interface PlaceDetail {
+  place: PlaceGeoRow;
+  shelters: ShelterProfileView[];
+  evidence: PlaceEvidenceView[];
+  /**
+   * The place's computed display label, carried at the top level so a
+   * surface can render the chip without re-deriving it from the row.
+   */
+  verificationLabel: VerificationLabel;
+  verificationLabelReasons: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Phase 7: family safety (consent-based, SECURITY.md 5). These view shapes
+// mirror backend/src/family-safety/family-safety.service.ts; `active` is a
+// computed read-time flag, never a stored value.
+// ---------------------------------------------------------------------------
+
+/** GET/POST/PATCH /family/contacts — the user's own emergency contacts. */
+export interface EmergencyContactView {
+  id: string;
+  name: string;
+  relation: string | null;
+  phone: string | null;
+  /** Explicit consent for SENTRAVYN to contact/reference this person. */
+  consent: boolean;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
+
+/** Input for POST /family/contacts. */
+export interface EmergencyContactInput {
+  name: string;
+  relation?: string;
+  phone?: string;
+  consent?: boolean;
+}
+
+/** Partial update for PATCH /family/contacts/:id (owner-scoped). */
+export type EmergencyContactPatch = Partial<EmergencyContactInput>;
+
+/** A consent-based location share (Phase 7, SECURITY.md 5). */
+export interface LocationShareView {
+  id: string;
+  /** Who may see the location. */
+  recipient: string;
+  /** Why (explicit consent scope). */
+  purpose: string;
+  /** Whether precise coordinates are allowed for this share. */
+  preciseConsent: boolean;
+  /** Coarse last-known position (~km), never precise; null when not shared yet. */
+  lastKnownLat: number | null;
+  lastKnownLng: number | null;
+  /** ISO 8601. */
+  lastKnownAt: string | null;
+  /** ISO 8601; the share is never open-ended. */
+  expiresAt: string;
+  revoked: boolean;
+  /** ISO 8601. */
+  revokedAt: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+  /** Computed at read time: consented, not revoked, not expired. Never stored. */
+  active: boolean;
+}
+
+/**
+ * Input for POST /family/location-shares. Explicit consent: recipient +
+ * purpose + a bounded expiresAt are required. A coarse position may be
+ * recorded; precise coordinates are never accepted (server rounds to ~km).
+ */
+export interface LocationShareInput {
+  recipient: string;
+  purpose: string;
+  /** ISO 8601; must outlive creation. */
+  expiresAt: string;
+  preciseConsent?: boolean;
+  /** Coarse decimal degree strings, ~km precision. */
+  lastKnownLat?: string;
+  lastKnownLng?: string;
+}
+
+/** The user's household preparedness plan (their own data, not live claims). */
+export interface HouseholdPlanView {
+  id: string;
+  meetingPoint: string | null;
+  meetingPointNote: string | null;
+  kitChecklist: { label: string; done: boolean }[];
+  petConsiderations: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
+
+/** Input for PUT /family/household-plan (owner-scoped upsert). */
+export interface HouseholdPlanInput {
+  meetingPoint?: string;
+  meetingPointNote?: string;
+  kitChecklist?: { label: string; done: boolean }[];
+  petConsiderations?: string;
+}
+
