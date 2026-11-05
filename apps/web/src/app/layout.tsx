@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Background from "@/components/Background";
 import { CinematicFooter } from "@/components/CinematicFooter";
+import { PwaRegistrar } from "@/components/PwaRegistrar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <PwaRegistrar />
         <Background />
         <div className="app-shell">
           <a className="skip-link" href="#main">

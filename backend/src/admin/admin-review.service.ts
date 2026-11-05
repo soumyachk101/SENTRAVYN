@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
 import { evaluateShelterPolicy } from '../shelters/shelter-policy';
+import type { PublishService } from '../notifications/publish.service';
 import type {
   AdminReviewDecisionDto,
   QueueKind,
@@ -90,9 +92,16 @@ const QUEUE_TAKE = 200;
 
 @Injectable()
 export class AdminReviewService {
+  private readonly logger = new Logger(AdminReviewService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    // Phase 6: publication trigger. Optional so existing constructions
+    // (unit tests, pre-Phase-6 deployments) keep working; when present,
+    // REVIEW_APPROVED enqueues the durable notification fan-out after the
+    // alert row is flipped to PUBLISHED.
+    private readonly publish?: PublishService,
   ) {}
 
   /**
@@ -252,6 +261,22 @@ export class AdminReviewService {
           verificationDate: dto.verificationDate ?? null,
         }),
       );
+
+      // Phase 6: the alert is now PUBLISHED — trigger the durable
+      // notification fan-out (idempotent enqueue + channel rows + live
+      // socket broadcast). Failures inside publish() are logged there and
+      // must not fail the review decision: the PUBLISHED state is already
+      // committed and the cursor sync recovers any missed push.
+      if (this.publish) {
+        try {
+          await this.publish.publish(id, 'PUBLISHED');
+        } catch (err) {
+          this.logger.error(
+            `notification publish for approved alert ${id} failed: ${String(err)}`,
+          );
+        }
+      }
+
       return {
         // The decision row is the second op of the transaction.
         decisionId: transactionResult[1].id,
