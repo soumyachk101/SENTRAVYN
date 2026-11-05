@@ -78,6 +78,30 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 - Localization foundation.
 - Content freshness and retirement.
 
+**Phase 5 status:** implementation has landed for the reviewed safety-guides
+workflow. The `SafetyGuide` / `GuideRevision` schema (ADR-009) now has a
+guides module (`backend/src/guides/`) exposing a public surface
+(`GET /guides`, `GET /guides/:id` — APPROVED/PUBLISHED only, with a
+`lastReviewedAt`-based `stale` flag and per-view freshness label) and a
+privileged surface (`/admin/guides`: create, revise, review, approve,
+publish, retire, reopen) mirroring the admin-review RBAC pattern. New
+revision writes bump `version` and append a `GuideRevision` row in one
+transaction; approval/publish are completeness-gated (reviewer + authority +
+non-empty references + hazardType). Privileged mutations are audited under the
+canonical `GUIDE_*` actions (`AUDIT_ACTIONS`), and the review policy,
+responsible role, versioning and retirement rules are documented in
+`docs/SAFETY-GUIDES.md`. The public web app has a guide index and detail
+page (`/guides`, `/guides/[id]`, hazard tabs, loading/empty/error/offline/
+stale states), the admin console has a role-gated `/guides` approval
+workflow with the guide audit trail, and the localization foundation
+(`@sentravyn/localization`, `en` + `es`) drives the UI chrome while the
+`language` column drives content. Delivery-gate evidence: unit tests
+(`backend/test/guides.spec.ts`, `audit.spec.ts`), DB-gated e2e
+(`backend/test/e2e/guides.e2e-spec.ts`), api-client and localization unit
+tests — initial published guide content is still pending a named safety
+reviewer, so the Phase 5 gate (safety-reviewer approval of the content
+workflow and initial published material) has not been claimed.
+
 **Gate:** Safety reviewer approves content workflow and initial published material.
 
 ## Phase 6 — Notifications and offline
