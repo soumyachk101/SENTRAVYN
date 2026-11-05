@@ -13,6 +13,7 @@ import {
   plexMono700,
   plexMonoLatinExt,
 } from "@/lib/fonts";
+import { PwaRegistrar } from "@/components/PwaRegistrar";
 import "./globals.css";
 
 // The canonical origin for absolute-URL metadata (canonical/OG tags). A real
@@ -73,6 +74,7 @@ export default function RootLayout({
         (hero, map, footer ASCII) inherits them.
       */}
       <body className={fontClasses} style={FONT_VARS as CSSProperties}>
+        <PwaRegistrar />
         <Background />
         <div className="app-shell">
           <a className="skip-link" href="#main">

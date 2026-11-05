@@ -62,6 +62,10 @@ allowBuilds:
   prisma: true
   '@scarf/scarf': false
   esbuild: true
+  # msgpackr-extract (BullMQ's optional native binding) is intentionally not
+  # built: msgpackr falls back to its pure-JS codec, and running a build
+  # script for an optional accelerator is not worth a supply-chain step.
+  msgpackr-extract: false
 
 # Dependency overrides for transitive advisories we do not control directly.
 # - multer (via @nestjs/platform-express): 2.5.0 fixes a pending-response DoS

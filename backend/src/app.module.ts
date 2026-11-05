@@ -14,6 +14,7 @@ import { GeoModule } from './geospatial/geo.module';
 import { PlacesModule } from './places/places.module';
 import { FamilySafetyModule } from './family-safety/family-safety.module';
 import { GuidesModule } from './guides/guides.module';
+import { NotificationModule } from './notifications/notification.module';
 
 @Module({
   imports: [
@@ -43,6 +44,10 @@ import { GuidesModule } from './guides/guides.module';
     FamilySafetyModule,
     // Phase 5: reviewed safety-guides workflow (public + privileged).
     GuidesModule,
+    // Phase 6: notifications + live updates + reconnect sync. Global
+    // module: every alert publication path (admin-review, ingest) fans
+    // out through PublishService without importing this module by name.
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

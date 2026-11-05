@@ -4,6 +4,7 @@ node_modules/
 .next/
 .expo/
 dist/
+dist-worker/
 build/
 coverage/
 .claude/

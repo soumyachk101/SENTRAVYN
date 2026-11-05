@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist-worker",
+    "noEmit": false
+  },
+  "include": ["worker/worker.main.ts", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "test", "dist", "dist-worker", "**/*.spec.ts"]
+}

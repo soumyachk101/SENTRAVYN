@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { DataProvider } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -6,6 +6,7 @@ import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
 import { upsertRawRecord } from '../common/provenance/provenance';
 import type { IngestOutcome, IngestOptions, NormalizedAlert, ProviderKey } from './types';
 import { ProviderAdapterRegistry } from './adapters/registry';
+import { PublishService } from '../notifications/publish.service';
 
 /**
  * DB-backed ingest pipeline (ADR-005 persisted-before-published; ADR-007
@@ -21,10 +22,16 @@ import { ProviderAdapterRegistry } from './adapters/registry';
  */
 @Injectable()
 export class IngestService {
+  private readonly logger = new Logger(IngestService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly registry: ProviderAdapterRegistry,
+    // Phase 6: publication trigger. Optional so pre-Phase-6 constructions
+    // (unit tests) keep working; when present, UPDATED transitions enqueue
+    // the durable notification fan-out.
+    @Optional() private readonly publish?: PublishService,
   ) {}
 
   async ingest(
@@ -263,6 +270,23 @@ export class IngestService {
         existing.id,
         JSON.stringify({ action: 'update', externalRef: event.externalRef }),
       );
+
+      // Phase 6: an UPDATED alert is live content — trigger the durable
+      // notification fan-out AFTER the canonical alert + revision are
+      // persisted (ARCHITECTURE.md 6: persist first, enqueue second).
+      // A plain 'alert' re-ingest landing on VALIDATED is not a live
+      // update, so it is not published. Failures are logged here and never
+      // fail the ingest: the durable rows are written inside publish() and
+      // the cursor sync recovers anything the live fan-out missed.
+      if (status === 'UPDATED' && this.publish) {
+        try {
+          await this.publish.publish(existing.id, 'UPDATED');
+        } catch (err) {
+          this.logger.error(
+            `notification publish for updated alert ${existing.id} failed: ${String(err)}`,
+          );
+        }
+      }
     }
 
     await this.prisma.providerFetch.create({
