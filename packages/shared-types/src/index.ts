@@ -361,6 +361,242 @@ export interface AlertDetail {
 }
 
 // ---------------------------------------------------------------------------
+// Phase 4: places API (public). Mirrors backend/src/places/places.service.ts
+// (a1) response shapes and backend/src/shelters/shelter-policy.ts
+// (VerificationLabel) so surfaces assert on the real contract; `kind` is a
+// free string on the backend (schema comment: "hospital", "shelter", ...).
+//
+// GET /places has two modes:
+//   - Radius mode (both lat + lng): items are PlaceListItemNear (nearest
+//     first, each with distanceMeters + the distanceIsCalculation disclosure),
+//     and a coverageNote only when the search is empty. No pagination.
+//   - Default mode (no coordinates): items are PlaceListItemListed (the full
+//     record) with a pagination envelope. Distance fields are absent.
+// ---------------------------------------------------------------------------
+
+/**
+ * Read-path display label for a place (ADR-018). Computed on read, never
+ * stored: a stored VERIFIED place downgrades to STALE / EXPIRED / INCOMPLETE
+ * when its shelter evidence is no longer current, so a lapsed shelter can
+ * never be shown as VERIFIED. Surfaces must render the label as TEXT, not
+ * colour alone (DESIGN.md 3).
+ */
+export type VerificationLabel =
+  | 'UNVERIFIED'
+  | 'REVIEWED'
+  | 'VERIFIED'
+  | 'STALE'
+  | 'EXPIRED'
+  | 'INCOMPLETE';
+
+/**
+ * The fields common to every place row, in either /places mode. `kind` is a
+ * free string; trust attributes are passed through verbatim so surfaces
+ * render verification and staleness (a listing is never a "safe" claim).
+ */
+export interface PlaceListItemBase {
+  id: string;
+  name: string;
+  kind: string;
+  /** Stored place verification: UNVERIFIED / REVIEWED / VERIFIED. */
+  verification: string;
+  operationalStatus: string | null;
+  operationalEvidence: string | null;
+  /** ISO 8601; set when the place is flagged stale. */
+  staleSince: string | null;
+  lat: number | null;
+  lng: number | null;
+  /** The computed display label the surface must show. */
+  verificationLabel: VerificationLabel;
+  /** Human-readable reasons the label is not plain VERIFIED (empty when it is). */
+  verificationLabelReasons: string[];
+}
+
+/** A radius-mode row: geodetic distance + the mandatory calculation disclosure. */
+export interface PlaceListItemNear extends PlaceListItemBase {
+  /** Geodetic metres from the search centre (geography type, ADR-004). */
+  distanceMeters: number;
+  /** Literal true: distance is a derived calculation, never a recommendation. */
+  distanceIsCalculation: true;
+}
+
+/** A default-mode row: the full place record (no distance fields). */
+export interface PlaceListItemListed extends PlaceListItemBase {
+  sourceAuthority: string | null;
+  accessibility: string | null;
+  capacityNote: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
+
+/** One /places row: either a radius row or a full-record row. */
+export type PlaceListItem = PlaceListItemNear | PlaceListItemListed;
+
+/**
+ * The /places envelope. Radius mode omits `pagination` and carries
+ * `coverageNote` when empty; default mode carries `pagination` and omits
+ * `coverageNote`. Distance is a calculation, never a safety recommendation
+ * (PRODUCT-SPEC.md 5).
+ */
+export interface PlacesListResponse {
+  items: PlaceListItem[];
+  /** Default mode only: { page, pageSize, total }. Absent in radius mode. */
+  pagination?: { page: number; pageSize: number; total: number };
+  /** The fixed coverage disclosure; present only when a radius search is empty. */
+  coverageNote?: string;
+}
+
+/**
+ * A convenience row type for surfaces that consume radius-mode results: the
+ * base fields plus an optional distance. (The API radius row is
+ * PlaceListItemNear, which is assignable to this.)
+ */
+export interface PlaceGeoRow extends PlaceListItemBase {
+  distanceMeters?: number | null;
+  distanceIsCalculation?: boolean;
+}
+
+/** One shelter profile inside a place detail (verification, inspection, expiry). */
+export interface ShelterProfileView {
+  id: string;
+  classification: string | null;
+  hazardApplicability: string[];
+  capacity: string | null;
+  inspectAuthority: string | null;
+  /** ISO 8601. */
+  inspectionDate: string | null;
+  /** UNVERIFIED / EVIDENCE_REVIEW / VERIFIED. */
+  verification: string;
+  /** ISO 8601. */
+  expiresAt: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
+
+/** One user-submitted evidence view (untrusted user data; asserts nothing). */
+export interface PlaceEvidenceView {
+  id: string;
+  claim: string;
+  sourceUrl: string | null;
+  recordedByUserId: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+}
+
+/**
+ * Full place detail: GET /places/:id. Carries the place record (the full
+ * listed shape), its shelter profiles, its user-submitted evidence, and the
+ * computed verification label plus the reasons it is (or is not) VERIFIED.
+ */
+export interface PlaceDetail {
+  place: PlaceListItemListed;
+  /**
+   * The place's computed display label, carried at the top level so a
+   * surface can render the chip without re-deriving it from the record.
+   */
+  verificationLabel: VerificationLabel;
+  verificationLabelReasons: string[];
+  shelterProfiles: ShelterProfileView[];
+  evidence: PlaceEvidenceView[];
+}
+
+// ---------------------------------------------------------------------------
+// Phase 7: family safety (consent-based, SECURITY.md 5). These view shapes
+// mirror backend/src/family-safety/family-safety.service.ts; `active` is a
+// computed read-time flag, never a stored value.
+// ---------------------------------------------------------------------------
+
+/** GET/POST/PATCH /family/contacts — the user's own emergency contacts. */
+export interface EmergencyContactView {
+  id: string;
+  name: string;
+  relation: string | null;
+  phone: string | null;
+  /** Explicit consent for SENTRAVYN to contact/reference this person. */
+  consent: boolean;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
+
+/** Input for POST /family/contacts. */
+export interface EmergencyContactInput {
+  name: string;
+  relation?: string;
+  phone?: string;
+  consent?: boolean;
+}
+
+/** Partial update for PATCH /family/contacts/:id (owner-scoped). */
+export type EmergencyContactPatch = Partial<EmergencyContactInput>;
+
+/** A consent-based location share (Phase 7, SECURITY.md 5). */
+export interface LocationShareView {
+  id: string;
+  /** Who may see the location. */
+  recipient: string;
+  /** Why (explicit consent scope). */
+  purpose: string;
+  /** Whether precise coordinates are allowed for this share. */
+  preciseConsent: boolean;
+  /** Coarse last-known position (~km), never precise; null when not shared yet. */
+  lastKnownLat: number | null;
+  lastKnownLng: number | null;
+  /** ISO 8601. */
+  lastKnownAt: string | null;
+  /** ISO 8601; the share is never open-ended. */
+  expiresAt: string;
+  revoked: boolean;
+  /** ISO 8601. */
+  revokedAt: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+  /** Computed at read time: consented, not revoked, not expired. Never stored. */
+  active: boolean;
+}
+
+/**
+ * Input for POST /family/location-shares. Explicit consent: recipient +
+ * purpose + a bounded expiresAt are required. A coarse position may be
+ * recorded; precise coordinates are never accepted (server rounds to ~km).
+ */
+export interface LocationShareInput {
+  recipient: string;
+  purpose: string;
+  /** ISO 8601; must outlive creation. */
+  expiresAt: string;
+  preciseConsent?: boolean;
+  /** Coarse decimal degree strings, ~km precision. */
+  lastKnownLat?: string;
+  lastKnownLng?: string;
+}
+
+/** The user's household preparedness plan (their own data, not live claims). */
+export interface HouseholdPlanView {
+  id: string;
+  meetingPoint: string | null;
+  meetingPointNote: string | null;
+  kitChecklist: { label: string; done: boolean }[];
+  petConsiderations: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
+
+/** Input for PUT /family/household-plan (owner-scoped upsert). */
+export interface HouseholdPlanInput {
+  meetingPoint?: string;
+  meetingPointNote?: string;
+  kitChecklist?: { label: string; done: boolean }[];
+  petConsiderations?: string;
+}
+
 // Phase 5: reviewed safety-guides workflow.
 // SAFETY-POLICY.md 5, 8, 10; PRODUCT-SPEC.md 5; backend/src/guides.
 // Every guide view carries a computed freshness label (fresh/stale/unknown)

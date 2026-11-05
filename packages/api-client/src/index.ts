@@ -4,22 +4,31 @@ import type {
   AlertQueueItem,
   ApproveGuideInput,
   AuditEventView,
-  AuthTokens,
   AuthRegisterInput,
+  AuthTokens,
   CreateGuideInput,
+  EmergencyContactInput,
+  EmergencyContactPatch,
+  EmergencyContactView,
   GuideDetail,
   GuideListParams,
+  HouseholdPlanInput,
+  HouseholdPlanView,
+  LocationShareInput,
+  LocationShareView,
   Paginated,
   PaginatedGuideView,
+  PlaceDetail,
   PlaceQueueItem,
+  PlacesListResponse,
   ProviderUpsertInput,
   ProviderView,
   PublicUser,
   PublishGuideInput,
+  RetireGuideInput,
   ReviewDecisionInput,
   ReviewDecisionResult,
   ReviewGuideInput,
-  RetireGuideInput,
   ReviewQueueKind,
   SeedResult,
   UpdateGuideInput,
@@ -27,6 +36,12 @@ import type {
 import type { LoginInput } from './auth';
 import { createAuthClient } from './auth';
 import { createAuditClient } from './audit';
+import { createFamilyClient } from './family';
+import {
+  createPlacesClient,
+  type PlacesListParams,
+  type PlacesNearbyParams,
+} from './places';
 import { createGuidesClient } from './guides';
 import { createProvidersClient, type ProvidersSeedInput } from './providers';
 import { createReviewClient } from './review';
@@ -38,6 +53,16 @@ import {
 
 export { ApiError } from './api-error';
 export { createAuthClient, type LoginInput, type AuthClient } from './auth';
+export {
+  createFamilyClient,
+  type FamilyClient,
+} from './family';
+export {
+  createPlacesClient,
+  type PlacesClient,
+  type PlacesListParams,
+  type PlacesNearbyParams,
+} from './places';
 export {
   createProvidersClient,
   type ProvidersSeedInput,
@@ -231,6 +256,115 @@ export class SentravynApiClient {
     return createReviewClient(this.requester).decide(input, accessToken);
   }
 
+  // ------------------------------------------------------------- Phase 4 places
+
+  /**
+   * GET /places (default/list mode, PUBLIC). No token. The paginated
+   * envelope; distance fields are absent in this mode, but every row still
+   * carries the computed verificationLabel.
+   */
+  placesList(params?: PlacesListParams): Promise<PlacesListResponse> {
+    return createPlacesClient(this.requester).list(params);
+  }
+
+  /**
+   * GET /places?lat=&lng= (radius mode, PUBLIC). No geolocation is involved:
+   * the centre is explicit. Each row carries distanceMeters — a calculation,
+   * never a safety recommendation (distanceIsCalculation: true). No
+   * pagination; a coverageNote when the search is empty.
+   */
+  placesNearby(params: PlacesNearbyParams): Promise<PlacesListResponse> {
+    return createPlacesClient(this.requester).nearby(params);
+  }
+
+  /** GET /places/:id (PUBLIC). 404 (ApiError) for an unknown id. */
+  placeDetail(id: string): Promise<PlaceDetail> {
+    return createPlacesClient(this.requester).detail(id);
+  }
+
+  // ------------------------------------------------------- Phase 7 family
+
+  /** GET /family/contacts. The authenticated user's own contacts. */
+  familyContacts(accessToken: string): Promise<EmergencyContactView[]> {
+    return createFamilyClient(this.requester).listContacts(accessToken);
+  }
+
+  /** POST /family/contacts. Add the user's own contact. */
+  familyCreateContact(
+    input: EmergencyContactInput,
+    accessToken: string,
+  ): Promise<EmergencyContactView> {
+    return createFamilyClient(this.requester).createContact(input, accessToken);
+  }
+
+  /** PATCH /family/contacts/:id. Owner-scoped (404 when foreign). */
+  familyUpdateContact(
+    contactId: string,
+    input: EmergencyContactPatch,
+    accessToken: string,
+  ): Promise<EmergencyContactView> {
+    return createFamilyClient(this.requester).updateContact(
+      contactId,
+      input,
+      accessToken,
+    );
+  }
+
+  /** DELETE /family/contacts/:id. Owner-scoped. */
+  familyDeleteContact(
+    contactId: string,
+    accessToken: string,
+  ): Promise<void> {
+    return createFamilyClient(this.requester).deleteContact(
+      contactId,
+      accessToken,
+    );
+  }
+
+  /** GET /family/location-shares. Computed `active` flag on each row. */
+  familyLocationShares(accessToken: string): Promise<LocationShareView[]> {
+    return createFamilyClient(this.requester).listLocationShares(accessToken);
+  }
+
+  /** POST /family/location-shares. Explicit consent + bounded expiry. */
+  familyCreateLocationShare(
+    input: LocationShareInput,
+    accessToken: string,
+  ): Promise<LocationShareView> {
+    return createFamilyClient(this.requester).createLocationShare(
+      input,
+      accessToken,
+    );
+  }
+
+  /** POST /family/location-shares/:id/revoke. Immediate and irreversible. */
+  familyRevokeLocationShare(
+    shareId: string,
+    accessToken: string,
+  ): Promise<LocationShareView> {
+    return createFamilyClient(this.requester).revokeLocationShare(
+      shareId,
+      accessToken,
+    );
+  }
+
+  /** GET /family/household-plan. null when the user has not stored one. */
+  familyHouseholdPlan(
+    accessToken: string,
+  ): Promise<HouseholdPlanView | null> {
+    return createFamilyClient(this.requester).getHouseholdPlan(accessToken);
+  }
+
+  /** PUT /family/household-plan. Owner-scoped upsert. */
+  familyUpsertHouseholdPlan(
+    input: HouseholdPlanInput,
+    accessToken: string,
+  ): Promise<HouseholdPlanView> {
+    return createFamilyClient(this.requester).upsertHouseholdPlan(
+      input,
+      accessToken,
+    );
+  }
   // ------------------------------------------------------------------ Phase 5
 
   /**

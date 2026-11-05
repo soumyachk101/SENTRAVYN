@@ -1,9 +1,13 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    // The Node test runner (node --experimental-strip-types) and the existing
+    // src/__tests__/*.test.ts use explicit '.ts' import specifiers; allow
+    // that in the included source too. Requires noEmit (set by expo base).
+    "allowImportingTsExtensions": true
   },
-  "include": ["index.ts", "App.tsx", "src/**/*.ts"],
+  "include": ["index.ts", "App.tsx", "src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "src/__tests__"]
 }
 

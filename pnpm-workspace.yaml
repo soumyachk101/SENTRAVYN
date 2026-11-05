@@ -61,6 +61,7 @@ allowBuilds:
   '@prisma/engines': true
   prisma: true
   '@scarf/scarf': false
+  esbuild: true
 
 # Dependency overrides for transitive advisories we do not control directly.
 # - multer (via @nestjs/platform-express): 2.5.0 fixes a pending-response DoS
