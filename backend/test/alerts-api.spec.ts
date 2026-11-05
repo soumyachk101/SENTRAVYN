@@ -1,9 +1,12 @@
-import { AlertsService } from '../src/alerts/alerts.service';
+import { BadRequestException } from '@nestjs/common';
+import { AlertsService, PUBLIC_ALERT_STATUSES } from '../src/alerts/alerts.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
 type MockPrisma = {
   alert: {
     findUnique: jest.Mock;
+    count: jest.Mock;
+    findMany: jest.Mock;
   };
   alertRevision: {
     findMany: jest.Mock;
@@ -11,12 +14,15 @@ type MockPrisma = {
   dataProvider: {
     findUnique: jest.Mock;
   };
+  $transaction: jest.Mock;
 };
 
 function createPrismaMock(): MockPrisma {
   return {
     alert: {
       findUnique: jest.fn(),
+      count: jest.fn(),
+      findMany: jest.fn(),
     },
     alertRevision: {
       findMany: jest.fn(),
@@ -24,6 +30,7 @@ function createPrismaMock(): MockPrisma {
     dataProvider: {
       findUnique: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 }
 
@@ -205,5 +212,57 @@ describe('AlertsService.getDetail (Phase 3 durable alert API)', () => {
     expect(detail!.revisions.map((r) => r.revision)).toEqual([1, 2, 3]);
     expect(detail!.revisions[0].status).toBe('RECEIVED');
     expect(detail!.revisions[0].createdAt).toBe('2026-07-01T00:00:00.000Z');
+  });
+});
+
+describe('AlertsService.list (public surfacing, SAFETY-POLICY.md 7, ADR-007)', () => {
+  let prisma: MockPrisma;
+  let service: AlertsService;
+
+  beforeEach(() => {
+    prisma = createPrismaMock();
+    service = new AlertsService(prisma as unknown as PrismaService);
+  });
+
+  it('defaults the public list to the public-safe states, excluding quarantined/held rows', async () => {
+    prisma.alert.count.mockResolvedValue(0);
+    prisma.alert.findMany.mockResolvedValue([]);
+    prisma.$transaction.mockResolvedValue([0, []]);
+
+    await service.list({});
+
+    // list() builds a single `where` and applies it to both the count and the
+    // findMany; assert that the default filter is the public-safe set only.
+    const countWhere = prisma.alert.count.mock.calls[0][0].where;
+    const findWhere = prisma.alert.findMany.mock.calls[0][0].where;
+    expect(countWhere.status).toEqual({ in: [...PUBLIC_ALERT_STATUSES] });
+    expect(findWhere.status).toEqual({ in: [...PUBLIC_ALERT_STATUSES] });
+    // VALIDATED is a provider-backed, schema-valid record and is public-safe;
+    // the quarantined / pipeline-hold states are not.
+    expect(countWhere.status.in).toContain('VALIDATED');
+    for (const s of ['RECEIVED', 'PARSED', 'QUARANTINED']) {
+      expect(countWhere.status.in).not.toContain(s);
+      expect(findWhere.status.in).not.toContain(s);
+    }
+  });
+
+  it('honours an explicit public-safe status and narrows the where clause to it', async () => {
+    prisma.alert.count.mockResolvedValue(0);
+    prisma.alert.findMany.mockResolvedValue([]);
+    prisma.$transaction.mockResolvedValue([0, []]);
+
+    await service.list({ status: 'PUBLISHED' });
+
+    expect(prisma.alert.count.mock.calls[0][0].where.status).toBe('PUBLISHED');
+    expect(prisma.alert.findMany.mock.calls[0][0].where.status).toBe('PUBLISHED');
+  });
+
+  it('rejects a non-public status (QUARANTINED) so ?status= cannot bypass the default filter', async () => {
+    await expect(service.list({ status: 'QUARANTINED' })).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(prisma.alert.count).not.toHaveBeenCalled();
+    expect(prisma.alert.findMany).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

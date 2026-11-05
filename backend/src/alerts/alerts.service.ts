@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -6,6 +6,31 @@ import {
   evaluateFreshness,
   FreshnessResult,
 } from '../common/freshness';
+
+/**
+ * The alert states the public list may surface by default, and the only states
+ * a caller may explicitly request via ?status= (SAFETY-POLICY.md 7;
+ * DATA-SOURCES.md integration stage 6; ADR-007 quarantine-by-default).
+ *
+ * A VALIDATED alert is a schema-valid record from an explicitly-enabled,
+ * legally-reviewed provider (the registry ships disabled by default), so it is
+ * public-safe. SAFETY-POLICY.md 7 forbids public publication of *malformed or
+ * suspicious* records, which are held in QUARANTINED for human review — and the
+ * pipeline intermediates RECEIVED/PARSED are never written to the Alert row by
+ * the current ingest path. PUBLISHED is the reviewer-published state; UPDATED,
+ * EXPIRED and CANCELLED are lifecycle advances / de-escalations, and showing a
+ * cancellation or expiry can never present an unsafe instruction as active.
+ *
+ * The complement of this set (RECEIVED, PARSED, QUARANTINED) is never
+ * surfaced to the public list.
+ */
+export const PUBLIC_ALERT_STATUSES = [
+  'VALIDATED',
+  'PUBLISHED',
+  'UPDATED',
+  'EXPIRED',
+  'CANCELLED',
+] as const;
 
 export interface AlertListQuery {
   page?: number;
@@ -103,8 +128,13 @@ export class AlertsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Lists alerts with pagination and explicit freshness labels.
-   * Stale/expired alerts are surfaced, never hidden as live.
+   * Lists public alerts with pagination and explicit freshness labels.
+   *
+   * By default only public-safe states (PUBLISHED, CANCELLED, EXPIRED — see
+   * PUBLIC_ALERT_STATUSES) are returned, so quarantined and unreviewed
+   * records never surface to the public list (ADR-007 quarantine-by-default).
+   * Stale/expired alerts are surfaced, never hidden as live: freshness is
+   * computed per row and returned in the payload.
    */
   async list(query: AlertListQuery) {
     const page = Math.max(1, Number(query.page ?? 1));
@@ -112,7 +142,17 @@ export class AlertsService {
 
     const where: Prisma.AlertWhereInput = {};
     if (query.status) {
+      // An explicit status must be one of the public-safe states: a caller may
+      // narrow the public list but may never use ?status= to surface a
+      // quarantined/unreviewed record.
+      if (!(PUBLIC_ALERT_STATUSES as readonly string[]).includes(query.status)) {
+        throw new BadRequestException(
+          `status must be one of: ${PUBLIC_ALERT_STATUSES.join(', ')}`,
+        );
+      }
       where.status = query.status as Prisma.AlertWhereInput['status'];
+    } else {
+      where.status = { in: [...PUBLIC_ALERT_STATUSES] };
     }
     if (query.verification) {
       where.verification = query.verification as Prisma.AlertWhereInput['verification'];

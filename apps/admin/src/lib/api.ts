@@ -174,6 +174,41 @@ function refreshFromStoredRefreshToken(
 }
 
 /**
+ * Deduplicates concurrent refresh calls (rotating-token race).
+ *
+ * The refresh endpoint rotates in place and invalidates the previous refresh
+ * token (backend/src/auth/auth.service.ts). Two requests that both 401 in
+ * parallel would each trigger a refresh: the first succeeds and rotates; the
+ * second uses the now-invalid token, fails, and would clear a session that is
+ * still valid. Mirrors the web app's `pendingRefresh` dedup: concurrent
+ * callers await a single in-flight rotation and reuse its written session.
+ */
+let pendingRefresh: Promise<AuthTokenPair | null> | null = null;
+
+function dedupedRefresh(refreshToken: string): Promise<AuthTokenPair | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  if (pendingRefresh === null) {
+    pendingRefresh = (async () => {
+      try {
+        const pair = await refreshFromStoredRefreshToken(refreshToken);
+        writeSession({
+          accessToken: pair.accessToken,
+          refreshToken: pair.refreshToken,
+          user: pair.user,
+        });
+        return pair;
+      } catch {
+        clearSession();
+        return null;
+      }
+    })().finally(() => {
+      pendingRefresh = null;
+    });
+  }
+  return pendingRefresh;
+}
+
+/**
  * Authenticated request with exactly one refresh-and-retry on 401.
  * The retried request is never retried again.
  */
@@ -191,17 +226,10 @@ async function request<T>(
 
   if (!res.ok) {
     if (res.status === 401 && !opts.noRetry && session) {
-      try {
-        const refreshed = await refreshFromStoredRefreshToken(
-          session.refreshToken,
-        );
-        writeSession({
-          accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken,
-          user: refreshed.user,
-        });
-      } catch {
-        clearSession();
+      // Deduped: concurrent 401s share one rotation, so a rotating refresh
+      // token is never replayed by a second caller (see dedupedRefresh).
+      const refreshed = await dedupedRefresh(session.refreshToken);
+      if (refreshed === null) {
         throw new ApiError(401, "Session expired. Please sign in again.", "");
       }
       // Exactly one retry, with the fresh access token.

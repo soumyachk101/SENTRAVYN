@@ -15,6 +15,12 @@ export const AUDIT_ACTIONS = {
   ALERT_CANCELLED: 'ALERT_CANCELLED',
   SHELTER_VERIFIED: 'SHELTER_VERIFIED',
   SHELTER_REJECTED: 'SHELTER_REJECTED',
+  /**
+   * Records a user-submitted place evidence row (POST /places/:id/evidence).
+   * The submission is stored and audited (SAFETY-POLICY.md section 9) but it
+   * NEVER mutates place/shelter verification state.
+   */
+  PLACE_EVIDENCE_ADDED: 'PLACE_EVIDENCE_ADDED',
   PROVIDER_CHANGED: 'PROVIDER_CHANGED',
   USER_ROLE_CHANGED: 'USER_ROLE_CHANGED',
   SESSION_REVOKED: 'SESSION_REVOKED',

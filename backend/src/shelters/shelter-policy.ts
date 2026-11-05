@@ -76,6 +76,153 @@ export function shelterEvidenceGaps(e: ShelterEvidence): string[] {
   return gaps;
 }
 
+/**
+ * The display verification label for a place, computed on the READ path
+ * (SAFETY-POLICY.md 8 stale data; Gate E).
+ *
+ * `UNVERIFIED`/`REVIEWED`/`VERIFIED` are the stored place states
+ * (PlaceVerification). `STALE`, `EXPIRED` and `INCOMPLETE` are read-time
+ * downgrades computed from time, so a shelter whose evidence has lapsed can
+ * never be displayed as VERIFIED even though the stored row still says
+ * VERIFIED (ADR-018 / SAFETY-POLICY.md 8). The downgrades apply only to a
+ * shelter's claim: a verified non-shelter place (e.g. a hospital) that makes
+ * no shelter claim is never downgraded to INCOMPLETE.
+ */
+export type VerificationLabel =
+  | 'UNVERIFIED'
+  | 'REVIEWED'
+  | 'VERIFIED'
+  | 'STALE'
+  | 'EXPIRED'
+  | 'INCOMPLETE';
+
+/** The time-dependent fields of a shelter profile relevant to the label. */
+export interface ShelterProfileVerification {
+  verification: string; // UNVERIFIED / EVIDENCE_REVIEW / VERIFIED
+  inspectionDate: string | null;
+  expiresAt: string | null;
+  revalidationWindowDays?: number;
+}
+
+export interface VerificationLabelInput {
+  /** The stored Place.verification (UNVERIFIED / REVIEWED / VERIFIED). */
+  placeVerification: string;
+  /** The place-level staleSince flag (ISO). When set, a verified place is stale. */
+  staleSince: string | null;
+  /**
+   * The shelter profiles owned by this place. Empty when the place makes no
+   * shelter claim (a verified hospital, clinic, etc.), in which case the
+   * label is governed by placeVerification + staleSince alone.
+   */
+  shelterProfiles: ShelterProfileVerification[];
+  /** Reference time, injectable for deterministic tests. */
+  now?: Date;
+}
+
+/** Higher rank = more restrictive (dominates on merge). EXPIRED dominates. */
+const LABEL_RANK: Record<VerificationLabel, number> = {
+  EXPIRED: 5,
+  STALE: 4,
+  INCOMPLETE: 3,
+  VERIFIED: 2,
+  REVIEWED: 1,
+  UNVERIFIED: 0,
+};
+
+/**
+ * The read-side downgrades for a single VERIFIED shelter profile. Returns
+ * VERIFIED (no reason) when the profile is current.
+ */
+function profileDowngrade(
+  p: ShelterProfileVerification,
+  now: Date,
+): { label: VerificationLabel; reason: string | null } {
+  // 1) An explicit expiry in the past dominates everything else.
+  if (p.expiresAt) {
+    const exp = new Date(p.expiresAt);
+    if (!Number.isNaN(exp.getTime()) && exp.getTime() <= now.getTime()) {
+      return {
+        label: 'EXPIRED',
+        reason: 'shelter verification has an explicit expiry in the past',
+      };
+    }
+  }
+  // 2) No inspection date on record: cannot confirm the revalidation window,
+  //    so it is not safe to display as verified (Gate E).
+  if (!p.inspectionDate) {
+    return {
+      label: 'INCOMPLETE',
+      reason:
+        'shelter stored as verified but has no inspection/verification date on record',
+    };
+  }
+  const ver = new Date(p.inspectionDate);
+  if (Number.isNaN(ver.getTime())) {
+    return {
+      label: 'INCOMPLETE',
+      reason: 'shelter inspection/verification date is not a valid timestamp',
+    };
+  }
+  // 3) Revalidation window: an inspection older than the window is stale.
+  const windowDays =
+    p.revalidationWindowDays ?? DEFAULT_REVALIDATION_WINDOW_DAYS;
+  if (now.getTime() - ver.getTime() > windowDays * MS_PER_DAY) {
+    return {
+      label: 'STALE',
+      reason: `shelter verification is older than the ${windowDays}-day revalidation window`,
+    };
+  }
+  return { label: 'VERIFIED', reason: null };
+}
+
+/**
+ * Resolves the display label for a place. This is the read-side companion to
+ * evaluateShelterPolicy (the write side): it never fabricates VERIFIED and it
+ * downgrades a stored VERIFIED place to EXPIRED/STALE/INCOMPLETE whenever the
+ * evidence is no longer current. The most restrictive result wins.
+ *
+ * - A non-VERIFIED stored state passes through verbatim (UNVERIFIED / REVIEWED
+ *   already assert no safety, so they are never upgraded).
+ * - A VERIFIED place is downgraded when place.staleSince is set (STALE), or
+ *   when any of its VERIFIED shelter profiles is EXPIRED, STALE or INCOMPLETE.
+ *   A VERIFIED place with no shelter profiles keeps its VERIFIED label: it
+ *   makes no shelter claim, so there is no shelter evidence to lapse.
+ */
+export function resolveVerificationLabel(
+  input: VerificationLabelInput,
+): { label: VerificationLabel; reasons: string[] } {
+  const now = input.now ?? new Date();
+
+  if (input.placeVerification !== 'VERIFIED') {
+    return {
+      label: input.placeVerification as VerificationLabel,
+      reasons: [],
+    };
+  }
+
+  let label: VerificationLabel = 'VERIFIED';
+  const reasons: string[] = [];
+
+  // A place-level stale flag downgrades a verified place to STALE.
+  if (input.staleSince) {
+    label = 'STALE';
+    reasons.push(`place flagged stale since ${input.staleSince}`);
+  }
+
+  // Each VERIFIED shelter profile is checked against the time rules; the most
+  // restrictive downgrade dominates.
+  for (const p of input.shelterProfiles) {
+    if (p.verification !== 'VERIFIED') continue;
+    const d = profileDowngrade(p, now);
+    if (d.reason !== null && LABEL_RANK[d.label] > LABEL_RANK[label]) {
+      label = d.label;
+      reasons.push(d.reason);
+    }
+  }
+
+  return { label, reasons };
+}
+
 export function evaluateShelterPolicy(
   input: ShelterPolicyInput,
 ): ShelterPolicyResult {

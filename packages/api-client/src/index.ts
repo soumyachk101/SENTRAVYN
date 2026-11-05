@@ -105,18 +105,13 @@ export class SentravynApiClient {
     );
   }
 
-  getAlert(id: string): Promise<Alert> {
-    return this.requester.request<Alert>(
-      'GET',
-      `/api/v1/alerts/${encodeURIComponent(id)}`,
-    );
-  }
-
   /**
    * GET /alerts/:id - the alert with its revision history and source
-   * provenance. Note the API route returns the AlertDetail envelope; the
-   * Phase 1 `getAlert` above keeps its bare-Alert signature for
-   * compatibility and is left unchanged.
+   * provenance, returned as the AlertDetail envelope ({ alert, revisions,
+   * provenance }). Use `getAlertDetail`, not a bare-Alert shape: the route
+   * returns the envelope, and asserting the bare shape would mislead callers
+   * (alert.id would read undefined). The superseded Phase 1 `getAlert` was
+   * removed for this reason.
    */
   getAlertDetail(id: string): Promise<AlertDetail> {
     return this.requester.request<AlertDetail>(

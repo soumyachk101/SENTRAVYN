@@ -157,11 +157,30 @@ export function TruncatedHash({ hash }: { hash: string }) {
   );
 }
 
+/**
+ * Renders an ISO timestamp in UTC with an explicit "UTC" label.
+ *
+ * Audit / review / provider records are operational data that crosses
+ * timezones: a bare local time with no zone is ambiguous about when the event
+ * actually happened. UTC keeps the display unambiguous for every viewer
+ * (SAFETY-POLICY.md 6: preserve source timestamps and provenance). A null /
+ * invalid value renders as "n/a", never a fabricated time.
+ */
 export function formatDateTime(iso: string | null): string {
   if (!iso) return "n/a";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "n/a";
-  return d.toLocaleString();
+  return (
+    d.toLocaleString("en-GB", {
+      timeZone: "UTC",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }) + " UTC"
+  );
 }
 
 /**

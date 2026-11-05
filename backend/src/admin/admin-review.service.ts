@@ -417,17 +417,27 @@ function auditActionForDecision(
   }
 }
 
+/**
+ * The decision target as a Prisma relation connect. The target ids are plain
+ * (non-unique) FK columns, so once the @relation is modelled the Prisma
+ * create input takes `alert`/`place`/`shelter` connect objects, not the bare
+ * scalar (Gate C referential integrity). Exactly one is set, matching the
+ * decision target.
+ */
 function decisionTargetData(
   kind: string,
   id: string,
-): { alertId?: string; placeId?: string; shelterId?: string } {
+):
+  | { alert: { connect: { id: string } } }
+  | { place: { connect: { id: string } } }
+  | { shelter: { connect: { id: string } } } {
   switch (kind) {
     case 'alert':
-      return { alertId: id };
+      return { alert: { connect: { id } } };
     case 'place':
-      return { placeId: id };
+      return { place: { connect: { id } } };
     case 'shelter':
-      return { shelterId: id };
+      return { shelter: { connect: { id } } };
     default:
       throw new BadRequestException(`unknown target kind: ${String(kind)}`);
   }

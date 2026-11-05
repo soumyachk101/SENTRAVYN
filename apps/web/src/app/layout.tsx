@@ -4,8 +4,16 @@ import Background from "@/components/Background";
 import { CinematicFooter } from "@/components/CinematicFooter";
 import "./globals.css";
 
+// The canonical origin for absolute-URL metadata (canonical/OG tags). A real
+// deployment sets NEXT_PUBLIC_WEB_BASE_URL; until then we fall back to the
+// example domain rather than fabricate a production host (CLAUDE.md: never
+// claim a domain without evidence).
+const METADATA_BASE = new URL(
+  process.env.NEXT_PUBLIC_WEB_BASE_URL ?? "https://sentravyn.example",
+);
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sentravyn.example"),
+  metadataBase: METADATA_BASE,
   title: {
     default: "SENTRAVYN — Global Emergency Intelligence & Public Safety",
     template: "%s — SENTRAVYN",
