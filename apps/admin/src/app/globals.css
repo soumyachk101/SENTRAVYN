@@ -413,10 +413,15 @@ body {
   margin-bottom: -1px;
 }
 
-.tab:hover,
+.tab:hover {
+  color: var(--paper-50);
+}
+
+/* Keyboard focus is a visible outline, not color alone (DESIGN.md 7, WCAG). */
 .tab:focus-visible {
   color: var(--paper-50);
-  outline: none;
+  outline: 2px solid var(--accent-calm);
+  outline-offset: 1px;
 }
 
 .tab--active {

@@ -34,6 +34,8 @@ import {
 export default function ReviewPage() {
   const { signedIn, loading, allowed, role } = useRequireRole("REVIEWER");
   const [tab, setTab] = useState<"alerts" | "places">("alerts");
+  const alertsTabRef = useRef<HTMLButtonElement>(null);
+  const placesTabRef = useRef<HTMLButtonElement>(null);
 
   const [items, setItems] = useState<AlertQueueItem[] | PlaceQueueItem[]>([]);
   const [state, setState] = useState<
@@ -102,11 +104,29 @@ export default function ReviewPage() {
         <InsufficientRolePanel required="REVIEWER" role={role} />
       ) : (
         <>
-          <div role="tablist" aria-label="Review queue kind" className="tabs">
+          <div
+            role="tablist"
+            aria-label="Review queue kind"
+            className="tabs"
+            // Arrow-key navigation between the two tabs (WAI-ARIA tabs
+            // pattern), mirroring the public web AuthPanel. Focus moves with
+            // the selection; the inactive tab is removed from the tab order.
+            onKeyDown={(event) => {
+              if (event.key === "ArrowRight") {
+                switchTab("places");
+                placesTabRef.current?.focus();
+              } else if (event.key === "ArrowLeft") {
+                switchTab("alerts");
+                alertsTabRef.current?.focus();
+              }
+            }}
+          >
             <button
               type="button"
               role="tab"
+              ref={alertsTabRef}
               aria-selected={tab === "alerts"}
+              tabIndex={tab === "alerts" ? 0 : -1}
               className={tab === "alerts" ? "tab tab--active" : "tab"}
               onClick={() => switchTab("alerts")}
             >
@@ -115,7 +135,9 @@ export default function ReviewPage() {
             <button
               type="button"
               role="tab"
+              ref={placesTabRef}
               aria-selected={tab === "places"}
+              tabIndex={tab === "places" ? 0 : -1}
               className={tab === "places" ? "tab tab--active" : "tab"}
               onClick={() => switchTab("places")}
             >

@@ -35,13 +35,14 @@ function roleLabel(role: string): string {
   switch (role.toUpperCase()) {
     case "PUBLIC":
       return "Public";
-    case "ADMIN":
-      return "Admin";
+    case "REVIEWER":
+      return "Reviewer";
     case "OPERATOR":
       return "Operator";
-    case "VERIFIER":
-      return "Verifier";
+    case "ADMIN":
+      return "Admin";
     default:
+      // Unknown/legacy role codes are shown verbatim, never fabricated.
       return role;
   }
 }

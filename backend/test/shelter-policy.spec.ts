@@ -1,5 +1,6 @@
 import {
   evaluateShelterPolicy,
+  resolveVerificationLabel,
   ShelterPolicyInput,
   DEFAULT_REVALIDATION_WINDOW_DAYS,
 } from '../src/shelters/shelter-policy';
@@ -92,5 +93,146 @@ describe('shelter verification policy (SAFETY-POLICY.md 3, Gate E)', () => {
 
   it('exposes the documented default revalidation window', () => {
     expect(DEFAULT_REVALIDATION_WINDOW_DAYS).toBe(30);
+  });
+});
+
+describe('resolveVerificationLabel (read-path label, SAFETY-POLICY.md 8, Gate E)', () => {
+  const now = new Date('2026-11-04T12:00:00Z');
+
+  it('a VERIFIED place with no shelter claim (no profiles) keeps VERIFIED', () => {
+    const r = resolveVerificationLabel({
+      placeVerification: 'VERIFIED',
+      staleSince: null,
+      shelterProfiles: [],
+      now,
+    });
+    expect(r.label).toBe('VERIFIED');
+    expect(r.reasons).toHaveLength(0);
+  });
+
+  it('a VERIFIED place with a current shelter inspection stays VERIFIED', () => {
+    const r = resolveVerificationLabel({
+      placeVerification: 'VERIFIED',
+      staleSince: null,
+      shelterProfiles: [
+        {
+          verification: 'VERIFIED',
+          // 3 days before `now`: within the 30-day window.
+          inspectionDate: new Date('2026-11-01T00:00:00Z').toISOString(),
+          expiresAt: null,
+        },
+      ],
+      now,
+    });
+    expect(r.label).toBe('VERIFIED');
+  });
+
+  it('downgrades a VERIFIED place whose shelter inspection is past the window to STALE', () => {
+    const r = resolveVerificationLabel({
+      placeVerification: 'VERIFIED',
+      staleSince: null,
+      shelterProfiles: [
+        {
+          verification: 'VERIFIED',
+          // 40 days before `now`: beyond the default 30-day window.
+          inspectionDate: new Date('2026-09-25T00:00:00Z').toISOString(),
+          expiresAt: null,
+        },
+      ],
+      now,
+    });
+    expect(r.label).toBe('STALE');
+    expect(r.reasons.join(' ')).toMatch(/revalidation window/);
+  });
+
+  it('downgrades a VERIFIED place with a past explicit expiry to EXPIRED (dominates)', () => {
+    // EXPIRED must dominate even a current inspection.
+    const r = resolveVerificationLabel({
+      placeVerification: 'VERIFIED',
+      staleSince: null,
+      shelterProfiles: [
+        {
+          verification: 'VERIFIED',
+          inspectionDate: new Date('2026-11-03T00:00:00Z').toISOString(),
+          expiresAt: new Date('2026-11-01T00:00:00Z').toISOString(),
+        },
+      ],
+      now,
+    });
+    expect(r.label).toBe('EXPIRED');
+    expect(r.reasons.join(' ')).toMatch(/expiry/i);
+  });
+
+  it('downgrades a VERIFIED shelter with no inspection date to INCOMPLETE', () => {
+    const r = resolveVerificationLabel({
+      placeVerification: 'VERIFIED',
+      staleSince: null,
+      shelterProfiles: [
+        { verification: 'VERIFIED', inspectionDate: null, expiresAt: null },
+      ],
+      now,
+    });
+    expect(r.label).toBe('INCOMPLETE');
+    expect(r.reasons.join(' ')).toMatch(/no inspection/);
+  });
+
+  it('honours a per-shelter revalidation window override', () => {
+    // 45 days old, but the authority set a 60-day window: still VERIFIED.
+    const r = resolveVerificationLabel({
+      placeVerification: 'VERIFIED',
+      staleSince: null,
+      shelterProfiles: [
+        {
+          verification: 'VERIFIED',
+          inspectionDate: new Date('2026-09-20T00:00:00Z').toISOString(),
+          expiresAt: null,
+          revalidationWindowDays: 60,
+        },
+      ],
+      now,
+    });
+    expect(r.label).toBe('VERIFIED');
+  });
+
+  it('a place-level staleSince flag downgrades a verified place to STALE', () => {
+    const r = resolveVerificationLabel({
+      placeVerification: 'VERIFIED',
+      staleSince: new Date('2026-10-01T00:00:00Z').toISOString(),
+      shelterProfiles: [],
+      now,
+    });
+    expect(r.label).toBe('STALE');
+    expect(r.reasons.join(' ')).toMatch(/stale since/i);
+  });
+
+  it('a non-VERIFIED place passes through verbatim and is never upgraded', () => {
+    for (const stored of ['UNVERIFIED', 'REVIEWED'] as const) {
+      const r = resolveVerificationLabel({
+        placeVerification: stored,
+        staleSince: null,
+        shelterProfiles: [],
+        now,
+      });
+      expect(r.label).toBe(stored);
+      expect(r.reasons).toHaveLength(0);
+    }
+  });
+
+  it('a non-VERIFIED shelter profile does not downgrade the place', () => {
+    // Only VERIFIED shelter claims can lapse; an UNVERIFIED profile neither
+    // asserts safety nor downgrades a verified place.
+    const r = resolveVerificationLabel({
+      placeVerification: 'VERIFIED',
+      staleSince: null,
+      shelterProfiles: [
+        {
+          verification: 'UNVERIFIED',
+          inspectionDate: new Date('2020-01-01T00:00:00Z').toISOString(),
+          expiresAt: null,
+        },
+      ],
+      now,
+    });
+    expect(r.label).toBe('VERIFIED');
   });
 });
