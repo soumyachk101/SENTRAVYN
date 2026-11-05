@@ -38,11 +38,17 @@ never proof a place is open, safe or operational (docs/SAFETY-POLICY.md 1, 3).
 
 ## 4. Incident response / on-call process
 
-- [ ] `docs/INCIDENT-RUNBOOK.md`: fake-alert-injection, provider compromise, admin takeover,
-      dependency failure, database corruption — each with detect/contain/communicate/restore.
+- [x] DONE-pending-review `docs/INCIDENT-RUNBOOK.md` (created by the b4 observability
+      workstream): fake-alert-injection, provider compromise, admin takeover, dependency
+      failure, database corruption — each with detect/contain/communicate/restore.
+      Pending the owner review of the doc content; the row converts to DONE only after that
+      review, not on the file's existence.
 - [BLOCKED] On-call roster + escalation path (owner action).
-- [ ] Drills: backup-restore and provider-outage simulations (docs/ROADMAP.md Phase 9 items;
-      marked NOT RUN until executed in staging — see Phase 9 hardening workstream).
+- [NOT RUN] Drills: backup-restore and provider-outage simulations (docs/ROADMAP.md Phase 9
+      items; marked NOT RUN until executed in staging — see Phase 9 hardening workstream).
+      Supporting evidence exists in-repo: `infrastructure/README.md` (backup/restore
+      drill executed locally, 2026-11-05) and the outage/queue simulation specs under
+      `backend/test/`. Staging execution remains open.
 
 ## 5. Public limitations and terms
 

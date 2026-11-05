@@ -1,7 +1,8 @@
 # SENTRAVYN — Risk & Threat Register
 
-Status: Phase 0. Updated 2026-11-04.
-Scoring: Likelihood (L) 1-5, Impact (I) 1-5; Critical ≥ 15, High 9-14, Medium 5-8, Low ≤ 4.
+Status: Phase 9 resilience workstream (outage / backup-restore / queue
+dead-letter rows added 2026-11-05). Scoring: Likelihood (L) 1-5, Impact (I)
+1-5; Critical ≥ 15, High 9-14, Medium 5-8, Low ≤ 4.
 
 Sensitivity rule: any risk whose mitigation touches user location or emergency claims must keep SAFETY-POLICY and SECURITY constraints intact.
 
@@ -54,6 +55,9 @@ Threats: fake alert injection; provider/API compromise; admin account takeover; 
 | R-15 | Design rework late if footer/background system starts at Phase 8 | 2 | 3 | Medium | ADR-010: background system + ASCII footer begin in Phase 1 web shell; Phase 8 completes all surfaces | Design + Engineering |
 | R-16 | Mobile builds (iOS/Android) blocked by signing/store prerequisites | 3 | 2 | Medium | Phase 7 gate includes permission/privacy review and device test; EAS/Expo config early in Phase 7 | Engineering |
 | R-17 | Transitive dependency advisories reach HIGH/CRITICAL severity | 2 | 3 | Medium | Phase 1: `pnpm audit --audit-level=high` fails the build on any HIGH/CRITICAL in the resolved tree. The 2 HIGH advisories (multer DoS, deepmerge-ts stack-exhaustion) are cleared via `pnpm.overrides` (multer 2.5.0, deepmerge-ts 8.0.2) with Prisma verified still to generate/build. 3 remaining advisories (2 moderate, 1 low: minimatch, glob, deepmerge) are transitive toolchain issues (jest/eslint/nest-cli) with no direct bump that clears them without moving major toolchain lines; they are accepted risk, re-checked on every `pnpm audit` and at each major toolchain bump. | Engineering + Security |
+| R-18 | Provider outage: one provider down is read by users as "no data / nothing happening" or as a data-quality event | 3 | 3 | Medium | OUTAGE recorded as a FAILED ProviderFetch (FetchStatus.OUTAGE), never silent; freshness state flips stale/unknown (freshness.ts) instead of presenting old data as live; outage simulation test proves no partial publication and recovery on the next success (`backend/test/integrations/provider-outage.spec.ts`) | Engineering |
+| R-19 | Data loss beyond the last local backup (dev); production loss window undefined until risk assessment | 2 | 3 | Medium | `infrastructure/scripts/backup.sh` + `restore.sh` (pg_dump/pg_restore into a discardable database; RPO dev ≤ 24 h / RTO dev ≤ 30 min documented as local targets only, production values pending Phase 9 risk assessment); restore drill executed 2026-11-05 with evidence in `infrastructure/README.md` | Engineering |
+| R-20 | Notification job lost after terminal queue failure (user never informed of an alert transition) | 2 | 3 | Medium | Bounded retries (NOTIFICATION_MAX_ATTEMPTS, exponential backoff) then dead-letter to `sentravyn-notifications-dead` with payload + fail reason; durable channel rows mark DROPPED; recovery/replay spec proves dead-lettered jobs are re-enqueueable with dedup preserved (`backend/test/notifications/dead-letter-recovery.spec.ts`) | Engineering |
 
 ## 5. Watch items (revisit triggers)
 

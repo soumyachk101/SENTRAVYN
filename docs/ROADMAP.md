@@ -157,7 +157,55 @@ workflow and initial published material) has not been claimed.
 - Terraform staging and production.
 - Legal, privacy and safety review.
 
+**Phase 9 status (resilience workstream):** what now exists, and what is still pending.
+
+- **Backup restore: PASS (local dev, with evidence).** `infrastructure/scripts/backup.sh`
+  (pg_dump custom-format archive to gitignored `data/backups/`, verified with
+  `pg_restore --list`) and `infrastructure/scripts/restore.sh` (drop-and-restore
+  into a discardable `sentravyn_restore_dev` database; refuses to target the
+  live database). Root aliases `pnpm db:backup` / `pnpm db:restore`;
+  `infrastructure/README.md` records exactly what was tested. Evidence run
+  2026-11-05 against the live local service (host port 5434): 317,669-byte
+  archive, 145 objects listed by `pg_restore --list`, restore into
+  `sentravyn_restore_dev` verified by row counts (288 `Alert`, 515 `User` —
+  equal to the live database at dump time) with PostGIS 3.4 present. RPO/RTO
+  are documented as **local dev targets only** (RPO ≤ 24 h, RTO ≤ 30 min);
+  production values are pending the Phase 9 operational risk assessment
+  (ARCHITECTURE.md 9) — no production RPO/RTO numbers are claimed.
+- **Provider outage simulation: PASS (test coverage).** `FetchStatus` already
+  carries `OUTAGE` (schema.prisma), so no migration was required.
+  `backend/test/integrations/provider-outage.spec.ts` (DB-gated,
+  SKIP-never-pass) proves on the real pipeline: a valid fetch publishes a
+  live alert that reads fresh; an `OUTAGE` ProviderFetch advances no content
+  (no new revision, no public-list change, quarantined records never surface)
+  and the freshness state of the last data flips to `stale` (freshness.ts);
+  a subsequent successful fetch recovers the pipeline.
+- **Queue failure recovery: PASS (test coverage).**
+  `backend/test/notifications/dead-letter-recovery.spec.ts`
+  (Redis-gated, SKIP-never-pass, executed against local Redis port 6380):
+  a job that fails `NOTIFICATION_MAX_ATTEMPTS`-style bounded retries lands in
+  `sentravyn-notifications-dead` with its payload + fail reason intact, and
+  the payload is re-enqueueable (recovery/replay) with dedup preserved; the
+  default queue policy carries the bounded exponential backoff shape.
+- **Load and stress tests: harness exists, run = NOT RUN.**
+  `load/k6/public-read.js` (public read endpoints: `/api/v1/health/live`,
+  `/api/v1/alerts`, `/api/v1/places` radius mode; small 0→5 VU ramp) plus
+  `load/README.md` with thresholds matching ARCHITECTURE.md §10 (read p95
+  default 300 ms, failed-rate < 1%, zero 5xx; ingestion-delay and
+  notification-delivery targets recorded as targets, not asserted). No k6
+  run has been executed for this change — the run happens when a dedicated
+  load environment is up; the report must record the throttle settings in
+  effect (default limit 300/60 s per client).
+- **Incident response runbooks: in parallel (sibling workstream).**
+  `docs/INCIDENT-RUNBOOK.md` is being created by the b4 workstream; the
+  queue-dead-letter and provider-outage rows in `docs/RISK-REGISTER.md`
+  reference it. Not claimed here.
+- **Still pending (owner / other workstreams):** security testing,
+  monitoring and alerting (b4 observability module), Terraform staging, and
+  **legal, privacy and safety review: PENDING OWNER**.
+
 **Gate:** All critical delivery checks pass.
+
 
 ## Phase 10 — Controlled launch
 
