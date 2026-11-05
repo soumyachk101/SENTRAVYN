@@ -69,6 +69,8 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 
 **Gate:** Spatial correctness and no false shelter claims.
 
+**Phase 4 status (UI):** the web place-discovery map has landed at `apps/web`'s `/map` route (Phase 4, ADR-017). MapLibre GL JS with OpenStreetMap raster tiles (ODbL; attribution is mandatory and rendered in the UI; the tiles are marked dev-only, production-scale usage pending a terms review — no production tile host is claimed). The surface shows per-category marker layers with a legend, manual centre + radius search (no automatic geolocation), verification-state chips that always carry a text label (VERIFIED/UNVERIFIED/STALE/EXPIRED/INCOMPLETE — colour is never the only signal), distance-as-a-calculation disclosure ("~445 m — a calculation, not a safety recommendation"), and an EMPTY / ERROR-retry / OFFLINE / STALE state machine. Mobile gets a bottom-sheet detail panel, not a shrunken desktop. It is wired to the `@sentravyn/api-client` `places` methods against the real a1 service contract (radius mode: `distanceIsCalculation` + `coverageNote`, no pagination; detail: `shelterProfiles`), asserted by a jsdom render test that does not over-test MapLibre's canvas. The map depends on the a1 places route; e2e against that route PASSes once a1 is merged.
+
 ## Phase 5 — Safety content
 
 - Reviewed guide schema.
@@ -101,6 +103,8 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 - Expo iOS and Android builds.
 - Permission and privacy review.
 
+**Phase 7 status:** family-safety has landed. Backend `backend/src/family-safety` exposes: emergency contacts (`GET/POST/PATCH/DELETE /family/contacts`, owner-scoped object-level authorisation — a user can never read or mutate another user's rows; a foreign id is a 404, not a 403 leak, and is audited); location shares (`POST/GET /family/location-shares` + `POST /family/location-shares/:id/revoke`) with explicit consent, purpose, recipient and a bounded `expiresAt`, a computed read-time `active` flag, coarse-only last-known positions (a precise coordinate is never persisted and no location value reaches the audit log — SECURITY.md §5), immediate irreversible revocation; and the household plan (`GET/PUT /family/household-plan`: meeting point, kit checklist, pet considerations, owner-scoped, validated). Prisma `LocationShare` + `HouseholdPlan` models + a migration. Mobile (`apps/mobile`) builds the family screens on top of the existing `location.ts` consent model and the api-client family methods, with a "share now / stop" control, a last-shared timestamp and an offline note; `App.tsx` is a working section shell, not a dead placeholder. Evidence: a mocked-Prisma unit spec proves user A cannot touch user B's rows, a DB-gated e2e proves object-level isolation and revocation, and a pure precision-helper unit test proves a precise coordinate is only ever transmitted when active AND precise-consented. Device testing is NOT RUN (no emulator here) — see the permission/privacy review notes in `apps/mobile` and the report. The gate (device + privacy review) is therefore PARTIALLY COMPLETE, not passed.
+
 **Gate:** Device testing and privacy review pass.
 
 ## Phase 8 — Design completion
@@ -113,7 +117,7 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 - Accessibility and reduced-motion review.
 - Browser/device screenshots.
 
-**Gate:** Visual review passes at all target sizes.
+**Phase 8 status:** the mandated font system now loads for real. Web and admin both load self-hosted `.woff2` (Geist display, Inter body, IBM Plex Mono for technical metadata + the cinematic ASCII footer) via `next/font/local` from `public/fonts/`, and the `--font-display/-body/-mono` token vars are re-pointed at the actually-loaded families instead of system fallbacks (documented: deterministic, no build-time network, no third-party CDN). Multilingual coverage is NOT claimed — these are latin subsets; non-latin users get system fallbacks. The new `/map` page and the mobile family screens honour reduced motion (no animated fly-to — the map uses an instant `jumpTo`; any new animation is behind `prefers-reduced-motion`), use the custom backgrounds + the cinematic ASCII footer (kept intact), no neon, and zero emoji. Responsive behaviour (360/390/768/1024/1440/1920, no horizontal scroll, ≥44px touch targets on the new controls) is implemented in code/CSS; a true 6-viewport device/browser screenshot pass is NOT RUN here — flagged in the report. The gate (visual review at all sizes) is therefore PARTIALLY COMPLETE, not passed.
 
 ## Phase 9 — Production hardening
 

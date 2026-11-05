@@ -27,13 +27,9 @@ import type {
 import type { LoginInput } from './auth';
 import { createAuthClient } from './auth';
 import { createAuditClient } from './audit';
-import {
-  createFamilyClient,
-  type FamilyClient,
-} from './family';
+import { createFamilyClient } from './family';
 import {
   createPlacesClient,
-  type PlacesClient,
   type PlacesListParams,
   type PlacesNearbyParams,
 } from './places';

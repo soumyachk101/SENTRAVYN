@@ -48,6 +48,8 @@ OSM can help discover mapped amenities and geographic features. It does not prov
 
 Respect OSM attribution and ODbL obligations. Do not assume the public Nominatim or tile servers are suitable for production-scale usage. Select a provider or operate compliant infrastructure after reviewing its policy.
 
+The Phase 4 web place-discovery map (`apps/web` `/map`) uses OSM standard raster tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`) as a DEV-ONLY tile source. The OSM attribution is rendered in the UI (mandatory under ODbL), the page states that the tile provider is dev-only and that production-scale usage is pending a terms review, and no production tile host is claimed. This is an honest dev-time baseline, not a production data source.
+
 ## 4. CAP support
 
 Implement Common Alerting Protocol parsing where source formats support it. Preserve original payload and source identifiers. Validate issuer, status, message type, scope, urgency, severity, certainty, effective time, expiry, area and references to updates/cancellations.
