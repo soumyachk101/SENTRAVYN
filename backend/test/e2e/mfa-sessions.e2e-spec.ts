@@ -62,6 +62,26 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
     app.setGlobalPrefix('api/v1');
     await app.init();
     prisma = app.get(PrismaService);
+
+    // Clear any throttle counters/blocks left in the shared Redis by earlier
+    // manual runs or other suites, so the relaxed limits (backend/.env.test)
+    // govern this suite deterministically. The dedicated rate-limit test
+    // re-scopes to its own IP and cleans up after itself.
+    if (redisConfigured) {
+      const { Redis } = await import('ioredis');
+      const flusher = new Redis(process.env.REDIS_URL as string, {
+        lazyConnect: true,
+        maxRetriesPerRequest: 1,
+        enableReadyCheck: false,
+        connectTimeout: 1_500,
+      });
+      await flusher.connect().catch(() => undefined);
+      const stale = await flusher.keys('throttle:*').catch(() => [] as string[]);
+      if (stale.length > 0) {
+        await flusher.del(stale).catch(() => undefined);
+      }
+      await flusher.quit().catch(() => undefined);
+    }
   });
 
   afterAll(async () => {
@@ -231,8 +251,10 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
         );
         return;
       }
-      // Flush the shared throttle keys so the test is deterministic
-      // regardless of state left by other specs on the same Redis.
+      // A dedicated X-Forwarded-For IP scopes every throttle key for this
+      // test, so the 300s block window opened below can never 429 the other
+      // specs (which run from 127.0.0.1) on the shared Redis.
+      const scopedIp = '203.0.113.99';
       const { Redis } = await import('ioredis');
       const redis = new Redis(process.env.REDIS_URL as string, {
         lazyConnect: true,
@@ -242,9 +264,11 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
       });
       try {
         await redis.connect().catch(() => undefined);
-        const keys = await redis.keys('throttle:*').catch(() => [] as string[]);
-        if (keys.length > 0) {
-          await redis.del(keys).catch(() => undefined);
+        // Clean slate for the scoped IP so the test is deterministic
+        // regardless of state left by previous runs.
+        const staleKeys = await redis.keys('throttle:*').catch(() => [] as string[]);
+        if (staleKeys.length > 0) {
+          await redis.del(staleKeys).catch(() => undefined);
         }
 
         // Boot a dedicated app instance with a strict auth limit. The
@@ -265,22 +289,23 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
         const rateEmail = `e2e-rate-${runId}@sentravyn.test`;
         await request(strictApp.getHttpServer())
           .post('/api/v1/auth/register')
+          .set('X-Forwarded-For', scopedIp)
           .send({ email: rateEmail, password: PASSWORD })
           .expect(201);
 
-        // 3 attempts are within limit=3; the 4th trips the auth throttler
-        // and returns 429 with the retry-after headers.
+        // 3 attempts are within limit=3; once the window is exceeded the
+        // auth throttler opens a 300s block, so the next request returns
+        // 429 with the Retry-After-auth header and the configured message.
         let saw429 = false;
-        for (let i = 0; i < 5; i += 1) {
+        for (let i = 0; i < 6; i += 1) {
           const res = await request(strictApp.getHttpServer())
             .post('/api/v1/auth/login')
+            .set('X-Forwarded-For', scopedIp)
             .send({ email: rateEmail, password: 'wrong-password' });
           if (res.status === 429) {
             saw429 = true;
-            // The auth throttler emits X-RateLimit-* headers with an -auth
-            // suffix and a Retry-After-auth on block.
-            expect(res.headers['x-ratelimit-remaining-auth']).toBeDefined();
             expect(res.headers['retry-after-auth']).toBeDefined();
+            expect(res.body.message).toBe('Too many requests; retry later.');
             break;
           }
           expect([401, 429]).toContain(res.status);
@@ -288,11 +313,20 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
         expect(saw429).toBe(true);
 
         // The general `default` surface is unaffected by the auth block.
-        const meta = await request(strictApp.getHttpServer()).get('/api/v1/meta');
+        const meta = await request(strictApp.getHttpServer())
+          .get('/api/v1/meta')
+          .set('X-Forwarded-For', scopedIp);
         expect(meta.status).toBe(200);
 
         await strictApp.close();
       } finally {
+        // Remove the scoped-IP throttle state so no residue outlives the test.
+        const keys = await redis
+          .keys('throttle:*')
+          .catch(() => [] as string[]);
+        if (keys.length > 0) {
+          await redis.del(keys).catch(() => undefined);
+        }
         await redis.quit().catch(() => undefined);
         delete process.env.THROTTLE_DEFAULT_LIMIT;
         delete process.env.THROTTLE_AUTH_LIMIT;

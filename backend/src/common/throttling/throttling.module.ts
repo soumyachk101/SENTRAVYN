@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
+import { ThrottlerStorageModule } from './throttler-storage.module';
 import { RedisThrottlerStorage, throttlerTracker } from './throttler-storage.service';
 
 /**
@@ -51,9 +52,16 @@ export function throttlerOptions(config: ConfigService): ThrottlerModuleOptions 
   };
 }
 
+/**
+ * Hosts the @nestjs/throttler dynamic module and the global APP_GUARD.
+ * The storage provider lives in ThrottlerStorageModule so the dynamic
+ * module's `inject` resolves it: a dynamic module's inject list is resolved
+ * against the modules in its `imports`, not against the host's providers.
+ */
 @Module({
   imports: [
     ThrottlerModule.forRootAsync({
+      imports: [ThrottlerStorageModule],
       useFactory: (
         storage: RedisThrottlerStorage,
         config: ConfigService,
@@ -64,9 +72,6 @@ export function throttlerOptions(config: ConfigService): ThrottlerModuleOptions 
       inject: [RedisThrottlerStorage, ConfigService],
     }),
   ],
-  providers: [
-    RedisThrottlerStorage,
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
-  ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class ThrottlingModule {}

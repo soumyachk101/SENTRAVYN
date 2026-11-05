@@ -162,6 +162,7 @@ export class AuthController {
   }
 
   @Post('sessions/revoke-all')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
@@ -174,6 +175,7 @@ export class AuthController {
   }
 
   @Post('sessions/:id/revoke')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
