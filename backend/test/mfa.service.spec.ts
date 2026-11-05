@@ -276,9 +276,9 @@ describe('MfaService', () => {
     const prisma = createPrismaMock();
     mockPrismaWithUser(prisma, userRow());
     const service = createService(prisma);
-    await expect(service.verifyMfa('user-1', VALID_TOTP)).rejects.toBeInstanceOf(
-      UnauthorizedException,
-    );
+    await expect(
+      service.verifyMfa('user-1', VALID_TOTP),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('verifyPending returns the verified subject on a valid pending token + TOTP', async () => {

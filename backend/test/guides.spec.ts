@@ -1,4 +1,7 @@
-import { GuidesService, evaluateGuideFreshness } from '../src/guides/guides.service';
+import {
+  GuidesService,
+  evaluateGuideFreshness,
+} from '../src/guides/guides.service';
 import { AuditService, AUDIT_ACTIONS } from '../src/audit/audit.service';
 import type { GuideApprovalState } from '../src/guides/guides.dto';
 
@@ -119,18 +122,13 @@ function build(rows: GuideRow[] = [], revisions: RevisionRow[] = []) {
         revisions.push(rev);
         return rev;
       }),
-      findMany: jest.fn(
-        async ({ where }: { where: { guideId: string } }) =>
-          revisions
-            .filter((r) => r.guideId === where.guideId)
-            .sort((a, b) => a.revision - b.revision),
+      findMany: jest.fn(async ({ where }: { where: { guideId: string } }) =>
+        revisions
+          .filter((r) => r.guideId === where.guideId)
+          .sort((a, b) => a.revision - b.revision),
       ),
       findFirst: jest.fn(
-        async ({
-          where,
-        }: {
-          where: { guideId: string; revision: number };
-        }) =>
+        async ({ where }: { where: { guideId: string; revision: number } }) =>
           revisions.find(
             (r) => r.guideId === where.guideId && r.revision === where.revision,
           ) ?? null,
@@ -257,7 +255,12 @@ describe('guide approval transitions', () => {
     const { service, rows, audit } = build([
       { ...COMPLETE, approval: 'PUBLISHED' },
     ]);
-    await service.retire('g-1', { rationale: 'superseded' }, { id: 'actor-1' }, NOW);
+    await service.retire(
+      'g-1',
+      { rationale: 'superseded' },
+      { id: 'actor-1' },
+      NOW,
+    );
     expect(rows[0].approval).toBe('RETIRED');
     expect(rows[0].lastReviewedAt).toEqual(NOW);
     expect(audit.record).toHaveBeenCalledWith(
@@ -270,7 +273,9 @@ describe('guide approval transitions', () => {
   });
 
   it('reopen: RETIRED -> DRAFT starts a new review cycle', async () => {
-    const { service, rows, audit } = build([{ ...COMPLETE, approval: 'RETIRED' }]);
+    const { service, rows, audit } = build([
+      { ...COMPLETE, approval: 'RETIRED' },
+    ]);
     await service.reopen('g-1', { id: 'actor-1' }, NOW);
     expect(rows[0].approval).toBe('DRAFT');
     expect(audit.record).toHaveBeenCalledWith(
@@ -286,14 +291,23 @@ describe('guide approval transitions', () => {
     const { service } = build([{ ...COMPLETE, approval: 'PUBLISHED' }]);
     await expect(
       service.update('g-1', { body: 'new' }, { id: 'actor-1' }, NOW),
-    ).rejects.toThrow(/a new revision is only possible from DRAFT or IN_REVIEW/);
+    ).rejects.toThrow(
+      /a new revision is only possible from DRAFT or IN_REVIEW/,
+    );
   });
 });
 
 describe('version bump + revision write', () => {
   it('bumps the version and writes a new GuideRevision row for an editable guide', async () => {
-    const { service, rows, revisions, audit } = build([{ ...COMPLETE, approval: 'DRAFT' }]);
-    await service.update('g-1', { body: 'revised text' }, { id: 'actor-1' }, NOW);
+    const { service, rows, revisions, audit } = build([
+      { ...COMPLETE, approval: 'DRAFT' },
+    ]);
+    await service.update(
+      'g-1',
+      { body: 'revised text' },
+      { id: 'actor-1' },
+      NOW,
+    );
     expect(rows[0].version).toBe(2);
     expect(revisions).toHaveLength(1);
     expect(revisions[0]).toMatchObject({
@@ -363,8 +377,15 @@ describe('public exposure of only approved/published guides', () => {
   });
 
   it('getDetail(publicOnly) returns the PUBLISHED guide with its current body', async () => {
-    const { service, revisions } = build([{ ...COMPLETE, approval: 'PUBLISHED' }]);
-    revisions.push({ guideId: 'g-1', revision: 1, body: 'reviewed guidance', createdAt: NOW });
+    const { service, revisions } = build([
+      { ...COMPLETE, approval: 'PUBLISHED' },
+    ]);
+    revisions.push({
+      guideId: 'g-1',
+      revision: 1,
+      body: 'reviewed guidance',
+      createdAt: NOW,
+    });
     const detail = await service.getDetail('g-1', NOW, true);
     expect(detail).not.toBeNull();
     expect(detail!.approval).toBe('PUBLISHED');
@@ -381,9 +402,9 @@ describe('public exposure of only approved/published guides', () => {
 
   it('list(publicOnly) rejects a non-public approval filter with a 400', async () => {
     const { service } = build();
-    await expect(service.list({ approval: 'RETIRED' }, NOW, true)).rejects.toThrow(
-      /approval must be one of APPROVED, PUBLISHED/,
-    );
+    await expect(
+      service.list({ approval: 'RETIRED' }, NOW, true),
+    ).rejects.toThrow(/approval must be one of APPROVED, PUBLISHED/);
   });
 
   it('list (admin, no publicOnly) passes the requested state through unchanged', async () => {

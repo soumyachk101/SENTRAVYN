@@ -57,7 +57,7 @@ describe('BullMQ notification queue dedup (Phase 6, gated on Redis)', () => {
       severity: null,
       urgency: null,
       issuer: null,
-      channels: ['PUSH_WEB'] as ('PUSH_WEB')[],
+      channels: ['PUSH_WEB'] as 'PUSH_WEB'[],
       issuedAt: null,
     };
 
@@ -71,7 +71,11 @@ describe('BullMQ notification queue dedup (Phase 6, gated on Redis)', () => {
     expect(second.deduped).toBe(true);
 
     // A distinct transition key enqueues a separate job.
-    const jobB = { ...jobA, dedupKey: `alert:al-${suffix}:UPDATED`, nextStatus: 'UPDATED' as const };
+    const jobB = {
+      ...jobA,
+      dedupKey: `alert:al-${suffix}:UPDATED`,
+      nextStatus: 'UPDATED' as const,
+    };
     const third = await queue.add(jobB);
     expect(third.deduped).toBe(false);
 
@@ -80,7 +84,7 @@ describe('BullMQ notification queue dedup (Phase 6, gated on Redis)', () => {
     // second job.
     const bothPresent = await Promise.all(
       [jobA.dedupKey, jobB.dedupKey].map(async (k) =>
-        ((await (rawQueue as Queue).getJob(k)) ? 1 : 0),
+        (await (rawQueue as Queue).getJob(k)) ? 1 : 0,
       ),
     );
     expect(bothPresent).toEqual([1, 1]);
@@ -138,7 +142,7 @@ describe('BullMQ notification queue dedup (Phase 6, gated on Redis)', () => {
       severity: null,
       urgency: null,
       issuer: null,
-      channels: ['PUSH_WEB'] as ('PUSH_WEB')[],
+      channels: ['PUSH_WEB'] as 'PUSH_WEB'[],
       issuedAt: null,
     };
 
@@ -164,7 +168,10 @@ describe('BullMQ notification queue dedup (Phase 6, gated on Redis)', () => {
     // failure (all 3 attempts spent) is reported.
     await new Promise<void>((resolve) => {
       worker.on('failed', async (failedJob) => {
-        if (failedJob?.attemptsMade !== undefined && failedJob.attemptsMade >= 3) {
+        if (
+          failedJob?.attemptsMade !== undefined &&
+          failedJob.attemptsMade >= 3
+        ) {
           await worker.close();
           await retryQueue.onModuleDestroy();
           resolve();

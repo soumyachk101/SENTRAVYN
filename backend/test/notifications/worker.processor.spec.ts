@@ -1,4 +1,7 @@
-import { NotificationProcessor, JobOutcome } from '../../src/notifications/notification.processor';
+import {
+  NotificationProcessor,
+  JobOutcome,
+} from '../../src/notifications/notification.processor';
 import { PushAdapterRegistry } from '../../src/notifications/push/push-adapters';
 import type {
   DeliveryResult,
@@ -28,7 +31,11 @@ type ChannelRow = {
 class FakeRepo {
   rows: ChannelRow[] = [];
   ensureChannelRowsCalls: number[] = [];
-  attempts: { notificationId: string; outcome: string; error: string | null }[] = [];
+  attempts: {
+    notificationId: string;
+    outcome: string;
+    error: string | null;
+  }[] = [];
 
   constructor(channels: string[]) {
     this.rows = channels.map((channel, i) => ({
@@ -42,12 +49,19 @@ class FakeRepo {
   async ensureChannelRows(job: NotificationJobPayload) {
     this.ensureChannelRowsCalls.push(this.rows.length);
     // Idempotent: after the first call the rows already exist.
-    const known = this.rows.filter((r) => job.channels.includes(r.channel as never));
+    const known = this.rows.filter((r) =>
+      job.channels.includes(r.channel as never),
+    );
     if (known.length === job.channels.length) {
       return { created: false, notificationIds: known.map((r) => r.id) };
     }
     const created = job.channels.map((channel) => {
-      this.rows.push({ id: `n-${this.rows.length}`, channel, status: 'PENDING', receipt: null });
+      this.rows.push({
+        id: `n-${this.rows.length}`,
+        channel,
+        status: 'PENDING',
+        receipt: null,
+      });
       return this.rows[this.rows.length - 1].id;
     });
     return {
@@ -56,8 +70,16 @@ class FakeRepo {
     };
   }
 
-  async recordAttempt(notificationId: string, outcome: string, result: DeliveryResult) {
-    this.attempts.push({ notificationId, outcome, error: result.error ?? null });
+  async recordAttempt(
+    notificationId: string,
+    outcome: string,
+    result: DeliveryResult,
+  ) {
+    this.attempts.push({
+      notificationId,
+      outcome,
+      error: result.error ?? null,
+    });
     const row = this.rows.find((r) => r.id === notificationId);
     if (row) row.status = outcome;
   }
@@ -87,7 +109,9 @@ class FakeAdapter implements PushAdapter {
   }
 }
 
-function makeJob(overrides: Partial<NotificationJobPayload> = {}): NotificationJobPayload {
+function makeJob(
+  overrides: Partial<NotificationJobPayload> = {},
+): NotificationJobPayload {
   return {
     alertId: 'al-1',
     nextStatus: 'PUBLISHED',
@@ -122,7 +146,10 @@ describe('NotificationProcessor (Phase 6 job state machine)', () => {
         (channel) => new FakeAdapter(channel, results[channel]!),
       ),
     );
-    return { processor: new NotificationProcessor(repo as never, adapters), adapters };
+    return {
+      processor: new NotificationProcessor(repo as never, adapters),
+      adapters,
+    };
   }
 
   it('marks every channel DELIVERED when all adapters deliver', async () => {
@@ -174,7 +201,9 @@ describe('NotificationProcessor (Phase 6 job state machine)', () => {
     const first = await processor.process(makeJob(), 1);
     expect(first.delivered).toBe(false);
     expect(first.terminal).toBe(false);
-    expect(repo.rows.find((r) => r.channel === 'PUSH_FCM')?.status).toBe('FAILED');
+    expect(repo.rows.find((r) => r.channel === 'PUSH_FCM')?.status).toBe(
+      'FAILED',
+    );
 
     // Attempt 2: budget left = 0 (final attempt). The still-failing FCM
     // channel is now terminal DROPPED (the dead-letter state).
@@ -183,8 +212,12 @@ describe('NotificationProcessor (Phase 6 job state machine)', () => {
     const fcmRow = repo.rows.find((r) => r.channel === 'PUSH_FCM');
     expect(fcmRow?.status).toBe('DROPPED');
     // The two successful channels were delivered once and then skipped.
-    expect(repo.rows.find((r) => r.channel === 'PUSH_WEB')?.status).toBe('DELIVERED');
-    expect(repo.rows.find((r) => r.channel === 'PUSH_APNS')?.status).toBe('DELIVERED');
+    expect(repo.rows.find((r) => r.channel === 'PUSH_WEB')?.status).toBe(
+      'DELIVERED',
+    );
+    expect(repo.rows.find((r) => r.channel === 'PUSH_APNS')?.status).toBe(
+      'DELIVERED',
+    );
   });
 
   it('marks an unavailable channel terminal DROPPED (never SENT/DELIVERED)', async () => {
@@ -221,7 +254,9 @@ describe('NotificationProcessor (Phase 6 job state machine)', () => {
     // First attempt: web delivers, FCM/APNS fail transiently (retry budget 1).
     const first = await processor.process(makeJob(), 1);
     expect(first.terminal).toBe(false);
-    expect(repo.rows.find((r) => r.channel === 'PUSH_WEB')?.status).toBe('DELIVERED');
+    expect(repo.rows.find((r) => r.channel === 'PUSH_WEB')?.status).toBe(
+      'DELIVERED',
+    );
 
     // Second attempt (queue retry, final budget): the DELIVERED web channel is
     // skipped — exactly one web adapter call across both attempts — while the
@@ -229,7 +264,11 @@ describe('NotificationProcessor (Phase 6 job state machine)', () => {
     const second = await processor.process(makeJob(), 0);
     expect(second.terminal).toBe(true);
     expect(web.calls.length).toBe(1);
-    expect(repo.rows.find((r) => r.channel === 'PUSH_FCM')?.status).toBe('DROPPED');
-    expect(repo.rows.find((r) => r.channel === 'PUSH_APNS')?.status).toBe('DROPPED');
+    expect(repo.rows.find((r) => r.channel === 'PUSH_FCM')?.status).toBe(
+      'DROPPED',
+    );
+    expect(repo.rows.find((r) => r.channel === 'PUSH_APNS')?.status).toBe(
+      'DROPPED',
+    );
   });
 });

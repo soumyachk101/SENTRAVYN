@@ -1,4 +1,7 @@
-import { decodeCursor, encodeCursor } from '../../src/notifications/sync.service';
+import {
+  decodeCursor,
+  encodeCursor,
+} from '../../src/notifications/sync.service';
 import type { SyncItem } from '../../src/notifications/types';
 
 /**
@@ -43,7 +46,11 @@ describe('sync cursor codec (Phase 6 durable reconnect)', () => {
     const a = decodeCursor(encodeCursor(item()));
     const b = decodeCursor(
       encodeCursor(
-        item({ alertId: 'al-2', revision: 4, createdAt: '2026-01-02T00:00:00.000Z' }),
+        item({
+          alertId: 'al-2',
+          revision: 4,
+          createdAt: '2026-01-02T00:00:00.000Z',
+        }),
       ),
     );
     expect(a).not.toEqual(b);
@@ -57,10 +64,15 @@ describe('sync cursor codec (Phase 6 durable reconnect)', () => {
     ['garbage', 'not-a-cursor'],
     ['truncated base64url', 'eyJjIjoi'],
     ['valid base64 but not JSON', Buffer.from('hello').toString('base64url')],
-    ['JSON with wrong field types', Buffer.from(JSON.stringify({ c: 1 })).toString('base64url')],
+    [
+      'JSON with wrong field types',
+      Buffer.from(JSON.stringify({ c: 1 })).toString('base64url'),
+    ],
     [
       'JSON with an unparseable date',
-      Buffer.from(JSON.stringify({ c: 'not-a-date', a: 'al-1', r: 1 })).toString('base64url'),
+      Buffer.from(
+        JSON.stringify({ c: 'not-a-date', a: 'al-1', r: 1 }),
+      ).toString('base64url'),
     ],
   ])('returns null for %s', (_label, raw: string | null) => {
     expect(decodeCursor(raw)).toBeNull();

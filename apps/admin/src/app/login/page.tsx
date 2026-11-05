@@ -5,12 +5,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { authApi } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { isMfaPending, type MfaPendingLogin } from '@/lib/types';
-import {
-  Badge,
-  describeError,
-  Eyebrow,
-  Field,
-} from '@/lib/ui';
+import { Badge, describeError, Eyebrow, Field } from '@/lib/ui';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** A TOTP code is 6 digits; a recovery code is 4-4-4 (13 chars). */

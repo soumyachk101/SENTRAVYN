@@ -33,8 +33,7 @@ import {
  * native confirm). Loading/empty/error states all render (rule 10).
  */
 type Editing =
-  | { kind: 'new' }
-  | { kind: 'edit'; contact: EmergencyContactView };
+  { kind: 'new' } | { kind: 'edit'; contact: EmergencyContactView };
 
 export function ContactsScreen() {
   const { state: session, signOut } = useSession();
@@ -59,7 +58,9 @@ export function ContactsScreen() {
       const rows = await familyContacts(token);
       setContacts(rows);
     } catch {
-      setError('Could not load your emergency contacts. The API may be unreachable.');
+      setError(
+        'Could not load your emergency contacts. The API may be unreachable.',
+      );
     } finally {
       setLoading(false);
     }
@@ -159,10 +160,18 @@ export function ContactsScreen() {
                   {c.phone ? <Mono>{c.phone}</Mono> : null}
                 </View>
                 <View style={styles.actions}>
-                  <Text style={styles.action} accessibilityRole="button" onPress={() => openEdit(c)}>
+                  <Text
+                    style={styles.action}
+                    accessibilityRole="button"
+                    onPress={() => openEdit(c)}
+                  >
                     Edit
                   </Text>
-                  <Text style={[styles.action, { color: colors.alertRed }]} accessibilityRole="button" onPress={() => remove(c)}>
+                  <Text
+                    style={[styles.action, { color: colors.alertRed }]}
+                    accessibilityRole="button"
+                    onPress={() => remove(c)}
+                  >
                     Delete
                   </Text>
                 </View>
@@ -204,19 +213,31 @@ export function ContactsScreen() {
           />
           <View style={styles.consentRow}>
             <Text
-              style={[styles.consentText, { color: consent ? colors.okGreen : colors.slate300 }]}
+              style={[
+                styles.consentText,
+                { color: consent ? colors.okGreen : colors.slate300 },
+              ]}
               accessibilityRole="button"
               accessibilityState={{ selected: consent }}
               onPress={() => setConsent((c) => !c)}
             >
-              {consent ? 'Selected' : 'Not selected'} — this person has consented to be contacted by SENTRAVYN for emergencies
+              {consent ? 'Selected' : 'Not selected'} — this person has
+              consented to be contacted by SENTRAVYN for emergencies
             </Text>
           </View>
           <View style={styles.editorActions}>
-            <Text style={styles.action} accessibilityRole="button" onPress={() => setEditing(null)}>
+            <Text
+              style={styles.action}
+              accessibilityRole="button"
+              onPress={() => setEditing(null)}
+            >
               Cancel
             </Text>
-            <Text style={[styles.action, { color: colors.accentCalm }]} accessibilityRole="button" onPress={save}>
+            <Text
+              style={[styles.action, { color: colors.accentCalm }]}
+              accessibilityRole="button"
+              onPress={save}
+            >
               Save
             </Text>
           </View>
@@ -232,7 +253,11 @@ export function ContactsScreen() {
         >
           + Add emergency contact
         </Text>
-        <Text style={styles.signOut} accessibilityRole="button" onPress={signOut}>
+        <Text
+          style={styles.signOut}
+          accessibilityRole="button"
+          onPress={signOut}
+        >
           Sign out
         </Text>
       </View>
@@ -284,7 +309,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(85,96,108,0.35)',
   },
   consentText: { fontSize: 13, lineHeight: 18 },
-  editorActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, marginTop: 4 },
+  editorActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 16,
+    marginTop: 4,
+  },
   footer: {
     position: 'absolute',
     bottom: 20,

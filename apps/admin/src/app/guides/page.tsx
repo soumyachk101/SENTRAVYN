@@ -1,12 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { guidesApi, auditApi } from "@/lib/api";
-import { useRequireRole } from "@/lib/session";
-import {
-  type AuditEvent,
-  type GuideView,
-} from "@/lib/types";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { guidesApi, auditApi } from '@/lib/api';
+import { useRequireRole } from '@/lib/session';
+import { type AuditEvent, type GuideView } from '@/lib/types';
 import {
   Badge,
   describeError,
@@ -18,7 +15,7 @@ import {
   LoadingPanel,
   Meta,
   SigninRequiredPanel,
-} from "@/lib/ui";
+} from '@/lib/ui';
 
 /**
  * Safety-guide approval workflow (Phase 5; SAFETY-POLICY.md 10; SECURITY.md 6).
@@ -40,29 +37,29 @@ import {
  */
 
 const APPROVAL_STATES = [
-  "DRAFT",
-  "IN_REVIEW",
-  "APPROVED",
-  "PUBLISHED",
-  "RETIRED",
+  'DRAFT',
+  'IN_REVIEW',
+  'APPROVED',
+  'PUBLISHED',
+  'RETIRED',
 ] as const;
 
 type ApprovalState = (typeof APPROVAL_STATES)[number];
 
 export default function GuidesPage() {
-  const { signedIn, loading, allowed, role } = useRequireRole("REVIEWER");
+  const { signedIn, loading, allowed, role } = useRequireRole('REVIEWER');
 
   const [state, setState] = useState<
-    | { status: "loading" }
-    | { status: "error"; error: string }
-    | { status: "ready"; guides: GuideView[] }
-  >({ status: "loading" });
+    | { status: 'loading' }
+    | { status: 'error'; error: string }
+    | { status: 'ready'; guides: GuideView[] }
+  >({ status: 'loading' });
 
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [auditLoaded, setAuditLoaded] = useState(false);
 
   const fetchGuides = useCallback(async () => {
-    setState({ status: "loading" });
+    setState({ status: 'loading' });
     try {
       // One pass over every state, then group client-side. The API caps a
       // single page at 100; each state is a separate small list here.
@@ -72,15 +69,15 @@ export default function GuidesPage() {
         ),
       );
       const guides: GuideView[] = pages.flatMap((p) => p.items);
-      setState({ status: "ready", guides });
+      setState({ status: 'ready', guides });
     } catch (err: unknown) {
-      setState({ status: "error", error: describeError(err) });
+      setState({ status: 'error', error: describeError(err) });
     }
   }, []);
 
   const fetchAudit = useCallback(async () => {
     try {
-      setAuditEvents(await auditApi.list({ entity: "guide", limit: 50 }));
+      setAuditEvents(await auditApi.list({ entity: 'guide', limit: 50 }));
       setAuditLoaded(true);
     } catch {
       // The audit panel is secondary: a fetch failure must not blank the
@@ -102,7 +99,7 @@ export default function GuidesPage() {
   const byState = useMemo(() => {
     const map = new Map<ApprovalState, GuideView[]>();
     for (const s of APPROVAL_STATES) map.set(s, []);
-    for (const g of state.status === "ready" ? state.guides : []) {
+    for (const g of state.status === 'ready' ? state.guides : []) {
       const bucket = map.get(g.approval);
       if (bucket) bucket.push(g);
     }
@@ -117,10 +114,10 @@ export default function GuidesPage() {
       <Eyebrow>Guides</Eyebrow>
       <h1>Safety guides</h1>
       <p className="sub">
-        Reviewed, hazard-specific guidance. Approval is completeness-gated:
-        a guide needs a named reviewer, the reviewing authority and at least
-        one reference before it can be published (SAFETY-POLICY.md 6, 10).
-        Every action here is audited.
+        Reviewed, hazard-specific guidance. Approval is completeness-gated: a
+        guide needs a named reviewer, the reviewing authority and at least one
+        reference before it can be published (SAFETY-POLICY.md 6, 10). Every
+        action here is audited.
       </p>
 
       {loading ? (
@@ -129,9 +126,9 @@ export default function GuidesPage() {
         <SigninRequiredPanel />
       ) : !allowed ? (
         <InsufficientRolePanel required="REVIEWER" role={role} />
-      ) : state.status === "loading" ? (
+      ) : state.status === 'loading' ? (
         <LoadingPanel label="Loading guides" />
-      ) : state.status === "error" ? (
+      ) : state.status === 'error' ? (
         <ErrorPanel message={state.error} onRetry={() => void fetchGuides()} />
       ) : (
         <div className="list">
@@ -152,9 +149,7 @@ export default function GuidesPage() {
         </div>
       )}
 
-      {auditLoaded ? (
-        <GuideAuditPanel events={auditEvents} />
-      ) : null}
+      {auditLoaded ? <GuideAuditPanel events={auditEvents} /> : null}
     </section>
   );
 }
@@ -220,26 +215,28 @@ function GuideCard({
       <div className="card__head">
         <h2 className="card__title">
           {guide.hazardType}
-          {guide.jurisdiction ? ` — ${guide.jurisdiction}` : ""}
+          {guide.jurisdiction ? ` — ${guide.jurisdiction}` : ''}
         </h2>
-        <Badge tone={guide.freshness === "fresh" ? "ok" : "warn"}>
+        <Badge tone={guide.freshness === 'fresh' ? 'ok' : 'warn'}>
           {guide.approval}
-          {guide.freshness !== "fresh" ? ` · ${guide.freshness}` : ""}
+          {guide.freshness !== 'fresh' ? ` · ${guide.freshness}` : ''}
         </Badge>
       </div>
 
       <div className="card__meta">
         <Meta k="Version">{guide.version}</Meta>
         <Meta k="Last reviewed">{formatDateTime(guide.lastReviewedAt)}</Meta>
-        <Meta k="Reviewer">{guide.reviewer ?? "n/a"}</Meta>
-        <Meta k="Authority">{guide.authority ?? "n/a"}</Meta>
+        <Meta k="Reviewer">{guide.reviewer ?? 'n/a'}</Meta>
+        <Meta k="Authority">{guide.authority ?? 'n/a'}</Meta>
         <Meta k="References">{guide.references.length}</Meta>
         <Meta k="Language">{guide.language}</Meta>
       </div>
 
       {guide.body ? (
-        <p className="card__note" style={{ whiteSpace: "pre-wrap" }}>
-          {guide.body.length > 280 ? guide.body.slice(0, 280) + "…" : guide.body}
+        <p className="card__note" style={{ whiteSpace: 'pre-wrap' }}>
+          {guide.body.length > 280
+            ? guide.body.slice(0, 280) + '…'
+            : guide.body}
         </p>
       ) : null}
 
@@ -250,7 +247,11 @@ function GuideCard({
           {actionError}
         </p>
       ) : null}
-      {success ? <p className="card__note" role="status">{success}</p> : null}
+      {success ? (
+        <p className="card__note" role="status">
+          {success}
+        </p>
+      ) : null}
     </article>
   );
 }
@@ -269,16 +270,16 @@ function Actions({
   busy: boolean;
   run: (fn: () => Promise<unknown>, successMessage: string) => Promise<void>;
 }) {
-  const [rationale, setRationale] = useState("");
-  const [reviewer, setReviewer] = useState("");
-  const [authority, setAuthority] = useState("");
+  const [rationale, setRationale] = useState('');
+  const [reviewer, setReviewer] = useState('');
+  const [authority, setAuthority] = useState('');
 
   const s = guide.approval;
   return (
-    <div className="decide" style={{ marginTop: "var(--space-md)" }}>
+    <div className="decide" style={{ marginTop: 'var(--space-md)' }}>
       <h3>Actions</h3>
       <div className="decide__grid">
-        {s === "DRAFT" ? (
+        {s === 'DRAFT' ? (
           <>
             <label className="field">
               <span className="field__label">Reviewer (optional)</span>
@@ -307,7 +308,7 @@ function Actions({
                         reviewer: reviewer || undefined,
                         authority: authority || undefined,
                       }),
-                    "Guide moved to IN_REVIEW (GUIDE_REVIEWED).",
+                    'Guide moved to IN_REVIEW (GUIDE_REVIEWED).',
                   )
                 }
               >
@@ -317,7 +318,7 @@ function Actions({
           </>
         ) : null}
 
-        {s === "IN_REVIEW" ? (
+        {s === 'IN_REVIEW' ? (
           <>
             <label className="field">
               <span className="field__label">Rationale (optional)</span>
@@ -338,7 +339,7 @@ function Actions({
                       guidesApi.approve(guide.id, {
                         rationale: rationale || undefined,
                       }),
-                    "Guide approved (GUIDE_APPROVED).",
+                    'Guide approved (GUIDE_APPROVED).',
                   )
                 }
               >
@@ -348,7 +349,7 @@ function Actions({
           </>
         ) : null}
 
-        {s === "APPROVED" ? (
+        {s === 'APPROVED' ? (
           <div className="guide-actions">
             <button
               className="btn btn--primary"
@@ -359,7 +360,7 @@ function Actions({
                     guidesApi.publish(guide.id, {
                       rationale: rationale || undefined,
                     }),
-                  "Guide published (GUIDE_PUBLISHED).",
+                  'Guide published (GUIDE_PUBLISHED).',
                 )
               }
             >
@@ -368,7 +369,7 @@ function Actions({
           </div>
         ) : null}
 
-        {s === "PUBLISHED" ? (
+        {s === 'PUBLISHED' ? (
           <>
             <label className="field">
               <span className="field__label">Rationale (optional)</span>
@@ -389,7 +390,7 @@ function Actions({
                       guidesApi.retire(guide.id, {
                         rationale: rationale || undefined,
                       }),
-                    "Guide retired (GUIDE_RETIRED).",
+                    'Guide retired (GUIDE_RETIRED).',
                   )
                 }
               >
@@ -399,7 +400,7 @@ function Actions({
           </>
         ) : null}
 
-        {s === "RETIRED" ? (
+        {s === 'RETIRED' ? (
           <div className="guide-actions">
             <button
               className="btn"
@@ -407,7 +408,7 @@ function Actions({
               onClick={() =>
                 run(
                   () => guidesApi.reopen(guide.id),
-                  "Guide re-opened as a new DRAFT (GUIDE_UPDATED).",
+                  'Guide re-opened as a new DRAFT (GUIDE_UPDATED).',
                 )
               }
             >
@@ -430,8 +431,8 @@ function GuideAuditPanel({ events }: { events: AuditEvent[] }) {
     );
   }
   return (
-    <div className="table-wrap" style={{ marginTop: "var(--space-xl)" }}>
-      <h2 style={{ margin: "0 0 var(--space-sm)" }}>
+    <div className="table-wrap" style={{ marginTop: 'var(--space-xl)' }}>
+      <h2 style={{ margin: '0 0 var(--space-sm)' }}>
         <Eyebrow>Guide audit trail</Eyebrow>
         Recent guide events
       </h2>
@@ -462,7 +463,9 @@ function GuideAuditPanel({ events }: { events: AuditEvent[] }) {
               <td>
                 {ev.detail ? (
                   <code className="mono mono--wrap" title={ev.detail}>
-                    {ev.detail.length > 160 ? ev.detail.slice(0, 160) + "…" : ev.detail}
+                    {ev.detail.length > 160
+                      ? ev.detail.slice(0, 160) + '…'
+                      : ev.detail}
                   </code>
                 ) : (
                   <span className="cell-muted">—</span>

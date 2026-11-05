@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
@@ -227,14 +231,12 @@ export class PlacesService {
         limit: query.limit ?? 200,
         kind: query.kind,
       });
-      const items = rows.map(
-        (row): PlaceListItemNear => ({
-          ...row,
-          // Literal disclosure: distance is a derived calculation, never a
-          // safe-reachability recommendation (SAFETY-POLICY.md section 2).
-          distanceIsCalculation: true,
-        }),
-      );
+      const items = rows.map((row): PlaceListItemNear => ({
+        ...row,
+        // Literal disclosure: distance is a derived calculation, never a
+        // safe-reachability recommendation (SAFETY-POLICY.md section 2).
+        distanceIsCalculation: true,
+      }));
       return {
         items,
         ...(items.length === 0 ? { coverageNote: COVERAGE_NOTE } : {}),
@@ -447,7 +449,10 @@ export class PlacesService {
     staleSince: Date | null;
     lat: number | null;
     lng: number | null;
-  }): Omit<PlaceListItemBase, 'verificationLabel' | 'verificationLabelReasons'> {
+  }): Omit<
+    PlaceListItemBase,
+    'verificationLabel' | 'verificationLabelReasons'
+  > {
     return {
       id: row.id,
       name: row.name,
@@ -504,7 +509,9 @@ function toProfileVerification(p: {
   };
 }
 
-function toShelterProfileView(p: PlaceDetailRow['shelters'][number]): ShelterProfileView {
+function toShelterProfileView(
+  p: PlaceDetailRow['shelters'][number],
+): ShelterProfileView {
   return {
     id: p.id,
     classification: p.classification,
@@ -519,7 +526,9 @@ function toShelterProfileView(p: PlaceDetailRow['shelters'][number]): ShelterPro
   };
 }
 
-function toPlaceEvidenceView(e: PlaceDetailRow['evidence'][number]): PlaceEvidenceView {
+function toPlaceEvidenceView(
+  e: PlaceDetailRow['evidence'][number],
+): PlaceEvidenceView {
   return {
     id: e.id,
     claim: e.claim,

@@ -81,7 +81,15 @@ export class GdacsAdapter implements ProviderAdapter {
       // boolean eventid is not a usable identifier: reject it rather than
       // stringify it to a garbage "gdacs:[object Object]" externalRef.
       if (typeof eventid !== 'string' && typeof eventid !== 'number') {
-        result.rejected.push(this.rejected('unknown', 'INVALID_EVENTID', rawPayload, fetchedAtIso, 'eventid must be a string or number'));
+        result.rejected.push(
+          this.rejected(
+            'unknown',
+            'INVALID_EVENTID',
+            rawPayload,
+            fetchedAtIso,
+            'eventid must be a string or number',
+          ),
+        );
         continue;
       }
       const sourceId = String(eventid);

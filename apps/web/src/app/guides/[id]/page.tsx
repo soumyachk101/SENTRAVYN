@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { GuideDetailClient } from "@/components/guides/GuideDetailClient";
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { GuideDetailClient } from '@/components/guides/GuideDetailClient';
 
 export const metadata: Metadata = {
-  title: "Safety guide",
+  title: 'Safety guide',
   description:
-    "A reviewed, cited safety guide from SENTRAVYN: summary only, with " +
-    "authoritative source references, review date and version. Not a " +
-    "substitute for official emergency instructions.",
+    'A reviewed, cited safety guide from SENTRAVYN: summary only, with ' +
+    'authoritative source references, review date and version. Not a ' +
+    'substitute for official emergency instructions.',
 };
 
 // The guide id is per-request data (the user's chosen guide), so the route

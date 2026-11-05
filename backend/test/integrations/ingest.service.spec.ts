@@ -367,7 +367,9 @@ describe('IngestService (Phase 3 pipeline, ADR-005/ADR-007)', () => {
     // An existing registry row with enabled:false is a refusal: no raw record,
     // no alerts, a FAILED ProviderFetch explaining why (DATA-SOURCES.md 5.7).
     const { service, prisma } = makeService(
-      makePrisma({ provider: { id: 'provider-1', key: 'gdacs', enabled: false } }),
+      makePrisma({
+        provider: { id: 'provider-1', key: 'gdacs', enabled: false },
+      }),
     );
 
     const outcome = await service.ingest('gdacs', gdacsPayload, {

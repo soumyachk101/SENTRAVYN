@@ -158,10 +158,7 @@ export class NotificationProcessor {
  */
 @Injectable()
 export class InjectableNotificationProcessor extends NotificationProcessor {
-  constructor(
-    repo: NotificationRepository,
-    adapters: PushAdapterRegistry,
-  ) {
+  constructor(repo: NotificationRepository, adapters: PushAdapterRegistry) {
     super(repo, adapters, new Logger(InjectableNotificationProcessor.name));
   }
 }

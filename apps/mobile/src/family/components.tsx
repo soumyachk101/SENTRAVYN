@@ -61,11 +61,17 @@ export function ErrorState({
 }) {
   return (
     <View style={[styles.state, { borderColor: colors.alertRed }]}>
-      <Text style={[styles.emptyTitle, { color: colors.alertRed }]}>{title}</Text>
+      <Text style={[styles.emptyTitle, { color: colors.alertRed }]}>
+        {title}
+      </Text>
       <Text style={styles.stateLabel}>{body}</Text>
       {onRetry ? (
         <View style={styles.retryRow}>
-          <Text style={styles.retry} onPress={onRetry} accessibilityRole="button">
+          <Text
+            style={styles.retry}
+            onPress={onRetry}
+            accessibilityRole="button"
+          >
             Retry
           </Text>
         </View>
@@ -96,16 +102,28 @@ export function VerificationChip({ label }: { label: VerificationLabel }) {
       accessibilityLabel={`Verification status: ${VERIFICATION_LABEL[label]}`}
     >
       <View style={[styles.chipDot, { backgroundColor: c }]} />
-      <Text style={[styles.chipText, { color: c }]}>{VERIFICATION_LABEL[label]}</Text>
+      <Text style={[styles.chipText, { color: c }]}>
+        {VERIFICATION_LABEL[label]}
+      </Text>
     </View>
   );
 }
 
 /** Monospace technical metadata (timestamps, ids). */
-export function Mono({ children, color }: { children: React.ReactNode; color?: string }) {
+export function Mono({
+  children,
+  color,
+}: {
+  children: React.ReactNode;
+  color?: string;
+}) {
   return (
     <Text
-      style={[styles.mono, { fontFamily: 'monospace' }, { color: color ?? colors.slate500 }]}
+      style={[
+        styles.mono,
+        { fontFamily: 'monospace' },
+        { color: color ?? colors.slate500 },
+      ]}
     >
       {children}
     </Text>

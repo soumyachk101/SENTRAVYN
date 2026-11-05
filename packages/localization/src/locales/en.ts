@@ -40,7 +40,8 @@ export const en: LocaleResource = {
     hazard: 'Hazard',
     language: 'Language',
     loading: 'Loading guides…',
-    error: 'The guide could not be loaded. The API may be offline or the request failed.',
+    error:
+      'The guide could not be loaded. The API may be offline or the request failed.',
     offline: 'You appear to be offline. The guide could not be fetched.',
     retry: 'Retry',
   },

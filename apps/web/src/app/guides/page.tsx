@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import { GuideIndexClient } from "@/components/guides/GuideIndexClient";
+import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import { GuideIndexClient } from '@/components/guides/GuideIndexClient';
 
 export const metadata: Metadata = {
-  title: "Safety guides",
+  title: 'Safety guides',
   description:
-    "Reviewed, hazard-specific protective guidance from SENTRAVYN: summaries " +
-    "of official guidance with source references, review dates, versions and " +
-    "jurisdiction applicability. Summaries only — not official instructions.",
+    'Reviewed, hazard-specific protective guidance from SENTRAVYN: summaries ' +
+    'of official guidance with source references, review dates, versions and ' +
+    'jurisdiction applicability. Summaries only — not official instructions.',
 };
 
 /**

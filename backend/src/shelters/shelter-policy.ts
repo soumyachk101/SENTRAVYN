@@ -89,12 +89,7 @@ export function shelterEvidenceGaps(e: ShelterEvidence): string[] {
  * no shelter claim is never downgraded to INCOMPLETE.
  */
 export type VerificationLabel =
-  | 'UNVERIFIED'
-  | 'REVIEWED'
-  | 'VERIFIED'
-  | 'STALE'
-  | 'EXPIRED'
-  | 'INCOMPLETE';
+  'UNVERIFIED' | 'REVIEWED' | 'VERIFIED' | 'STALE' | 'EXPIRED' | 'INCOMPLETE';
 
 /** The time-dependent fields of a shelter profile relevant to the label. */
 export interface ShelterProfileVerification {
@@ -188,9 +183,10 @@ function profileDowngrade(
  *   A VERIFIED place with no shelter profiles keeps its VERIFIED label: it
  *   makes no shelter claim, so there is no shelter evidence to lapse.
  */
-export function resolveVerificationLabel(
-  input: VerificationLabelInput,
-): { label: VerificationLabel; reasons: string[] } {
+export function resolveVerificationLabel(input: VerificationLabelInput): {
+  label: VerificationLabel;
+  reasons: string[];
+} {
   const now = input.now ?? new Date();
 
   if (input.placeVerification !== 'VERIFIED') {

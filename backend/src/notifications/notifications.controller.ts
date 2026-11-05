@@ -1,10 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ConfigService } from '@nestjs/config';

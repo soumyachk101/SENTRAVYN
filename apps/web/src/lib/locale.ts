@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * Locale selection for the guide surfaces (Phase 5 localization
@@ -12,19 +12,19 @@
  * used and the client effect applies the stored choice.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 import {
   DEFAULT_LOCALE,
   getResource,
   selectLocale,
   type LocaleCode,
   type LocaleResource,
-} from "@sentravyn/localization";
+} from '@sentravyn/localization';
 
-const LOCALE_STORAGE_KEY = "sentravyn.locale";
+const LOCALE_STORAGE_KEY = 'sentravyn.locale';
 
 function readStoredLocale(): LocaleCode | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   try {
     const value = window.localStorage.getItem(LOCALE_STORAGE_KEY);
     return value && getResource(value) ? value : null;
@@ -36,7 +36,7 @@ function readStoredLocale(): LocaleCode | null {
 }
 
 function browserPreferredCodes(): LocaleCode[] {
-  if (typeof navigator === "undefined" || !navigator.languages?.length) {
+  if (typeof navigator === 'undefined' || !navigator.languages?.length) {
     return [];
   }
   return [...navigator.languages];
@@ -46,10 +46,11 @@ export function useGuideLocale(): {
   locale: LocaleResource;
   setLocale: (code: LocaleCode) => void;
 } {
-  const [locale, setLocaleState] = useState<LocaleResource>(() =>
-    // Initial state must be SSR-stable (the module top-level locale), so
-    // the selector runs on the stored/browser value only in an effect.
-    selectLocale(undefined).resource,
+  const [locale, setLocaleState] = useState<LocaleResource>(
+    () =>
+      // Initial state must be SSR-stable (the module top-level locale), so
+      // the selector runs on the stored/browser value only in an effect.
+      selectLocale(undefined).resource,
   );
 
   useEffect(() => {
@@ -82,5 +83,6 @@ export function useGuideLocale(): {
   return { locale, setLocale };
 }
 
-export const FALLBACK_LOCALE: LocaleResource =
-  getResource(DEFAULT_LOCALE) as LocaleResource;
+export const FALLBACK_LOCALE: LocaleResource = getResource(
+  DEFAULT_LOCALE,
+) as LocaleResource;

@@ -175,8 +175,12 @@ describe('PlacesService.list (default vs radius mode)', () => {
 
   it('rejects a half-supplied coordinate pair with 400', async () => {
     const { service } = createService();
-    await expect(service.list({ lat: 40.7 })).rejects.toThrow(BadRequestException);
-    await expect(service.list({ lng: -74 })).rejects.toThrow(BadRequestException);
+    await expect(service.list({ lat: 40.7 })).rejects.toThrow(
+      BadRequestException,
+    );
+    await expect(service.list({ lng: -74 })).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('radius mode: delegates to GeoService with clamped-able inputs and adds the distance disclosure', async () => {
@@ -290,7 +294,9 @@ describe('PlacesService.detail', () => {
 
   it('downgrades a VERIFIED place whose shelter has an explicit past expiry to EXPIRED', async () => {
     const { prisma, service } = createService();
-    const expired = profileRow({ expiresAt: new Date(Date.now() - 86_400_000) });
+    const expired = profileRow({
+      expiresAt: new Date(Date.now() - 86_400_000),
+    });
     prisma.place.findUnique.mockResolvedValue({
       ...placeRow(),
       shelters: [expired],
@@ -344,7 +350,13 @@ describe('PlacesService.addEvidence (SAFETY-POLICY.md section 9)', () => {
     });
     expect(audit.record).toHaveBeenCalledTimes(1);
     const [actorId, action, entity, entityId, detail] = audit.record.mock
-      .calls[0] as unknown as [string, string, string, string | null, string | undefined];
+      .calls[0] as unknown as [
+      string,
+      string,
+      string,
+      string | null,
+      string | undefined,
+    ];
     expect(actorId).toBe('user-1');
     expect(action).toBe('PLACE_EVIDENCE_ADDED');
     expect(entity).toBe('place');
@@ -375,16 +387,28 @@ describe('PlacesService.addEvidence (SAFETY-POLICY.md section 9)', () => {
   it('stores the claim verbatim (no trimming) when no source URL is given', async () => {
     const { prisma, service } = createService();
     prisma.place.findUnique.mockResolvedValue({ id: 'place-1' });
-    prisma.placeEvidence.create.mockResolvedValue(evidenceRow({ sourceUrl: null }));
+    prisma.placeEvidence.create.mockResolvedValue(
+      evidenceRow({ sourceUrl: null }),
+    );
 
     await service.addEvidence('user-1', 'place-1', {
       claim: '  spaced claim  ',
       sourceUrl: null,
     });
 
-    expect((prisma.placeEvidence.create.mock.calls[0][0] as { data: { claim: string; sourceUrl: string | null } }).data.claim).toBe(
-      '  spaced claim  ',
-    );
-    expect((prisma.placeEvidence.create.mock.calls[0][0] as { data: { claim: string; sourceUrl: string | null } }).data.sourceUrl).toBeNull();
+    expect(
+      (
+        prisma.placeEvidence.create.mock.calls[0][0] as {
+          data: { claim: string; sourceUrl: string | null };
+        }
+      ).data.claim,
+    ).toBe('  spaced claim  ');
+    expect(
+      (
+        prisma.placeEvidence.create.mock.calls[0][0] as {
+          data: { claim: string; sourceUrl: string | null };
+        }
+      ).data.sourceUrl,
+    ).toBeNull();
   });
 });

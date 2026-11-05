@@ -1,8 +1,8 @@
 import {
   SentravynApiClient,
   type PlacesNearbyParams,
-} from "@sentravyn/api-client";
-import type { PlaceGeoRow } from "@sentravyn/shared-types";
+} from '@sentravyn/api-client';
+import type { PlaceGeoRow } from '@sentravyn/shared-types';
 
 /**
  * Web-side place-discovery client (Phase 4). Thin wrapper over the shared
@@ -17,7 +17,7 @@ import type { PlaceGeoRow } from "@sentravyn/shared-types";
  */
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 
 let client: SentravynApiClient | null = null;
 function apiClient(): SentravynApiClient {

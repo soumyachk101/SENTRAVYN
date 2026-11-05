@@ -1,5 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
-import { AlertsService, PUBLIC_ALERT_STATUSES } from '../src/alerts/alerts.service';
+import {
+  AlertsService,
+  PUBLIC_ALERT_STATUSES,
+} from '../src/alerts/alerts.service';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
 type MockPrisma = {
@@ -257,7 +260,9 @@ describe('AlertsService.list (public surfacing, SAFETY-POLICY.md 7, ADR-007)', (
     await service.list({ status: 'PUBLISHED' });
 
     expect(prisma.alert.count.mock.calls[0][0].where.status).toBe('PUBLISHED');
-    expect(prisma.alert.findMany.mock.calls[0][0].where.status).toBe('PUBLISHED');
+    expect(prisma.alert.findMany.mock.calls[0][0].where.status).toBe(
+      'PUBLISHED',
+    );
   });
 
   it('rejects a non-public status (QUARANTINED) so ?status= cannot bypass the default filter', async () => {

@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue, type JobsOptions } from 'bullmq';
 import type { RedisOptions } from 'ioredis';
@@ -161,9 +156,7 @@ export class NotificationQueueService implements OnModuleDestroy {
       );
       return { enqueued: true, deduped, dedupKey: job.dedupKey };
     } catch (err) {
-      this.logger.error(
-        `enqueue failed for ${job.dedupKey}: ${String(err)}`,
-      );
+      this.logger.error(`enqueue failed for ${job.dedupKey}: ${String(err)}`);
       return {
         enqueued: false,
         deduped: false,
@@ -195,9 +188,7 @@ export class NotificationQueueService implements OnModuleDestroy {
         { ...job, failReason, deadAt: new Date().toISOString() },
         { jobId: `${job.dedupKey}:dead` },
       );
-      this.logger.warn(
-        `dead-lettered ${job.dedupKey}: ${failReason}`,
-      );
+      this.logger.warn(`dead-lettered ${job.dedupKey}: ${failReason}`);
       return true;
     } catch (err) {
       this.logger.error(

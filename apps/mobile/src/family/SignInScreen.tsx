@@ -70,8 +70,8 @@ export function SignInScreen() {
       </View>
 
       <Text style={styles.note}>
-        Signing in lets you manage your own emergency contacts, location
-        shares and household plan. Your data stays under your account.
+        Signing in lets you manage your own emergency contacts, location shares
+        and household plan. Your data stays under your account.
       </Text>
     </View>
   );

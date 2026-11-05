@@ -8,18 +8,11 @@
 
 /** Mirrors Prisma `NotificationChannel`. */
 export type NotificationChannel =
-  | 'WEBSOCKET'
-  | 'PUSH_WEB'
-  | 'PUSH_FCM'
-  | 'PUSH_APNS';
+  'WEBSOCKET' | 'PUSH_WEB' | 'PUSH_FCM' | 'PUSH_APNS';
 
 /** Mirrors Prisma `NotificationStatus`. */
 export type NotificationStatus =
-  | 'PENDING'
-  | 'SENT'
-  | 'DELIVERED'
-  | 'FAILED'
-  | 'DROPPED';
+  'PENDING' | 'SENT' | 'DELIVERED' | 'FAILED' | 'DROPPED';
 
 /** Every push channel that the durable BullMQ worker is responsible for. */
 export const PUSH_CHANNELS: NotificationChannel[] = [
@@ -81,9 +74,7 @@ export interface PushAdapter {
    * Deliver one notification on this channel. Must not throw for
    * configuration problems; report them via the returned result.
    */
-  send(
-    job: NotificationJobPayload,
-  ): Promise<DeliveryResult>;
+  send(job: NotificationJobPayload): Promise<DeliveryResult>;
   /**
    * Whether this adapter is configured enough to attempt delivery. A false
    * value short-circuits to `unavailable` without a network call.

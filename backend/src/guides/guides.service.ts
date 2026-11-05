@@ -346,7 +346,9 @@ export class GuidesService {
           language:
             input.language === undefined ? row.language : input.language.trim(),
           author:
-            input.author === undefined ? row.author : normalizeText(input.author),
+            input.author === undefined
+              ? row.author
+              : normalizeText(input.author),
           reviewer:
             input.reviewer === undefined
               ? row.reviewer
@@ -574,7 +576,15 @@ export class GuidesService {
       AUDIT_ACTIONS.GUIDE_UPDATED,
       'guide',
       id,
-      guideAuditDetail(row.approval, 'DRAFT', row.reviewer, row.authority, row.lastReviewedAt ?? now, row.version, { event: 'reopened' }),
+      guideAuditDetail(
+        row.approval,
+        'DRAFT',
+        row.reviewer,
+        row.authority,
+        row.lastReviewedAt ?? now,
+        row.version,
+        { event: 'reopened' },
+      ),
     );
 
     return this.getDetailOrThrow(id, now);
@@ -592,7 +602,8 @@ export class GuidesService {
 
   private async getDetailOrThrow(id: string, now: Date): Promise<GuideDetail> {
     const detail = await this.getDetail(id, now);
-    if (!detail) throw new NotFoundException('guide not found after state change');
+    if (!detail)
+      throw new NotFoundException('guide not found after state change');
     return detail;
   }
 
@@ -649,14 +660,13 @@ function assertComplete(row: GuideRecord): void {
   }
 }
 
-function parseOptionalDate(
-  value: string | undefined,
-  fallback: Date,
-): Date {
+function parseOptionalDate(value: string | undefined, fallback: Date): Date {
   if (!value) return fallback;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    throw new BadRequestException('the supplied timestamp must be valid ISO 8601.');
+    throw new BadRequestException(
+      'the supplied timestamp must be valid ISO 8601.',
+    );
   }
   return parsed;
 }

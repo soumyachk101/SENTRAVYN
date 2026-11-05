@@ -164,7 +164,10 @@ export function LocationShareScreen() {
               await familyRevokeLocationShare(share.id, token);
               await load();
             } catch {
-              Alert.alert('Could not stop sharing', 'The request failed. Check your connection.');
+              Alert.alert(
+                'Could not stop sharing',
+                'The request failed. Check your connection.',
+              );
             }
           },
         },
@@ -178,9 +181,15 @@ export function LocationShareScreen() {
     <View style={styles.root}>
       <SectionTitle>Location sharing</SectionTitle>
 
-      {phase.status === 'loading' && <Loading label="Loading location shares…" />}
+      {phase.status === 'loading' && (
+        <Loading label="Loading location shares…" />
+      )}
       {phase.status === 'error' && (
-        <ErrorState title="Something went wrong" body={phase.message} onRetry={load} />
+        <ErrorState
+          title="Something went wrong"
+          body={phase.message}
+          onRetry={load}
+        />
       )}
 
       {phase.status === 'ready' && (
@@ -188,20 +197,27 @@ export function LocationShareScreen() {
           {/* The clear "share now / stop" control */}
           <View style={styles.control}>
             <Text style={styles.controlTitle}>
-              {activeShare ? 'Sharing your location' : 'Share your location now'}
+              {activeShare
+                ? 'Sharing your location'
+                : 'Share your location now'}
             </Text>
             {activeShare ? (
               <Text style={styles.controlBody}>
-                With {activeShare.recipient}, until {new Date(activeShare.expiresAt).toLocaleString()}
+                With {activeShare.recipient}, until{' '}
+                {new Date(activeShare.expiresAt).toLocaleString()}
               </Text>
             ) : (
               <Text style={styles.controlBody}>
-                Choose who, why, and for how long. No location is sent until you confirm.
+                Choose who, why, and for how long. No location is sent until you
+                confirm.
               </Text>
             )}
             <View style={styles.controlButtons}>
               <Text
-                style={[styles.btn, activeShare ? styles.btnStop : styles.btnGo]}
+                style={[
+                  styles.btn,
+                  activeShare ? styles.btnStop : styles.btnGo,
+                ]}
                 accessibilityRole="button"
                 onPress={() => {
                   if (activeShare) void stop(activeShare);
@@ -235,21 +251,30 @@ export function LocationShareScreen() {
               <View style={styles.row}>
                 <Text style={styles.label}>Expires in</Text>
                 <Text
-                  style={[styles.expBtn, expiry === '1 hour' ? styles.expOn : null]}
+                  style={[
+                    styles.expBtn,
+                    expiry === '1 hour' ? styles.expOn : null,
+                  ]}
                   accessibilityRole="button"
                   onPress={() => setExpiry('1 hour')}
                 >
                   1h
                 </Text>
                 <Text
-                  style={[styles.expBtn, expiry === '6 hours' ? styles.expOn : null]}
+                  style={[
+                    styles.expBtn,
+                    expiry === '6 hours' ? styles.expOn : null,
+                  ]}
                   accessibilityRole="button"
                   onPress={() => setExpiry('6 hours')}
                 >
                   6h
                 </Text>
                 <Text
-                  style={[styles.expBtn, expiry === '24 hours' ? styles.expOn : null]}
+                  style={[
+                    styles.expBtn,
+                    expiry === '24 hours' ? styles.expOn : null,
+                  ]}
                   accessibilityRole="button"
                   onPress={() => setExpiry('24 hours')}
                 >
@@ -291,7 +316,9 @@ export function LocationShareScreen() {
                 </View>
                 <Text style={styles.sharePurpose}>{s.purpose}</Text>
                 <Text style={styles.shareMeta}>
-                  {s.lastKnownAt ? `last shared ${new Date(s.lastKnownAt).toLocaleString()}` : 'no position recorded yet'}
+                  {s.lastKnownAt
+                    ? `last shared ${new Date(s.lastKnownAt).toLocaleString()}`
+                    : 'no position recorded yet'}
                   {'  ·  '}
                   {s.preciseConsent ? 'precise consent' : 'coarse only'}
                   {'  ·  '}
@@ -302,10 +329,15 @@ export function LocationShareScreen() {
                       : 'expired'}
                 </Text>
                 <Text style={styles.offlineNote}>
-                  If you go offline, your location is not sent; it resumes when you reconnect.
+                  If you go offline, your location is not sent; it resumes when
+                  you reconnect.
                 </Text>
                 {s.active ? (
-                  <Text style={[styles.stopBtn, { color: colors.alertRed }]} accessibilityRole="button" onPress={() => void stop(s)}>
+                  <Text
+                    style={[styles.stopBtn, { color: colors.alertRed }]}
+                    accessibilityRole="button"
+                    onPress={() => void stop(s)}
+                  >
                     Stop sharing now
                   </Text>
                 ) : null}
@@ -316,7 +348,11 @@ export function LocationShareScreen() {
       )}
 
       <View style={styles.footer}>
-        <Text style={styles.signOut} accessibilityRole="button" onPress={signOut}>
+        <Text
+          style={styles.signOut}
+          accessibilityRole="button"
+          onPress={signOut}
+        >
           Sign out
         </Text>
       </View>
@@ -398,12 +434,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(85,96,108,0.22)',
   },
-  shareHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  shareHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   shareName: { color: colors.paper50, fontSize: 15, fontWeight: '600' },
   sharePurpose: { color: colors.slate300, fontSize: 13 },
   shareMeta: { color: colors.slate500, fontFamily: 'monospace', fontSize: 11 },
   offlineNote: { color: colors.slate500, fontSize: 11, fontStyle: 'italic' },
-  stopBtn: { color: colors.alertRed, fontFamily: 'monospace', fontSize: 13, marginTop: 4 },
+  stopBtn: {
+    color: colors.alertRed,
+    fontFamily: 'monospace',
+    fontSize: 13,
+    marginTop: 4,
+  },
   footer: {
     position: 'absolute',
     bottom: 20,

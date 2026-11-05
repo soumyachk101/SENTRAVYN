@@ -398,7 +398,9 @@ export class IngestService {
     key: string,
     name: string,
   ): Promise<{ provider: DataProvider; created: boolean }> {
-    const existing = await this.prisma.dataProvider.findUnique({ where: { key } });
+    const existing = await this.prisma.dataProvider.findUnique({
+      where: { key },
+    });
     if (existing) {
       return { provider: existing, created: false };
     }

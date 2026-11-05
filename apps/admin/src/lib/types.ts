@@ -203,13 +203,9 @@ export class ApiError extends Error {
 /* ------------------------------------------------------------------------ */
 
 export type GuideApprovalState =
-  | "DRAFT"
-  | "IN_REVIEW"
-  | "APPROVED"
-  | "PUBLISHED"
-  | "RETIRED";
+  'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'PUBLISHED' | 'RETIRED';
 
-export type GuideFreshness = "fresh" | "stale" | "unknown";
+export type GuideFreshness = 'fresh' | 'stale' | 'unknown';
 
 export interface GuideRevisionView {
   revision: number;

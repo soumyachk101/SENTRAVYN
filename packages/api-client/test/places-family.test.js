@@ -22,7 +22,10 @@ function makeClient(responseJson = {}) {
       text: () => Promise.resolve(JSON.stringify(responseJson)),
     });
   };
-  const client = new SentravynApiClient({ baseUrl: 'http://api.test', fetchImpl });
+  const client = new SentravynApiClient({
+    baseUrl: 'http://api.test',
+    fetchImpl,
+  });
   return { client, calls };
 }
 
@@ -37,7 +40,12 @@ function auth(options) {
 
 test('placesList builds a GET with the query params it is given', async () => {
   const { client, calls } = makeClient();
-  await client.placesList({ kind: 'hospital', page: 2, pageSize: 10, limit: 50 });
+  await client.placesList({
+    kind: 'hospital',
+    page: 2,
+    pageSize: 10,
+    limit: 50,
+  });
   const call = calls[0];
   assert.match(call.url, /^http:\/\/api\.test\/api\/v1\/places\?/);
   assert.match(call.url, /kind=hospital/);
@@ -87,10 +95,16 @@ test('familyContacts attaches the Bearer token to GET /family/contacts', async (
 
 test('familyCreateContact POSTs a JSON body with the token', async () => {
   const { client, calls } = makeClient();
-  await client.familyCreateContact({ name: 'Aunty May', consent: true }, 'TOKEN-A');
+  await client.familyCreateContact(
+    { name: 'Aunty May', consent: true },
+    'TOKEN-A',
+  );
   assert.equal(calls[0].options.method, 'POST');
   assert.equal(auth(calls[0].options), 'Bearer TOKEN-A');
-  assert.deepEqual(jsonBody(calls[0].options), { name: 'Aunty May', consent: true });
+  assert.deepEqual(jsonBody(calls[0].options), {
+    name: 'Aunty May',
+    consent: true,
+  });
 });
 
 test('familyUpdateContact PATCHes the owner-scoped path', async () => {
@@ -135,9 +149,7 @@ test('familyUpsertHouseholdPlan PUTs the plan with the kit checklist', async () 
   await client.familyUpsertHouseholdPlan(
     {
       meetingPoint: 'Community Hall',
-      kitChecklist: [
-        { label: 'water', done: true },
-      ],
+      kitChecklist: [{ label: 'water', done: true }],
       petConsiderations: 'two cats',
     },
     'TOKEN-A',

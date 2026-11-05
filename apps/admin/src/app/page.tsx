@@ -52,7 +52,10 @@ export default function AdminHome() {
         <Link className="workspace" href="/guides">
           <div>
             <strong>Safety guides</strong>
-            <span>Review, approve, publish, retire and reopen reviewed guides. REVIEWER+.</span>
+            <span>
+              Review, approve, publish, retire and reopen reviewed guides.
+              REVIEWER+.
+            </span>
           </div>
         </Link>
         <Link className="workspace" href="/providers">

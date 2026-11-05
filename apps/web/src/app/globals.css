@@ -699,9 +699,9 @@ body {
   align-items: center;
 }
 
-.map-panel__centre[aria-pressed="true"],
-.map-panel__radius[aria-pressed="true"],
-.map-panel__kind[aria-pressed="true"] {
+.map-panel__centre[aria-pressed='true'],
+.map-panel__radius[aria-pressed='true'],
+.map-panel__kind[aria-pressed='true'] {
   color: var(--paper-50);
   background: var(--ink-700);
   border-color: color-mix(in srgb, var(--accent-calm) 60%, transparent);
@@ -1132,7 +1132,7 @@ body {
   cursor: pointer;
 }
 
-.guide-tab[aria-selected="true"] {
+.guide-tab[aria-selected='true'] {
   color: var(--paper-50);
   background: var(--ink-700);
   border-color: color-mix(in srgb, var(--accent-calm) 60%, transparent);

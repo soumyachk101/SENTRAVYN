@@ -120,12 +120,13 @@ export function CinematicFooter() {
 
   // Pause when the tab/document is hidden, to keep CPU/GPU usage low.
   useEffect(() => {
-    if (typeof document === "undefined" || !("visibilityState" in document)) {
+    if (typeof document === 'undefined' || !('visibilityState' in document)) {
       return;
     }
     const onVisibilityChange = () => setTabHidden(document.hidden);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
   const togglePlay = useCallback(() => {

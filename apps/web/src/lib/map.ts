@@ -118,16 +118,15 @@ export interface VerificationChip {
   meaning: string;
 }
 
-export function verificationChip(
-  label: VerificationLabel,
-): VerificationChip {
+export function verificationChip(label: VerificationLabel): VerificationChip {
   switch (label) {
     case 'VERIFIED':
       return {
         label: 'Verified',
         color: '#4e7d5a',
         assertsSafety: false, // "verified" is a review state, not a safety claim
-        meaning: 'Reviewed and verified against evidence; re-validated on schedule.',
+        meaning:
+          'Reviewed and verified against evidence; re-validated on schedule.',
       };
     case 'REVIEWED':
       return {
@@ -141,28 +140,32 @@ export function verificationChip(
         label: 'Unverified',
         color: '#aab3bf',
         assertsSafety: false,
-        meaning: 'Listed from a source; not verified. A listing is not proof it is open or safe.',
+        meaning:
+          'Listed from a source; not verified. A listing is not proof it is open or safe.',
       };
     case 'STALE':
       return {
         label: 'Stale',
         color: '#b07d2b',
         assertsSafety: false,
-        meaning: 'Information is older than the revalidation window; treat as possibly out of date.',
+        meaning:
+          'Information is older than the revalidation window; treat as possibly out of date.',
       };
     case 'EXPIRED':
       return {
         label: 'Expired',
         color: '#a13a34',
         assertsSafety: false,
-        meaning: 'The record has passed its explicit expiry and is not current.',
+        meaning:
+          'The record has passed its explicit expiry and is not current.',
       };
     case 'INCOMPLETE':
       return {
         label: 'Incomplete',
         color: '#b07d2b',
         assertsSafety: false,
-        meaning: 'Verification evidence is incomplete; the safety claim is not confirmed.',
+        meaning:
+          'Verification evidence is incomplete; the safety claim is not confirmed.',
       };
   }
 }
@@ -182,8 +185,7 @@ export function formatDistance(meters: number): string {
 }
 
 /** The mandatory "calculation, not a safety recommendation" line. */
-export const DISTANCE_DISCLAIMER =
-  'a calculation, not a safety recommendation';
+export const DISTANCE_DISCLAIMER = 'a calculation, not a safety recommendation';
 
 /** A GeoJSON FeatureCollection of places that have known coordinates. */
 export type PlaceGeoJSON = {

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useCallback,
@@ -6,19 +6,19 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-} from "react";
+} from 'react';
 import {
   Map,
   GeoJSONSource,
   type StyleSpecification,
   type MapLayerMouseEvent,
-} from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+} from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import type {
   PlaceGeoRow,
   PlaceDetail,
   VerificationLabel,
-} from "@sentravyn/shared-types";
+} from '@sentravyn/shared-types';
 import {
   DEV_ONLY_TILE_NOTICE,
   DISTANCE_DISCLAIMER,
@@ -29,8 +29,8 @@ import {
   formatDistance,
   toPlaceGeoJSON,
   verificationChip,
-} from "@/lib/map";
-import { getPlaceDetail, searchPlacesNear } from "@/lib/places-client";
+} from '@/lib/map';
+import { getPlaceDetail, searchPlacesNear } from '@/lib/places-client';
 
 /**
  * The Phase 4 place-discovery map. Manual centre + radius only; no geolocation
@@ -41,47 +41,47 @@ import { getPlaceDetail, searchPlacesNear } from "@/lib/places-client";
  */
 
 type FetchState =
-  | { status: "idle" }
-  | { status: "loading" }
+  | { status: 'idle' }
+  | { status: 'loading' }
   | {
-      status: "ready";
+      status: 'ready';
       items: PlaceGeoRow[];
       fetchedAt: string;
       moreAvailable: boolean;
       coverageNote: string | null;
     }
-  | { status: "error"; message: string };
+  | { status: 'error'; message: string };
 
 /** A small set of manually selectable centres (no device location). */
 const CENTRE_PRESETS: { label: string; lat: number; lng: number }[] = [
-  { label: "London", lat: 51.5074, lng: -0.1278 },
-  { label: "New York", lat: 40.7128, lng: -74.006 },
-  { label: "Tokyo", lat: 35.6762, lng: 139.6503 },
-  { label: "Nairobi", lat: -1.2863, lng: 36.8172 },
-  { label: "Bogotá", lat: 4.711, lng: -74.0721 },
-  { label: "Sydney", lat: -33.8688, lng: 151.2093 },
+  { label: 'London', lat: 51.5074, lng: -0.1278 },
+  { label: 'New York', lat: 40.7128, lng: -74.006 },
+  { label: 'Tokyo', lat: 35.6762, lng: 139.6503 },
+  { label: 'Nairobi', lat: -1.2863, lng: 36.8172 },
+  { label: 'Bogotá', lat: 4.711, lng: -74.0721 },
+  { label: 'Sydney', lat: -33.8688, lng: 151.2093 },
 ];
 
 const DEFAULT_CENTER = CENTRE_PRESETS[0];
 const RADIUS_OPTIONS = [
-  { label: "1 km", meters: 1000 },
-  { label: "5 km", meters: 5000 },
-  { label: "25 km", meters: 25000 },
-  { label: "100 km", meters: 100000 },
-  { label: "500 km", meters: 500000 },
+  { label: '1 km', meters: 1000 },
+  { label: '5 km', meters: 5000 },
+  { label: '25 km', meters: 25000 },
+  { label: '100 km', meters: 100000 },
+  { label: '500 km', meters: 500000 },
 ];
 
 export function MapPanel() {
   const [center, setCenter] = useState(DEFAULT_CENTER);
   const [radius, setRadius] = useState(5000);
-  const [kind, setKind] = useState<string>("all");
-  const [state, setState] = useState<FetchState>({ status: "idle" });
+  const [kind, setKind] = useState<string>('all');
+  const [state, setState] = useState<FetchState>({ status: 'idle' });
   const [selected, setSelected] = useState<PlaceGeoRow | null>(null);
   const [detail, setDetail] = useState<PlaceDetail | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [visibleCategories, setVisibleCategories] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(LEGEND_CATEGORIES.map((c) => [c.id, true])),
-  );
+  const [visibleCategories, setVisibleCategories] = useState<
+    Record<string, boolean>
+  >(() => Object.fromEntries(LEGEND_CATEGORIES.map((c) => [c.id, true])));
 
   const mapRef = useRef<Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -117,11 +117,11 @@ export function MapPanel() {
     (onStoreChange) => {
       const onUp = () => onStoreChange();
       const onDown = () => onStoreChange();
-      window.addEventListener("online", onUp);
-      window.addEventListener("offline", onDown);
+      window.addEventListener('online', onUp);
+      window.addEventListener('offline', onDown);
       return () => {
-        window.removeEventListener("online", onUp);
-        window.removeEventListener("offline", onDown);
+        window.removeEventListener('online', onUp);
+        window.removeEventListener('offline', onDown);
       };
     },
     () => navigator.onLine,
@@ -135,7 +135,7 @@ export function MapPanel() {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    setState({ status: "loading" });
+    setState({ status: 'loading' });
     setSelected(null);
     setDetail(null);
     setSheetOpen(false);
@@ -143,11 +143,11 @@ export function MapPanel() {
       const result = await searchPlacesNear(
         { lat: center.lat, lng: center.lng },
         radius,
-        kind === "all" ? undefined : kind,
+        kind === 'all' ? undefined : kind,
       );
       if (controller.signal.aborted) return;
       setState({
-        status: "ready",
+        status: 'ready',
         items: result.items,
         fetchedAt: result.fetchedAt,
         moreAvailable: result.moreAvailable,
@@ -158,8 +158,8 @@ export function MapPanel() {
       const message =
         err instanceof Error && err.message
           ? err.message
-          : "The API could not be reached.";
-      setState({ status: "error", message });
+          : 'The API could not be reached.';
+      setState({ status: 'error', message });
     }
   }, [center.lat, center.lng, radius, kind]);
 
@@ -183,7 +183,7 @@ export function MapPanel() {
   // legend and states render regardless of whether the map canvas boots.
   useEffect(() => {
     if (mapReadyRef.current || !containerRef.current) return;
-    if (typeof window === "undefined" || !("WebGLRenderingContext" in window)) {
+    if (typeof window === 'undefined' || !('WebGLRenderingContext' in window)) {
       // No 2D/3D canvas support: the panel still works as a data view.
       return;
     }
@@ -194,13 +194,13 @@ export function MapPanel() {
           version: 8,
           sources: {
             osm: {
-              type: "raster",
+              type: 'raster',
               tiles: [OSM_TILES],
               tileSize: 256,
               attribution: OSM_ATTRIBUTION,
             },
           },
-          layers: [{ id: "osm", type: "raster", source: "osm" }],
+          layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
         } as StyleSpecification,
         center: [center.lng, center.lat],
         zoom: 10,
@@ -237,29 +237,29 @@ export function MapPanel() {
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const items = state.status === "ready" ? state.items : [];
+    const items = state.status === 'ready' ? state.items : [];
     itemsRef.current = items;
-    const visible = items.filter((p) =>
-      visibleCategories[categoryForKind(p.kind).id] ?? true,
+    const visible = items.filter(
+      (p) => visibleCategories[categoryForKind(p.kind).id] ?? true,
     );
     const data = toPlaceGeoJSON(visible);
-    if (!map.getSource("places")) {
-      map.addSource("places", { type: "geojson", data });
+    if (!map.getSource('places')) {
+      map.addSource('places', { type: 'geojson', data });
       for (const cat of LEGEND_CATEGORIES) {
         map.addLayer({
           id: `places-${cat.id}`,
-          type: "circle",
-          source: "places",
-          filter: ["==", ["get", "categoryId"], cat.id],
+          type: 'circle',
+          source: 'places',
+          filter: ['==', ['get', 'categoryId'], cat.id],
           paint: {
-            "circle-radius": 6,
-            "circle-color": cat.color,
-            "circle-stroke-width": 1,
-            "circle-stroke-color": "#101418",
+            'circle-radius': 6,
+            'circle-color': cat.color,
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#101418',
           },
         });
         // A marker click opens that place's detail (rule 9: every control works).
-        map.on("click", `places-${cat.id}`, (e: MapLayerMouseEvent) => {
+        map.on('click', `places-${cat.id}`, (e: MapLayerMouseEvent) => {
           const f = e.features?.[0];
           const id = (f?.properties as { id?: string } | undefined)?.id;
           if (!id) return;
@@ -268,7 +268,7 @@ export function MapPanel() {
         });
       }
     } else {
-      const src = map.getSource("places") as GeoJSONSource | undefined;
+      const src = map.getSource('places') as GeoJSONSource | undefined;
       src?.setData(data);
     }
   }, [state, visibleCategories, center.lat, center.lng, openDetail]);
@@ -295,7 +295,11 @@ export function MapPanel() {
       </header>
 
       <div className="map-panel__grid">
-        <div className="map-panel__controls" role="group" aria-label="Map controls">
+        <div
+          className="map-panel__controls"
+          role="group"
+          aria-label="Map controls"
+        >
           {/* Centre selection — manual only, no geolocation. */}
           <fieldset className="map-panel__field">
             <legend>Centre</legend>
@@ -306,7 +310,9 @@ export function MapPanel() {
                   type="button"
                   className="map-panel__centre"
                   aria-pressed={c.label === center.label}
-                  onClick={() => setCenter({ lat: c.lat, lng: c.lng, label: c.label })}
+                  onClick={() =>
+                    setCenter({ lat: c.lat, lng: c.lng, label: c.label })
+                  }
                 >
                   {c.label}
                 </button>
@@ -337,8 +343,8 @@ export function MapPanel() {
               <button
                 type="button"
                 className="map-panel__kind"
-                aria-pressed={kind === "all"}
-                onClick={() => setKind("all")}
+                aria-pressed={kind === 'all'}
+                onClick={() => setKind('all')}
               >
                 All
               </button>
@@ -396,7 +402,7 @@ export function MapPanel() {
             state={state}
             offline={offline}
             radiusMeters={radius}
-            center={center.label ?? ""}
+            center={center.label ?? ''}
             onRetry={() => void runSearch()}
             onSelect={openDetail}
             visibleCategories={visibleCategories}
@@ -445,19 +451,24 @@ export function MapBody({
     return (
       <div className="map-panel__state map-panel__state--offline" role="status">
         <h3>You appear to be offline</h3>
-        <p>Place data is fetched from the SENTRAVYN API. Reconnect to continue.</p>
+        <p>
+          Place data is fetched from the SENTRAVYN API. Reconnect to continue.
+        </p>
       </div>
     );
   }
-  if (state.status === "loading") {
+  if (state.status === 'loading') {
     return (
       <div className="map-panel__state" role="status" aria-live="polite">
         <h3>Searching places…</h3>
-        <p>Finding places within {formatDistance(radiusMeters)} of {center || "the centre"}.</p>
+        <p>
+          Finding places within {formatDistance(radiusMeters)} of{' '}
+          {center || 'the centre'}.
+        </p>
       </div>
     );
   }
-  if (state.status === "error") {
+  if (state.status === 'error') {
     return (
       <div className="map-panel__state map-panel__state--error" role="alert">
         <h3>Could not load places</h3>
@@ -468,7 +479,7 @@ export function MapBody({
       </div>
     );
   }
-  if (state.status === "idle") {
+  if (state.status === 'idle') {
     return (
       <div className="map-panel__state" role="status">
         <h3>Choose a centre and radius</h3>
@@ -498,8 +509,8 @@ export function MapBody({
   return (
     <div className="map-panel__results">
       <p className="map-panel__results-meta">
-        {items.length} place{items.length === 1 ? "" : "s"} in range
-        {state.moreAvailable ? " (more available, showing the first 200)" : ""}
+        {items.length} place{items.length === 1 ? '' : 's'} in range
+        {state.moreAvailable ? ' (more available, showing the first 200)' : ''}
       </p>
       <p className="map-panel__results-meta" aria-label="Data timestamp">
         fetched {state.fetchedAt}
@@ -537,7 +548,7 @@ function PlaceRow({
         <VerificationLabelChip label={place.verificationLabel} />
         {showDistance && (
           <span className="map-panel__item-dist">
-            {formatDistance(place.distanceMeters as number)} —{" "}
+            {formatDistance(place.distanceMeters as number)} —{' '}
             {DISTANCE_DISCLAIMER}
           </span>
         )}
@@ -566,7 +577,11 @@ export function VerificationLabelChip({
       data-verification={label}
       data-testid={`chip-${label}`}
     >
-      <span className="map-panel__chip-dot" style={{ backgroundColor: chip.color }} aria-hidden="true" />
+      <span
+        className="map-panel__chip-dot"
+        style={{ backgroundColor: chip.color }}
+        aria-hidden="true"
+      />
       {chip.label}
     </span>
   );
@@ -591,7 +606,12 @@ export function PlaceDetailSheet({
   if (!open || !place) return null;
   const chip = verificationChip(place.verificationLabel);
   return (
-    <div className="map-panel__sheet" role="dialog" aria-modal="true" aria-label="Place detail">
+    <div
+      className="map-panel__sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Place detail"
+    >
       <div className="map-panel__sheet-head">
         <div>
           <h3 className="map-panel__sheet-title">{place.name}</h3>
@@ -650,8 +670,10 @@ export function PlaceDetailSheet({
           <ul>
             {detail.shelterProfiles.map((s) => (
               <li key={s.id}>
-                {s.classification ?? "Shelter"} — verification {s.verification}
-                {s.expiresAt ? `, expires ${new Date(s.expiresAt).toLocaleDateString()}` : ""}
+                {s.classification ?? 'Shelter'} — verification {s.verification}
+                {s.expiresAt
+                  ? `, expires ${new Date(s.expiresAt).toLocaleDateString()}`
+                  : ''}
               </li>
             ))}
           </ul>
@@ -665,7 +687,7 @@ export function PlaceDetailSheet({
             {detail.evidence.map((e) => (
               <li key={e.id}>
                 {e.claim}
-                {e.recordedByUserId ? " (user submission)" : ""}
+                {e.recordedByUserId ? ' (user submission)' : ''}
               </li>
             ))}
           </ul>
@@ -673,7 +695,7 @@ export function PlaceDetailSheet({
       )}
 
       <p className="map-panel__disclaimer">
-        A nearby place is not automatically a safe shelter. Distance shown is{" "}
+        A nearby place is not automatically a safe shelter. Distance shown is{' '}
         {DISTANCE_DISCLAIMER}.
       </p>
     </div>

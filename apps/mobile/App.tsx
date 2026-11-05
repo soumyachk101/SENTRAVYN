@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import {
-  SessionProvider,
-  useSession,
-} from './src/family/session';
+import { SessionProvider, useSession } from './src/family/session';
 import { SignInScreen } from './src/family/SignInScreen';
 import { ContactsScreen } from './src/family/ContactsScreen';
 import { LocationShareScreen } from './src/family/LocationShareScreen';

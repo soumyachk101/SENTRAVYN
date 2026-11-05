@@ -182,7 +182,10 @@ export class FamilySafetyService {
 
   // ---------------------------------------------------------- location shares
 
-  async listShares(userId: string, now: Date = new Date()): Promise<LocationShareView[]> {
+  async listShares(
+    userId: string,
+    now: Date = new Date(),
+  ): Promise<LocationShareView[]> {
     const rows = await this.prisma.locationShare.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -265,7 +268,10 @@ export class FamilySafetyService {
    * Revocation is a security-relevant mutation: it is audited (the event
    * records the transition, not any position).
    */
-  async revokeShare(userId: string, shareId: string): Promise<LocationShareView> {
+  async revokeShare(
+    userId: string,
+    shareId: string,
+  ): Promise<LocationShareView> {
     const owned = await this.ownShare(userId, shareId);
     const now = new Date();
     const row = await this.prisma.locationShare.update({
@@ -367,7 +373,9 @@ export class FamilySafetyService {
         ...(dto.meetingPointNote !== undefined
           ? { meetingPointNote: dto.meetingPointNote }
           : {}),
-        ...(kit !== undefined ? { kitChecklist: kit as unknown as Prisma.JsonArray } : {}),
+        ...(kit !== undefined
+          ? { kitChecklist: kit as unknown as Prisma.JsonArray }
+          : {}),
         ...(dto.petConsiderations !== undefined
           ? { petConsiderations: dto.petConsiderations }
           : {}),

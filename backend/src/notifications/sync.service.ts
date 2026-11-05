@@ -59,7 +59,9 @@ export function encodeCursor(item: SyncItem): string {
 }
 
 /** Decode + validate a cursor token. Returns null for anything malformed. */
-export function decodeCursor(cursor: string | null | undefined): CursorFields | null {
+export function decodeCursor(
+  cursor: string | null | undefined,
+): CursorFields | null {
   if (!cursor) return null;
   try {
     const raw = Buffer.from(cursor, 'base64url').toString('utf8');
@@ -92,7 +94,10 @@ export class SyncService {
    *   reported via `cursorKnown: false` and falls back to the latest page
    *   so a stale or forged client still receives current data, not an error.
    */
-  async since(cursor: string | null, pageSize: number = PAGE_SIZE): Promise<SyncResult> {
+  async since(
+    cursor: string | null,
+    pageSize: number = PAGE_SIZE,
+  ): Promise<SyncResult> {
     const take = Math.min(Math.max(pageSize, 1), PAGE_SIZE);
 
     const decoded = decodeCursor(cursor);
@@ -117,11 +122,7 @@ export class SyncService {
           },
         ],
       },
-      orderBy: [
-        { createdAt: 'asc' },
-        { alertId: 'asc' },
-        { revision: 'asc' },
-      ],
+      orderBy: [{ createdAt: 'asc' }, { alertId: 'asc' }, { revision: 'asc' }],
       take,
       select: {
         id: true,
@@ -179,12 +180,17 @@ export class SyncService {
     return (rows as unknown as SyncRow[]).reverse().map(toSyncItem);
   }
 
-  private toResult(cursorKnown: boolean, items: SyncItem[], take: number): SyncResult {
+  private toResult(
+    cursorKnown: boolean,
+    items: SyncItem[],
+    take: number,
+  ): SyncResult {
     const hasMore = items.length === take && items.length > 0;
     return {
       cursorKnown,
       items,
-      nextCursor: items.length > 0 ? encodeCursor(items[items.length - 1]) : null,
+      nextCursor:
+        items.length > 0 ? encodeCursor(items[items.length - 1]) : null,
       hasMore,
     };
   }

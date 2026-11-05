@@ -1,18 +1,7 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  Inject,
-} from '@nestjs/common';
-import {
-  createServer,
-  type Server as HttpServer,
-} from 'node:http';
+import { Injectable, Logger, OnModuleDestroy, Inject } from '@nestjs/common';
+import { createServer, type Server as HttpServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import {
-  Server as IoServer,
-  type Socket,
-} from 'socket.io';
+import { Server as IoServer, type Socket } from 'socket.io';
 import { GatewaySocketAuth } from './gateway.auth';
 import { SyncService } from '../sync.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -93,7 +82,9 @@ export class GatewayService implements OnModuleDestroy {
       cors: {
         // The origin allowlist mirrors the REST CORS policy: same
         // WEB_BASE_URL, credentials false (SECURITY.md 3).
-        origin: process.env.WEB_BASE_URL ? process.env.WEB_BASE_URL.split(',') : false,
+        origin: process.env.WEB_BASE_URL
+          ? process.env.WEB_BASE_URL.split(',')
+          : false,
         credentials: false,
       },
       serveClient: false, // no browser client needed for our API clients
@@ -123,24 +114,29 @@ export class GatewayService implements OnModuleDestroy {
     });
 
     namespace.on('connection', (socket) => {
-      socket.on(EVENT_SYNC_SINCE, async (payload: unknown, ack?: (r: unknown) => void) => {
-        const cursor =
-          typeof payload === 'string' || payload === null
-            ? payload
-            : typeof payload === 'object' && payload !== null && 'cursor' in payload
-              ? (payload as { cursor?: unknown }).cursor
-              : null;
-        const cursorStr =
-          typeof cursor === 'string' && cursor.length > 0 ? cursor : null;
-        try {
-          const result = await this.sync.since(cursorStr);
-          const out = this.mapSyncResult(result.items);
-          if (ack) ack({ ...result, items: out });
-        } catch (err) {
-          this.logger.error(`sync:since failed: ${String(err)}`);
-          if (ack) ack({ error: 'sync failed', items: [] });
-        }
-      });
+      socket.on(
+        EVENT_SYNC_SINCE,
+        async (payload: unknown, ack?: (r: unknown) => void) => {
+          const cursor =
+            typeof payload === 'string' || payload === null
+              ? payload
+              : typeof payload === 'object' &&
+                  payload !== null &&
+                  'cursor' in payload
+                ? (payload as { cursor?: unknown }).cursor
+                : null;
+          const cursorStr =
+            typeof cursor === 'string' && cursor.length > 0 ? cursor : null;
+          try {
+            const result = await this.sync.since(cursorStr);
+            const out = this.mapSyncResult(result.items);
+            if (ack) ack({ ...result, items: out });
+          } catch (err) {
+            this.logger.error(`sync:since failed: ${String(err)}`);
+            if (ack) ack({ error: 'sync failed', items: [] });
+          }
+        },
+      );
 
       socket.on('disconnect', () => {
         const uid = socket.data.userId as string;
@@ -181,7 +177,9 @@ export class GatewayService implements OnModuleDestroy {
   }
 
   /** Build the compact, credential-free live payload for one transition. */
-  private async payloadFor(job: NotificationJobPayload): Promise<Record<string, unknown>> {
+  private async payloadFor(
+    job: NotificationJobPayload,
+  ): Promise<Record<string, unknown>> {
     const alert = await this.prisma.alert.findUnique({
       where: { id: job.alertId },
       select: {

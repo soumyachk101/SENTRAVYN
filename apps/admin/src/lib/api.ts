@@ -188,7 +188,7 @@ function refreshFromStoredRefreshToken(
 let pendingRefresh: Promise<AuthTokenPair | null> | null = null;
 
 function dedupedRefresh(refreshToken: string): Promise<AuthTokenPair | null> {
-  if (typeof window === "undefined") return Promise.resolve(null);
+  if (typeof window === 'undefined') return Promise.resolve(null);
   if (pendingRefresh === null) {
     pendingRefresh = (async () => {
       try {
@@ -232,7 +232,7 @@ async function request<T>(
       // token is never replayed by a second caller (see dedupedRefresh).
       const refreshed = await dedupedRefresh(session.refreshToken);
       if (refreshed === null) {
-        throw new ApiError(401, "Session expired. Please sign in again.", "");
+        throw new ApiError(401, 'Session expired. Please sign in again.', '');
       }
       // Exactly one retry, with the fresh access token.
       const retried = await rawRequest(method, path, {
@@ -476,14 +476,14 @@ export const auditApi = {
 
 function buildGuideQuery(params: GuideListQuery = {}): string {
   const q = new URLSearchParams();
-  if (params.page !== undefined) q.set("page", String(params.page));
-  if (params.pageSize !== undefined) q.set("pageSize", String(params.pageSize));
-  if (params.hazardType) q.set("hazardType", params.hazardType);
-  if (params.approval) q.set("approval", params.approval);
-  if (params.language) q.set("language", params.language);
-  if (params.stale !== undefined) q.set("stale", String(params.stale));
+  if (params.page !== undefined) q.set('page', String(params.page));
+  if (params.pageSize !== undefined) q.set('pageSize', String(params.pageSize));
+  if (params.hazardType) q.set('hazardType', params.hazardType);
+  if (params.approval) q.set('approval', params.approval);
+  if (params.language) q.set('language', params.language);
+  if (params.stale !== undefined) q.set('stale', String(params.stale));
   const qs = q.toString();
-  return qs ? `?${qs}` : "";
+  return qs ? `?${qs}` : '';
 }
 
 /**
@@ -495,7 +495,7 @@ export const guidesApi = {
   /** GET /admin/guides — every approval state (admin listing). */
   list(params: GuideListQuery = {}): Promise<PaginatedGuideView> {
     return request<PaginatedGuideView>(
-      "GET",
+      'GET',
       `/admin/guides${buildGuideQuery(params)}`,
     );
   },
@@ -503,20 +503,20 @@ export const guidesApi = {
   /** GET /admin/guides/:id — one guide in any state. */
   one(id: string): Promise<GuideDetail> {
     return request<GuideDetail>(
-      "GET",
+      'GET',
       `/admin/guides/${encodeURIComponent(id)}`,
     );
   },
 
   /** POST /admin/guides — create a DRAFT at version 1. */
   create(input: GuideCreateInput): Promise<GuideDetail> {
-    return request<GuideDetail>("POST", "/admin/guides", input);
+    return request<GuideDetail>('POST', '/admin/guides', input);
   },
 
   /** PATCH /admin/guides/:id — new revision + version bump. */
   update(id: string, input: GuideUpdateInput): Promise<GuideDetail> {
     return request<GuideDetail>(
-      "PATCH",
+      'PATCH',
       `/admin/guides/${encodeURIComponent(id)}`,
       input,
     );
@@ -525,7 +525,7 @@ export const guidesApi = {
   /** POST /admin/guides/:id/review — DRAFT -> IN_REVIEW. */
   review(id: string, input: GuideReviewInput = {}): Promise<GuideDetail> {
     return request<GuideDetail>(
-      "POST",
+      'POST',
       `/admin/guides/${encodeURIComponent(id)}/review`,
       input,
     );
@@ -534,7 +534,7 @@ export const guidesApi = {
   /** POST /admin/guides/:id/approve — IN_REVIEW -> APPROVED. */
   approve(id: string, input: GuideApproveInput = {}): Promise<GuideDetail> {
     return request<GuideDetail>(
-      "POST",
+      'POST',
       `/admin/guides/${encodeURIComponent(id)}/approve`,
       input,
     );
@@ -543,7 +543,7 @@ export const guidesApi = {
   /** POST /admin/guides/:id/publish — APPROVED -> PUBLISHED. */
   publish(id: string, input: GuidePublishInput = {}): Promise<GuideDetail> {
     return request<GuideDetail>(
-      "POST",
+      'POST',
       `/admin/guides/${encodeURIComponent(id)}/publish`,
       input,
     );
@@ -552,7 +552,7 @@ export const guidesApi = {
   /** POST /admin/guides/:id/retire — PUBLISHED -> RETIRED. */
   retire(id: string, input: GuideRetireInput = {}): Promise<GuideDetail> {
     return request<GuideDetail>(
-      "POST",
+      'POST',
       `/admin/guides/${encodeURIComponent(id)}/retire`,
       input,
     );
@@ -561,7 +561,7 @@ export const guidesApi = {
   /** POST /admin/guides/:id/reopen — RETIRED -> DRAFT. */
   reopen(id: string): Promise<GuideDetail> {
     return request<GuideDetail>(
-      "POST",
+      'POST',
       `/admin/guides/${encodeURIComponent(id)}/reopen`,
       {},
     );

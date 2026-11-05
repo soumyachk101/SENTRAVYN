@@ -15,7 +15,7 @@ import {
   type GuideDetail,
   type GuideView,
   type PaginatedGuideView,
-} from "./api";
+} from './api';
 
 export interface HazardCategory {
   /** Stable UI id, e.g. "nuclear-radiological". */
@@ -32,50 +32,48 @@ export interface HazardCategory {
  */
 export const HAZARD_CATEGORIES: readonly HazardCategory[] = [
   {
-    id: "nuclear-radiological",
-    label: "Nuclear & radiological",
-    codes: ["NUCLEAR", "RADIOLOGICAL"],
+    id: 'nuclear-radiological',
+    label: 'Nuclear & radiological',
+    codes: ['NUCLEAR', 'RADIOLOGICAL'],
   },
   {
-    id: "conflict-missile",
-    label: "Conflict & missile threats",
-    codes: ["CONFLICT", "MISSILE"],
+    id: 'conflict-missile',
+    label: 'Conflict & missile threats',
+    codes: ['CONFLICT', 'MISSILE'],
   },
   {
-    id: "earthquake-tsunami",
-    label: "Earthquakes & tsunamis",
-    codes: ["EARTHQUAKE", "TSUNAMI"],
+    id: 'earthquake-tsunami',
+    label: 'Earthquakes & tsunamis',
+    codes: ['EARTHQUAKE', 'TSUNAMI'],
   },
   {
-    id: "flood-cyclone-weather",
-    label: "Floods, cyclones & severe weather",
-    codes: ["FLOOD", "CYCLONE", "SEVERE_WEATHER"],
+    id: 'flood-cyclone-weather',
+    label: 'Floods, cyclones & severe weather',
+    codes: ['FLOOD', 'CYCLONE', 'SEVERE_WEATHER'],
   },
   {
-    id: "wildfire",
-    label: "Wildfires",
-    codes: ["WILDFIRE"],
+    id: 'wildfire',
+    label: 'Wildfires',
+    codes: ['WILDFIRE'],
   },
   {
-    id: "industrial-chemical",
-    label: "Industrial & chemical incidents",
-    codes: ["INDUSTRIAL", "CHEMICAL"],
+    id: 'industrial-chemical',
+    label: 'Industrial & chemical incidents',
+    codes: ['INDUSTRIAL', 'CHEMICAL'],
   },
   {
-    id: "public-health",
-    label: "Public-health emergencies",
-    codes: ["PUBLIC_HEALTH"],
+    id: 'public-health',
+    label: 'Public-health emergencies',
+    codes: ['PUBLIC_HEALTH'],
   },
   {
-    id: "infrastructure-utility",
-    label: "Infrastructure & utility disruptions",
-    codes: ["INFRASTRUCTURE", "UTILITY"],
+    id: 'infrastructure-utility',
+    label: 'Infrastructure & utility disruptions',
+    codes: ['INFRASTRUCTURE', 'UTILITY'],
   },
 ] as const;
 
-export function categoryById(
-  id: string,
-): HazardCategory | undefined {
+export function categoryById(id: string): HazardCategory | undefined {
   return HAZARD_CATEGORIES.find((c) => c.id === id);
 }
 

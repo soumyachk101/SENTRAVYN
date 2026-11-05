@@ -41,10 +41,7 @@ export interface FamilyClient {
   ): Promise<EmergencyContactView>;
 
   /** DELETE /family/contacts/:id. Remove the user's own contact. */
-  deleteContact(
-    contactId: string,
-    accessToken: string,
-  ): Promise<void>;
+  deleteContact(contactId: string, accessToken: string): Promise<void>;
 
   /** GET /family/location-shares. Each row carries a computed `active` flag. */
   listLocationShares(accessToken: string): Promise<LocationShareView[]>;
@@ -79,8 +76,14 @@ export interface FamilyClient {
   ): Promise<HouseholdPlanView>;
 }
 
-function jsonBody<T>(body: T): { headers: Record<string, string>; body: string } {
-  return { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) };
+function jsonBody<T>(body: T): {
+  headers: Record<string, string>;
+  body: string;
+} {
+  return {
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  };
 }
 
 export function createFamilyClient(req: Requester): FamilyClient {

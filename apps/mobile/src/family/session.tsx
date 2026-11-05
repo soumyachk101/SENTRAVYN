@@ -20,7 +20,8 @@ import { SentravynApiClient, ApiError } from '@sentravyn/api-client';
  * is the smallest thing that lets the family screens call the API honestly.
  */
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+const API_BASE =
+  process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 
 export type SessionState =
   | { status: 'signed-out' }
@@ -67,7 +68,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [state, signIn, signOut],
   );
 
-  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+  );
 }
 
 export function useSession(): SessionValue {

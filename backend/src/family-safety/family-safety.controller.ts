@@ -56,12 +56,10 @@ export class FamilySafetyController {
   @ApiOperation({
     summary: "List the user's emergency contacts",
     description:
-      'Returns the authenticated user\'s own EmergencyContact rows. Object-' +
-      'level authorisation: no user can ever list another user\'s contacts.',
+      "Returns the authenticated user's own EmergencyContact rows. Object-" +
+      "level authorisation: no user can ever list another user's contacts.",
   })
-  listContacts(
-    @CurrentUser() user: AuthUser,
-  ): Promise<EmergencyContactView[]> {
+  listContacts(@CurrentUser() user: AuthUser): Promise<EmergencyContactView[]> {
     return this.family.listContacts(user.id);
   }
 
@@ -118,11 +116,9 @@ export class FamilySafetyController {
     description:
       'Each share carries a read-time computed `active` = consented and not ' +
       'revoked and not expired; the flag is never stored. Owner-scoped; no ' +
-      'route exposes another user\'s shares. Coarse last-known position only.',
+      "route exposes another user's shares. Coarse last-known position only.",
   })
-  listShares(
-    @CurrentUser() user: AuthUser,
-  ): Promise<LocationShareView[]> {
+  listShares(@CurrentUser() user: AuthUser): Promise<LocationShareView[]> {
     return this.family.listShares(user.id);
   }
 
@@ -170,8 +166,8 @@ export class FamilySafetyController {
   @ApiOperation({
     summary: "Get the user's household plan (meeting point, kit, pets)",
     description:
-      'Returns the user\'s own HouseholdPlan, or null when none is stored ' +
-      'yet. This is the user\'s preparedness data, not a live operational ' +
+      "Returns the user's own HouseholdPlan, or null when none is stored " +
+      "yet. This is the user's preparedness data, not a live operational " +
       'claim.',
   })
   getHouseholdPlan(
@@ -187,7 +183,7 @@ export class FamilySafetyController {
     description:
       'All fields optional; omitted fields keep their current value on an ' +
       'existing plan. The kit checklist is a validated array of { label, ' +
-      'done }. Owned by the user; a separate user\'s plan is unreachable.',
+      "done }. Owned by the user; a separate user's plan is unreachable.",
   })
   upsertHouseholdPlan(
     @CurrentUser() user: AuthUser,

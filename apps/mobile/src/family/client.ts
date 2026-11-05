@@ -17,7 +17,8 @@ import type {
  * endpoint.
  */
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+const API_BASE =
+  process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 
 let client: SentravynApiClient | null = null;
 function api(): SentravynApiClient {

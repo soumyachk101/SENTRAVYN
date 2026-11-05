@@ -66,7 +66,11 @@ test('a revoked share transmits only a coarse coordinate', () => {
 test('an expired share transmits only a coarse coordinate', () => {
   const sent = coordinateToSend(
     RAW,
-    draft({ precision: 'precise', consented: true, expiresAtIso: '2026-11-04T11:00:00Z' }),
+    draft({
+      precision: 'precise',
+      consented: true,
+      expiresAtIso: '2026-11-04T11:00:00Z',
+    }),
     now,
   );
   assert.equal(sent.lat, 51.5);

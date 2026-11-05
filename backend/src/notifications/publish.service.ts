@@ -51,8 +51,8 @@ export class PublishService {
    * rows are written, so a socket miss can never make the durable record
    * missing.
    */
-  onPublished: ((job: NotificationJobPayload) => Promise<unknown> | unknown) | null =
-    null;
+  onPublished:
+    ((job: NotificationJobPayload) => Promise<unknown> | unknown) | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -110,17 +110,13 @@ export class PublishService {
       const row = await this.repo.getById(channelId);
       if (!row) continue;
       if (enqueue.enqueued) {
-        await this.repo.recordAttempt(
-          channelId,
-          'PENDING',
-          {
-            delivered: false,
-            unavailable: false,
-            error: enqueue.deduped
-              ? 'job already queued for this dedup key'
-              : `job enqueued (${job.dedupKey})`,
-          },
-        );
+        await this.repo.recordAttempt(channelId, 'PENDING', {
+          delivered: false,
+          unavailable: false,
+          error: enqueue.deduped
+            ? 'job already queued for this dedup key'
+            : `job enqueued (${job.dedupKey})`,
+        });
       } else {
         await this.repo.recordAttempt(channelId, 'DROPPED', {
           delivered: false,

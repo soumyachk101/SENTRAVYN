@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { type LocaleStrings } from "@sentravyn/localization";
-import { getGuideDetail } from "@/lib/guides";
-import { ApiError, type GuideDetail } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { type LocaleStrings } from '@sentravyn/localization';
+import { getGuideDetail } from '@/lib/guides';
+import { ApiError, type GuideDetail } from '@/lib/api';
 import {
   formatGuideDate,
   formatGuideDateTime,
   humanizeHazard,
-} from "@/lib/guide-format";
+} from '@/lib/guide-format';
 import {
   GuideErrorPanel,
   GuideLoadingPanel,
@@ -17,8 +17,8 @@ import {
   SummaryDisclosure,
   describeGuideError,
   isOfflineError,
-} from "@/components/guides/GuideStates";
-import { useGuideLocale } from "@/lib/locale";
+} from '@/components/guides/GuideStates';
+import { useGuideLocale } from '@/lib/locale';
 
 /**
  * Guide detail view (Phase 5). Fetches the public GET /guides/:id and
@@ -31,36 +31,36 @@ import { useGuideLocale } from "@/lib/locale";
  * label is shown whenever the API's freshness flag is not "fresh".
  */
 type LoadState =
-  | { status: "loading" }
-  | { status: "ready"; detail: GuideDetail }
-  | { status: "error"; message: string; offline: boolean }
-  | { status: "notFound" };
+  | { status: 'loading' }
+  | { status: 'ready'; detail: GuideDetail }
+  | { status: 'error'; message: string; offline: boolean }
+  | { status: 'notFound' };
 
 export function GuideDetailClient({ id }: { id: string }) {
   const { locale } = useGuideLocale();
   const s = locale.strings;
 
-  const [state, setState] = useState<LoadState>({ status: "loading" });
-  const inflight = useRef<string>("");
+  const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const inflight = useRef<string>('');
 
   const load = useCallback(async () => {
     const key = `${id}:${locale.locale}`;
     inflight.current = key;
-    setState({ status: "loading" });
+    setState({ status: 'loading' });
     try {
       const detail = await getGuideDetail(id);
       if (inflight.current !== key) return;
-      setState({ status: "ready", detail });
+      setState({ status: 'ready', detail });
     } catch (err) {
       if (inflight.current !== key) return;
       // The public API 404s for unknown, unpublished and retired guides —
       // a clean "guide not available" state, not a fetch failure.
       if (err instanceof ApiError && err.status === 404) {
-        setState({ status: "notFound" });
+        setState({ status: 'notFound' });
         return;
       }
       setState({
-        status: "error",
+        status: 'error',
         message: isOfflineError(err) ? s.offline : describeGuideError(err),
         offline: isOfflineError(err),
       });
@@ -79,7 +79,7 @@ export function GuideDetailClient({ id }: { id: string }) {
   }, [load]);
 
   const showStale =
-    state.status === "ready" && state.detail.freshness !== "fresh";
+    state.status === 'ready' && state.detail.freshness !== 'fresh';
 
   return (
     <section className="guide-page">
@@ -88,18 +88,18 @@ export function GuideDetailClient({ id }: { id: string }) {
         All guides
       </Link>
 
-      {state.status === "loading" ? (
+      {state.status === 'loading' ? (
         <GuideLoadingPanel label={s.loading} />
-      ) : state.status === "notFound" ? (
+      ) : state.status === 'notFound' ? (
         <div className="state-panel state-panel--empty">
           <p className="state-panel__title">Guide not available</p>
           <p className="state-panel__body">
             This guide is not currently available on the public surface.
-            Unpublished or retired guides are not shown here; use the{" "}
+            Unpublished or retired guides are not shown here; use the{' '}
             <Link href="/guides">guides index</Link> instead.
           </p>
         </div>
-      ) : state.status === "error" ? (
+      ) : state.status === 'error' ? (
         <GuideErrorPanel
           message={state.message}
           isOffline={state.offline}
@@ -145,7 +145,7 @@ function GuideDetailBody({
           {strings.lastReviewed}: {formatGuideDate(lastReviewed)}
         </span>
         <span>
-          {strings.authority}: {detail.authority ?? "n/a"}
+          {strings.authority}: {detail.authority ?? 'n/a'}
         </span>
         <span>
           {strings.language}: {detail.language}
@@ -162,7 +162,7 @@ function GuideDetailBody({
       <SummaryDisclosure strings={strings} />
 
       <div className="guide-detail__body">
-        {detail.body ?? "(No guide text has been written yet.)"}
+        {detail.body ?? '(No guide text has been written yet.)'}
       </div>
 
       <section className="guide-refs" aria-label={strings.references}>
@@ -196,12 +196,12 @@ function GuideDetailBody({
               key={rev.revision}
               className={
                 rev.revision === detail.version
-                  ? "guide-revisions__item guide-revisions__item-current"
-                  : "guide-revisions__item"
+                  ? 'guide-revisions__item guide-revisions__item-current'
+                  : 'guide-revisions__item'
               }
             >
               {strings.version} {rev.revision}
-              {rev.revision === detail.version ? " (current)" : ""} —{" "}
+              {rev.revision === detail.version ? ' (current)' : ''} —{' '}
               {formatGuideDateTime(rev.createdAt)}
             </li>
           ))}

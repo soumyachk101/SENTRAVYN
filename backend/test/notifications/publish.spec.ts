@@ -30,9 +30,13 @@ class FakeQueue {
         error: 'REDIS_URL is not configured; notification queue unavailable',
       };
     }
-    this.added.push({ dedupKey: payload.dedupKey, call: this.added.length + 1 });
+    this.added.push({
+      dedupKey: payload.dedupKey,
+      call: this.added.length + 1,
+    });
     // jobId dedup: the first call adds, repeats dedupe.
-    const deduped = this.added.filter((a) => a.dedupKey === payload.dedupKey).length > 1;
+    const deduped =
+      this.added.filter((a) => a.dedupKey === payload.dedupKey).length > 1;
     return { enqueued: true, deduped, dedupKey: payload.dedupKey };
   }
 }
@@ -41,7 +45,9 @@ class FakeRepo {
   rows: { id: string; channel: string; status: string }[] = [];
   attempts: { id: string; outcome: string; error: string | null }[] = [];
 
-  constructor(private readonly channels: string[] = ['PUSH_WEB', 'PUSH_FCM', 'PUSH_APNS']) {
+  constructor(
+    private readonly channels: string[] = ['PUSH_WEB', 'PUSH_FCM', 'PUSH_APNS'],
+  ) {
     this.rows = channels.map((channel, i) => ({
       id: `n-${i}`,
       channel,
@@ -53,7 +59,11 @@ class FakeRepo {
     return { created: true, notificationIds: this.rows.map((r) => r.id) };
   }
 
-  async recordAttempt(id: string, outcome: string, result: { error?: string | null }) {
+  async recordAttempt(
+    id: string,
+    outcome: string,
+    result: { error?: string | null },
+  ) {
     this.attempts.push({ id, outcome, error: result.error ?? null });
     const row = this.rows.find((r) => r.id === id);
     if (row) row.status = outcome;
@@ -147,6 +157,8 @@ describe('PublishService — exactly one deduped job per transition', () => {
       repo as never,
       queue as unknown as NotificationQueueService,
     );
-    await expect(service.publish('missing', 'PUBLISHED')).rejects.toThrow(/does not exist/);
+    await expect(service.publish('missing', 'PUBLISHED')).rejects.toThrow(
+      /does not exist/,
+    );
   });
 });

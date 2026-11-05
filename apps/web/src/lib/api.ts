@@ -279,14 +279,10 @@ async function rotateStoredSession(
 
 /** Closed guide approval states (mirrors the Prisma enum + shared-types). */
 export type GuideApprovalState =
-  | "DRAFT"
-  | "IN_REVIEW"
-  | "APPROVED"
-  | "PUBLISHED"
-  | "RETIRED";
+  'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'PUBLISHED' | 'RETIRED';
 
 /** Computed freshness label (SAFETY-POLICY.md 8). */
-export type GuideFreshness = "fresh" | "stale" | "unknown";
+export type GuideFreshness = 'fresh' | 'stale' | 'unknown';
 
 export interface GuideRevisionView {
   revision: number;
@@ -348,15 +344,14 @@ export interface PaginatedGuideView {
  */
 function guideListQuery(params: GuideListParams): string {
   const q = new URLSearchParams();
-  if (params.page !== undefined) q.set("page", String(params.page));
-  if (params.pageSize !== undefined)
-    q.set("pageSize", String(params.pageSize));
-  if (params.hazardType) q.set("hazardType", params.hazardType);
-  if (params.approval) q.set("approval", params.approval);
-  if (params.language) q.set("language", params.language);
-  if (params.stale !== undefined) q.set("stale", String(params.stale));
+  if (params.page !== undefined) q.set('page', String(params.page));
+  if (params.pageSize !== undefined) q.set('pageSize', String(params.pageSize));
+  if (params.hazardType) q.set('hazardType', params.hazardType);
+  if (params.approval) q.set('approval', params.approval);
+  if (params.language) q.set('language', params.language);
+  if (params.stale !== undefined) q.set('stale', String(params.stale));
   const qs = q.toString();
-  return qs ? `?${qs}` : "";
+  return qs ? `?${qs}` : '';
 }
 
 /** GET /guides (public). */
@@ -364,17 +359,15 @@ export async function listGuides(
   params: GuideListParams = {},
 ): Promise<PaginatedGuideView> {
   return apiRequest<PaginatedGuideView>({
-    method: "GET",
+    method: 'GET',
     path: `/guides${guideListQuery(params)}`,
   });
 }
 
 /** GET /guides/:id (public): the PUBLISHED current version + revisions. */
-export async function getGuide(
-  id: string,
-): Promise<GuideDetail> {
+export async function getGuide(id: string): Promise<GuideDetail> {
   return apiRequest<GuideDetail>({
-    method: "GET",
+    method: 'GET',
     path: `/guides/${encodeURIComponent(id)}`,
   });
 }

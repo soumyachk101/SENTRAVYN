@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
-import { MapPanel } from "@/components/map/MapPanel";
+import type { Metadata } from 'next';
+import { MapPanel } from '@/components/map/MapPanel';
 
 export const metadata: Metadata = {
-  title: "Emergency map",
+  title: 'Emergency map',
   description:
-    "Discover hospitals, clinics, fire and police services, relief points and " +
-    "shelters by category. Distance is a calculation, never a safety " +
-    "recommendation. Development tiles only; production pending a terms review.",
+    'Discover hospitals, clinics, fire and police services, relief points and ' +
+    'shelters by category. Distance is a calculation, never a safety ' +
+    'recommendation. Development tiles only; production pending a terms review.',
 };
 
 /**

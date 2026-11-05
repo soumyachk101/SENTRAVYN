@@ -145,7 +145,9 @@ export class AlertsService {
       // An explicit status must be one of the public-safe states: a caller may
       // narrow the public list but may never use ?status= to surface a
       // quarantined/unreviewed record.
-      if (!(PUBLIC_ALERT_STATUSES as readonly string[]).includes(query.status)) {
+      if (
+        !(PUBLIC_ALERT_STATUSES as readonly string[]).includes(query.status)
+      ) {
         throw new BadRequestException(
           `status must be one of: ${PUBLIC_ALERT_STATUSES.join(', ')}`,
         );

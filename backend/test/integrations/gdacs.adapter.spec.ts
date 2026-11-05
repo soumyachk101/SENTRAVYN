@@ -84,7 +84,11 @@ describe('GdacsAdapter (Phase 3, ADR-007)', () => {
   it('rejects an element whose eventid is an object/array/boolean (INVALID_EVENTID, never stringified to garbage)', () => {
     const result = adapter.parse(
       JSON.stringify([
-        { eventid: { nested: 'object' }, title: 'T', datetime: '2026-01-01T00:00:00Z' },
+        {
+          eventid: { nested: 'object' },
+          title: 'T',
+          datetime: '2026-01-01T00:00:00Z',
+        },
       ]),
       FETCHED_AT,
     );

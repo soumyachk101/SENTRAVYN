@@ -101,9 +101,7 @@ export const RESOURCES: Record<SupportedLocale, LocaleResource> = {
 // ---------------------------------------------------------------------------
 
 /** The resource for a supported locale; undefined for codes we do not ship. */
-export function getResource(
-  locale: LocaleCode,
-): LocaleResource | undefined {
+export function getResource(locale: LocaleCode): LocaleResource | undefined {
   // Strict structural check, no `any`: the code must be a known key.
   return (RESOURCES as Record<string, LocaleResource | undefined>)[locale];
 }
@@ -153,7 +151,10 @@ export function selectLocale(
     }
   }
 
-  return { resource: RESOURCES[DEFAULT_LOCALE], fellBack: candidates.length > 0 };
+  return {
+    resource: RESOURCES[DEFAULT_LOCALE],
+    fellBack: candidates.length > 0,
+  };
 }
 
 /**

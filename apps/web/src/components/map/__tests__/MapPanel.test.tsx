@@ -74,7 +74,8 @@ describe('MapPanel', () => {
     const empty: PlaceSearchResult = {
       items: [],
       moreAvailable: false,
-      coverageNote: 'a map listing is not proof that a place is open, safe or operational',
+      coverageNote:
+        'a map listing is not proof that a place is open, safe or operational',
       fetchedAt: new Date().toISOString(),
     };
     mockedSearch.mockResolvedValue(empty);
@@ -92,12 +93,12 @@ describe('MapPanel', () => {
 
     // The fetch resolves to "ready" with zero items -> the empty state, not a
     // fabricated list.
-    const emptyState = await screen.findByText(/No reviewed places in this area yet/i);
+    const emptyState = await screen.findByText(
+      /No reviewed places in this area yet/i,
+    );
     expect(emptyState).toBeInTheDocument();
     // The honest "coverage is not complete" wording must be present.
-    expect(
-      screen.getByText(/Coverage is not complete/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Coverage is not complete/i)).toBeInTheDocument();
   });
 
   it('renders a verificationLabel chip from a mocked places payload', async () => {
@@ -155,11 +156,15 @@ describe('MapPanel', () => {
   });
 
   it('shows the error state with a retry control on fetch failure', async () => {
-    mockedSearch.mockRejectedValue(new Error('The SENTRAVYN API could not be reached.'));
+    mockedSearch.mockRejectedValue(
+      new Error('The SENTRAVYN API could not be reached.'),
+    );
 
     render(<MapPanel />);
 
-    const errorHeading = await screen.findByRole('heading', { name: /Could not load places/i });
+    const errorHeading = await screen.findByRole('heading', {
+      name: /Could not load places/i,
+    });
     expect(errorHeading).toBeInTheDocument();
     // Every control must work: a Retry control is present and labelled.
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();

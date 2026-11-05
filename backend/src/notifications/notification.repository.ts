@@ -131,7 +131,10 @@ export class NotificationRepository {
    * (re)deliver. Used by the processor and by "exactly one deduped job"
    * tests.
    */
-  async rowsForDedupKey(dedupKey: string, alertId: string): Promise<
+  async rowsForDedupKey(
+    dedupKey: string,
+    alertId: string,
+  ): Promise<
     { id: string; channel: string; status: string; receipt: string | null }[]
   > {
     return this.prisma.notification.findMany({

@@ -79,7 +79,8 @@ function buildListPath(params: GuideListParams | undefined): string {
 export function createGuidesClient(req: Requester): GuidesClient {
   const jsonHeaders = { 'content-type': 'application/json' } as const;
   return {
-    list: (params) => req.request<PaginatedGuideView>('GET', buildListPath(params)),
+    list: (params) =>
+      req.request<PaginatedGuideView>('GET', buildListPath(params)),
     one: (id) =>
       req.request<GuideDetail>(
         'GET',

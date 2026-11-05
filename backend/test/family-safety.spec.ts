@@ -64,9 +64,9 @@ function makePrisma(): MockPrisma {
 }
 
 function makeAudit(): jest.Mocked<AuditService> {
-  return { record: jest.fn().mockResolvedValue(undefined) } as unknown as jest.Mocked<
-    AuditService
-  >;
+  return {
+    record: jest.fn().mockResolvedValue(undefined),
+  } as unknown as jest.Mocked<AuditService>;
 }
 
 const contactRow = {
@@ -98,7 +98,9 @@ describe('FamilySafetyService object-level authorisation', () => {
       prisma.emergencyContact.findFirst.mockResolvedValue(null);
 
       await expect(
-        svc.updateContact(userA, 'contact-1', { name: 'hijack' } as UpdateEmergencyContactDto),
+        svc.updateContact(userA, 'contact-1', {
+          name: 'hijack',
+        } as UpdateEmergencyContactDto),
       ).rejects.toThrow(NotFoundException);
 
       // Prove the query was scoped to user A, NOT a global id lookup.
@@ -234,7 +236,9 @@ describe('FamilySafetyService object-level authorisation', () => {
         purpose: 'check-in',
         expiresAt: new Date(Date.now() - 1000).toISOString(),
       };
-      await expect(svc.createShare(userB, dto)).rejects.toThrow(NotFoundException);
+      await expect(svc.createShare(userB, dto)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(prisma.locationShare.create).not.toHaveBeenCalled();
     });
   });
@@ -271,7 +275,10 @@ describe('FamilySafetyService object-level authorisation', () => {
         expect.objectContaining({
           where: { userId: userB },
           create: expect.objectContaining({
-            kitChecklist: [{ label: 'water', done: true }, { label: 'meds', done: false }],
+            kitChecklist: [
+              { label: 'water', done: true },
+              { label: 'meds', done: false },
+            ],
           }),
         }),
       );

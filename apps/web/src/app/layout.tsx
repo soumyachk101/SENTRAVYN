@@ -1,7 +1,7 @@
-import type { Metadata, Viewport } from "next";
-import type { CSSProperties, ReactNode } from "react";
-import Background from "@/components/Background";
-import { CinematicFooter } from "@/components/CinematicFooter";
+import type { Metadata, Viewport } from 'next';
+import type { CSSProperties, ReactNode } from 'react';
+import Background from '@/components/Background';
+import { CinematicFooter } from '@/components/CinematicFooter';
 import {
   FONT_VARS,
   geist,
@@ -12,16 +12,16 @@ import {
   plexMono600,
   plexMono700,
   plexMonoLatinExt,
-} from "@/lib/fonts";
-import { PwaRegistrar } from "@/components/PwaRegistrar";
-import "./globals.css";
+} from '@/lib/fonts';
+import { PwaRegistrar } from '@/components/PwaRegistrar';
+import './globals.css';
 
 // The canonical origin for absolute-URL metadata (canonical/OG tags). A real
 // deployment sets NEXT_PUBLIC_WEB_BASE_URL; until then we fall back to the
 // example domain rather than fabricate a production host (CLAUDE.md: never
 // claim a domain without evidence).
 const METADATA_BASE = new URL(
-  process.env.NEXT_PUBLIC_WEB_BASE_URL ?? "https://sentravyn.example",
+  process.env.NEXT_PUBLIC_WEB_BASE_URL ?? 'https://sentravyn.example',
 );
 
 export const metadata: Metadata = {
@@ -44,11 +44,7 @@ export const viewport: Viewport = {
   colorScheme: 'dark',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   // next/font loads the self-hosted woff2 files as @font-face and injects a
   // CSS var (--font-*) per family on <html>. The token vars in globals.css
   // (DESIGN.md typography) are re-pointed at those real families via FONT_VARS,
@@ -64,7 +60,7 @@ export default function RootLayout({
     plexMonoLatinExt.variable,
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(' ');
   return (
     <html lang="en">
       {/*

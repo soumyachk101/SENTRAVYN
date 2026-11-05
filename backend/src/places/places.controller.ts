@@ -94,13 +94,9 @@ export class PlacesController {
     @Param('id') id: string,
     @Body() dto: PlaceEvidenceDto,
   ) {
-    return this.places.addEvidence(
-      user.id,
-      id,
-      {
-        claim: dto.claim,
-        sourceUrl: dto.sourceUrl ?? null,
-      },
-    );
+    return this.places.addEvidence(user.id, id, {
+      claim: dto.claim,
+      sourceUrl: dto.sourceUrl ?? null,
+    });
   }
 }

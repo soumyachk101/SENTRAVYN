@@ -54,8 +54,10 @@ async function main(): Promise<void> {
   const config = new ConfigService(process.env as Record<string, string>);
   const redisUrl = config.get<string>('REDIS_URL');
   const databaseUrl = config.get<string>('DATABASE_URL');
-  if (!redisUrl) failClosed('REDIS_URL is required for the notification worker');
-  if (!databaseUrl) failClosed('DATABASE_URL is required for the notification worker');
+  if (!redisUrl)
+    failClosed('REDIS_URL is required for the notification worker');
+  if (!databaseUrl)
+    failClosed('DATABASE_URL is required for the notification worker');
 
   // The worker opens its own Redis + Prisma clients, deliberately not
   // sharing the API process's (separate process, separate lifecycles).
@@ -74,8 +76,12 @@ async function main(): Promise<void> {
       // On the final attempt (budget left = 0) transient failures are
       // terminal DROPPED instead of looping; earlier attempts rethrow so
       // BullMQ retries with the configured exponential backoff.
-      const budgetLeft = NOTIFICATION_MAX_ATTEMPTS - 1 - (job.attemptsMade ?? 0);
-      const outcome = await processor.process(job.data, Math.max(0, budgetLeft));
+      const budgetLeft =
+        NOTIFICATION_MAX_ATTEMPTS - 1 - (job.attemptsMade ?? 0);
+      const outcome = await processor.process(
+        job.data,
+        Math.max(0, budgetLeft),
+      );
       logger.log(
         `job ${dedupKey} attempt=${(job.attemptsMade ?? 0) + 1} delivered=${outcome.delivered} terminal=${outcome.terminal}`,
       );
@@ -100,7 +106,11 @@ async function main(): Promise<void> {
       try {
         await dead.add(
           'dead-letter',
-          { ...job.data, failReason: String(err), deadAt: new Date().toISOString() },
+          {
+            ...job.data,
+            failReason: String(err),
+            deadAt: new Date().toISOString(),
+          },
           { jobId: `${job.data.dedupKey}:dead` },
         );
         logger.warn(`dead-lettered ${job.data.dedupKey}`);

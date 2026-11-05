@@ -11,18 +11,9 @@ import type {
   HouseholdPlanInput,
   HouseholdPlanView,
 } from '@sentravyn/shared-types';
-import {
-  familyHouseholdPlan,
-  familyUpsertHouseholdPlan,
-} from './client';
+import { familyHouseholdPlan, familyUpsertHouseholdPlan } from './client';
 import { useSession } from './session';
-import {
-  Empty,
-  ErrorState,
-  Loading,
-  SectionTitle,
-  colors,
-} from './components';
+import { Empty, ErrorState, Loading, SectionTitle, colors } from './components';
 
 /**
  * Household plan (Phase 7). The user's own preparedness data: a meeting
@@ -73,7 +64,8 @@ export function HouseholdPlanScreen() {
     } catch {
       setPhase({
         status: 'error',
-        message: 'Could not load your household plan. The API may be unreachable.',
+        message:
+          'Could not load your household plan. The API may be unreachable.',
       });
     }
   }, [token]);
@@ -126,7 +118,11 @@ export function HouseholdPlanScreen() {
 
       {phase.status === 'loading' && <Loading label="Loading your plan…" />}
       {phase.status === 'error' && (
-        <ErrorState title="Something went wrong" body={phase.message} onRetry={load} />
+        <ErrorState
+          title="Something went wrong"
+          body={phase.message}
+          onRetry={load}
+        />
       )}
 
       {phase.status === 'ready' && (
@@ -161,14 +157,19 @@ export function HouseholdPlanScreen() {
           <View style={styles.block}>
             <Text style={styles.blockTitle}>Kit checklist</Text>
             {kit.length === 0 ? (
-              <Text style={styles.emptyInline}>No items yet. Add one below.</Text>
+              <Text style={styles.emptyInline}>
+                No items yet. Add one below.
+              </Text>
             ) : (
               kit.map((item, i) => (
                 <View key={`${item.label}-${i}`} style={styles.kitRow}>
                   <Text
                     style={[
                       styles.kitText,
-                      item.done && { color: colors.slate500, textDecorationLine: 'line-through' },
+                      item.done && {
+                        color: colors.slate500,
+                        textDecorationLine: 'line-through',
+                      },
                     ]}
                     accessibilityRole="button"
                     accessibilityState={{ selected: item.done }}
@@ -195,7 +196,11 @@ export function HouseholdPlanScreen() {
                 placeholderTextColor={colors.slate500}
                 accessibilityLabel="New kit item"
               />
-              <Text style={styles.addBtn} accessibilityRole="button" onPress={addKitItem}>
+              <Text
+                style={styles.addBtn}
+                accessibilityRole="button"
+                onPress={addKitItem}
+              >
                 Add
               </Text>
             </View>
@@ -213,7 +218,9 @@ export function HouseholdPlanScreen() {
             />
           </View>
 
-          {saveError !== null ? <Text style={styles.err}>{saveError}</Text> : null}
+          {saveError !== null ? (
+            <Text style={styles.err}>{saveError}</Text>
+          ) : null}
 
           <View style={styles.saveRow}>
             <Text
@@ -229,7 +236,11 @@ export function HouseholdPlanScreen() {
       )}
 
       <View style={styles.footer}>
-        <Text style={styles.signOut} accessibilityRole="button" onPress={signOut}>
+        <Text
+          style={styles.signOut}
+          accessibilityRole="button"
+          onPress={signOut}
+        >
           Sign out
         </Text>
       </View>
@@ -248,7 +259,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(85,96,108,0.22)',
   },
-  blockTitle: { color: colors.paper50, fontFamily: 'monospace', fontSize: 13, letterSpacing: 1 },
+  blockTitle: {
+    color: colors.paper50,
+    fontFamily: 'monospace',
+    fontSize: 13,
+    letterSpacing: 1,
+  },
   input: {
     backgroundColor: colors.ink900,
     color: colors.paper50,

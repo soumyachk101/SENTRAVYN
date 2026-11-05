@@ -1,7 +1,10 @@
 import { io as ioClient, type Socket } from 'socket.io-client';
 import { GatewayService } from '../../src/notifications/gateway/gateway.service';
 import { GatewaySocketAuth } from '../../src/notifications/gateway/gateway.auth';
-import { SyncService, encodeCursor } from '../../src/notifications/sync.service';
+import {
+  SyncService,
+  encodeCursor,
+} from '../../src/notifications/sync.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -30,9 +33,7 @@ describe('Socket.IO /alerts gateway (Phase 6, gated on DB)', () => {
   let port: number;
   let token: string;
 
-  function connectClient(
-    withAuth: boolean,
-  ): Socket {
+  function connectClient(withAuth: boolean): Socket {
     return ioClient(`http://localhost:${port}/alerts`, {
       transports: ['websocket', 'polling'],
       auth: withAuth ? { token } : undefined,
@@ -59,7 +60,10 @@ describe('Socket.IO /alerts gateway (Phase 6, gated on DB)', () => {
     prisma = new PrismaService(new ConfigService(process.env));
     await prisma.$connect();
 
-    const auth = new GatewaySocketAuth(new JwtService({ secret: jwtSecret }), new ConfigService({ AUTH_JWT_SECRET: jwtSecret }));
+    const auth = new GatewaySocketAuth(
+      new JwtService({ secret: jwtSecret }),
+      new ConfigService({ AUTH_JWT_SECRET: jwtSecret }),
+    );
     const sync = new SyncService(prisma);
     gateway = new GatewayService(auth, sync, prisma, {});
     port = await gateway.start();
@@ -78,7 +82,9 @@ describe('Socket.IO /alerts gateway (Phase 6, gated on DB)', () => {
 
   it('rejects an unauthenticated handshake', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; unauth rejection not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; unauth rejection not run',
+      );
       return;
     }
     const client = connectClient(false);
@@ -121,7 +127,12 @@ describe('Socket.IO /alerts gateway (Phase 6, gated on DB)', () => {
       },
     });
     await prisma.alertRevision.create({
-      data: { alertId: alert.id, revision: 1, status: 'PUBLISHED', body: 'rev 1' },
+      data: {
+        alertId: alert.id,
+        revision: 1,
+        status: 'PUBLISHED',
+        body: 'rev 1',
+      },
     });
 
     const client = connectClient(true);
@@ -150,7 +161,10 @@ describe('Socket.IO /alerts gateway (Phase 6, gated on DB)', () => {
       channels: ['PUSH_WEB'],
       issuedAt: null,
     });
-    const payload = (await updateEvent) as { alertId: string; nextStatus: string };
+    const payload = (await updateEvent) as {
+      alertId: string;
+      nextStatus: string;
+    };
     expect(payload.alertId).toBe(alert.id);
     expect(payload.nextStatus).toBe('PUBLISHED');
     client.close();

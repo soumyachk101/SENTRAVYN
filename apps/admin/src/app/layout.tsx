@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import type { CSSProperties, ReactNode } from "react";
-import "./globals.css";
-import Background from "@/components/Background";
-import { CinematicFooter } from "@/components/CinematicFooter";
-import { Header } from "@/components/Header";
-import { SessionProvider } from "@/lib/session";
+import type { Metadata } from 'next';
+import type { CSSProperties, ReactNode } from 'react';
+import './globals.css';
+import Background from '@/components/Background';
+import { CinematicFooter } from '@/components/CinematicFooter';
+import { Header } from '@/components/Header';
+import { SessionProvider } from '@/lib/session';
 import {
   FONT_VARS,
   geist,
@@ -15,30 +15,26 @@ import {
   plexMono600,
   plexMono700,
   plexMonoLatinExt,
-} from "@/lib/fonts";
+} from '@/lib/fonts';
 
 // The canonical origin for absolute-URL metadata. A real deployment sets
 // NEXT_PUBLIC_ADMIN_BASE_URL; until then we fall back to the example domain
 // rather than fabricate a production host (CLAUDE.md: never claim a domain
 // without evidence).
 const METADATA_BASE = new URL(
-  process.env.NEXT_PUBLIC_ADMIN_BASE_URL ?? "https://sentravyn.example",
+  process.env.NEXT_PUBLIC_ADMIN_BASE_URL ?? 'https://sentravyn.example',
 );
 
 export const metadata: Metadata = {
   metadataBase: METADATA_BASE,
-  title: "SENTRAVYN — Administration",
+  title: 'SENTRAVYN — Administration',
   description:
     'Restricted administration console for SENTRAVYN: source configuration, ' +
     'alert review, place verification, guide approval and audit history.',
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode,
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   // next/font loads the self-hosted woff2 files as @font-face and injects a
   // CSS var (--font-*) per family on <body>. FONT_VARS re-points the
   // DESIGN.md token vars (--font-display/-body/-mono) at those real
@@ -55,7 +51,7 @@ export default function RootLayout({
     plexMonoLatinExt.variable,
   ]
     .filter(Boolean)
-    .join(" ");
+    .join(' ');
   return (
     <html lang="en">
       <body className={fontClasses} style={FONT_VARS as CSSProperties}>

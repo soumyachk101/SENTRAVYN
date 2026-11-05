@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * State components for the public guide surface (CLAUDE.md rule 10: every
@@ -10,8 +10,8 @@
  * control re-runs the fetch; a broken fetch never renders a blank page.
  */
 
-import type { LocaleResource } from "@sentravyn/localization";
-import { ApiError } from "@/lib/api";
+import type { LocaleResource } from '@sentravyn/localization';
+import { ApiError } from '@/lib/api';
 
 export function describeGuideError(err: unknown): string {
   if (err instanceof ApiError) {
@@ -20,7 +20,7 @@ export function describeGuideError(err: unknown): string {
     return err.message || `Request failed with status ${err.status}`;
   }
   if (err instanceof Error) return err.message;
-  return "An unexpected error occurred.";
+  return 'An unexpected error occurred.';
 }
 
 export function isOfflineError(err: unknown): boolean {
@@ -69,7 +69,7 @@ export function GuideErrorPanel({
       aria-live="assertive"
     >
       <p className="state-panel__title">
-        {isOffline ? "Offline" : "Request failed"}
+        {isOffline ? 'Offline' : 'Request failed'}
       </p>
       <p className="state-panel__body">{message}</p>
       <button type="button" className="state-panel__retry" onClick={onRetry}>
@@ -87,7 +87,7 @@ export function GuideErrorPanel({
 export function SummaryDisclosure({
   strings,
 }: {
-  strings: LocaleResource["strings"];
+  strings: LocaleResource['strings'];
 }) {
   return (
     <div className="guide-disclosure" role="note">
@@ -106,14 +106,15 @@ export function StalePanel({
   strings,
   lastReviewed,
 }: {
-  strings: LocaleResource["strings"];
+  strings: LocaleResource['strings'];
   lastReviewed: string | null;
 }) {
   return (
     <div className="stale-panel" role="status">
       <p className="stale-panel__title">{strings.staleLabel}</p>
       <p className="stale-panel__sub">
-        {strings.lastReviewed}: {lastReviewed ? formatShort(lastReviewed) : "n/a"}
+        {strings.lastReviewed}:{' '}
+        {lastReviewed ? formatShort(lastReviewed) : 'n/a'}
       </p>
     </div>
   );
@@ -121,10 +122,10 @@ export function StalePanel({
 
 function formatShort(iso: string): string {
   const t = Date.parse(iso);
-  if (Number.isNaN(t)) return "n/a";
+  if (Number.isNaN(t)) return 'n/a';
   return new Date(t).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 }

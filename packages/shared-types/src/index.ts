@@ -388,12 +388,7 @@ export interface AlertDetail {
  * colour alone (DESIGN.md 3).
  */
 export type VerificationLabel =
-  | 'UNVERIFIED'
-  | 'REVIEWED'
-  | 'VERIFIED'
-  | 'STALE'
-  | 'EXPIRED'
-  | 'INCOMPLETE';
+  'UNVERIFIED' | 'REVIEWED' | 'VERIFIED' | 'STALE' | 'EXPIRED' | 'INCOMPLETE';
 
 /**
  * The fields common to every place row, in either /places mode. `kind` is a

@@ -1,8 +1,4 @@
-import {
-  Global,
-  Module,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { Global, Module, OnApplicationBootstrap } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
@@ -12,15 +8,9 @@ import {
   NOTIFICATION_QUEUE,
   NOTIFICATION_QUEUE_NAME,
 } from './queue.service';
-import {
-  GatewayService,
-  GATEWAY_OPTIONS,
-} from './gateway/gateway.service';
+import { GatewayService, GATEWAY_OPTIONS } from './gateway/gateway.service';
 import { InjectableNotificationProcessor } from './notification.processor';
-import {
-  PushAdapterRegistry,
-  PushChannelDelivery,
-} from './push/push-adapters';
+import { PushAdapterRegistry, PushChannelDelivery } from './push/push-adapters';
 import { PublishService } from './publish.service';
 import { SyncService } from './sync.service';
 import { NotificationsController } from './notifications.controller';

@@ -15,12 +15,12 @@
  * concern, DESIGN.md 5).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 /** The offline service worker is served from the web app public root. */
-export const SW_PATH = "/sw.js";
+export const SW_PATH = '/sw.js';
 /** localStorage key holding the last successful live-sync timestamp. */
-export const LAST_SYNC_KEY = "sentravyn:lastSyncedAt";
+export const LAST_SYNC_KEY = 'sentravyn:lastSyncedAt';
 /** How long we consider a last sync "stale" (ms). Drives the not-live label. */
 export const STALE_AFTER_MS = 60 * 60 * 1000;
 
@@ -44,11 +44,11 @@ export interface PwaState {
 }
 
 export function isServiceWorkerSupported(): boolean {
-  return typeof navigator !== "undefined" && "serviceWorker" in navigator;
+  return typeof navigator !== 'undefined' && 'serviceWorker' in navigator;
 }
 
 export function isBrowserOnline(): boolean {
-  return typeof navigator === "undefined" ? true : navigator.onLine;
+  return typeof navigator === 'undefined' ? true : navigator.onLine;
 }
 
 /**
@@ -60,11 +60,11 @@ export function isBrowserOnline(): boolean {
  */
 export function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!isServiceWorkerSupported()) return Promise.resolve(null);
-  if (typeof navigator.serviceWorker.register !== "function") {
+  if (typeof navigator.serviceWorker.register !== 'function') {
     return Promise.resolve(null);
   }
   return navigator.serviceWorker
-    .register(SW_PATH, { scope: "/" })
+    .register(SW_PATH, { scope: '/' })
     .then((reg) => reg ?? null)
     .catch(() => null);
 }
@@ -72,7 +72,7 @@ export function registerServiceWorker(): Promise<ServiceWorkerRegistration | nul
 /** Read the page-side last-sync timestamp from localStorage (or null). */
 export function readLastSyncedAt(): number | null {
   try {
-    if (typeof window === "undefined") return null;
+    if (typeof window === 'undefined') return null;
     const raw = window.localStorage.getItem(LAST_SYNC_KEY);
     if (raw === null) return null;
     const n = Number(raw);
@@ -89,14 +89,14 @@ export function readLastSyncedAt(): number | null {
  */
 export function recordLocalSync(): void {
   try {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     const at = Date.now();
     window.localStorage.setItem(LAST_SYNC_KEY, String(at));
     if (isServiceWorkerSupported()) {
       navigator.serviceWorker
         .getRegistration(SW_PATH)
         .then((reg) => {
-          reg?.active?.postMessage({ type: "sentravyn:record-sync", at });
+          reg?.active?.postMessage({ type: 'sentravyn:record-sync', at });
         })
         .catch(() => {
           /* the page-side timestamp is the source of truth; ignore SW */
@@ -123,19 +123,17 @@ export function readServiceWorkerSyncAt(): Promise<number | null> {
       // delivered on the *container's* `message` event (not on the worker
       // object, which has no `message` event), so we listen there and send
       // the request via the worker's `postMessage`.
-      active.postMessage({ type: "sentravyn:get-state" });
+      active.postMessage({ type: 'sentravyn:get-state' });
       return new Promise<number | null>((resolve) => {
         let settled = false;
         const onMsg = (event: MessageEvent) => {
           const data = event.data as
-            | { type?: string; lastSyncedAt?: number | null }
-            | null
-            | undefined;
-          if (data?.type === "sentravyn:state" && !settled) {
+            { type?: string; lastSyncedAt?: number | null } | null | undefined;
+          if (data?.type === 'sentravyn:state' && !settled) {
             settled = true;
             finish();
             resolve(
-              typeof data.lastSyncedAt === "number" ? data.lastSyncedAt : null,
+              typeof data.lastSyncedAt === 'number' ? data.lastSyncedAt : null,
             );
           }
         };
@@ -146,14 +144,14 @@ export function readServiceWorkerSyncAt(): Promise<number | null> {
             resolve(null);
           }
         }, 2000);
-        navigator.serviceWorker.addEventListener("message", onMsg);
+        navigator.serviceWorker.addEventListener('message', onMsg);
         // Single teardown shared by both resolution paths (settled or
         // timed out): stop waiting on the worker reply (clears the timeout)
         // and detach the message listener, so the container does not
         // accumulate one listener per call.
         function finish(): void {
           clearTimeout(timer);
-          navigator.serviceWorker.removeEventListener("message", onMsg);
+          navigator.serviceWorker.removeEventListener('message', onMsg);
         }
       });
     })
@@ -199,11 +197,11 @@ export function usePwaState(options: UsePwaStateOptions = {}): PwaState {
 
     const onOnline = () => setOffline(false);
     const onOffline = () => setOffline(true);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
     return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
     };
   }, [register]);
 
@@ -214,9 +212,10 @@ export function usePwaState(options: UsePwaStateOptions = {}): PwaState {
       if (!reg) return;
       const refresh = () => setActive(reg.active != null);
       refresh();
-      reg.addEventListener("updatefound", () => {
+      reg.addEventListener('updatefound', () => {
         const worker = reg.installing;
-        if (worker) worker.addEventListener("statechange", refresh, { once: true });
+        if (worker)
+          worker.addEventListener('statechange', refresh, { once: true });
       });
     });
     return () => {
@@ -230,13 +229,11 @@ export function usePwaState(options: UsePwaStateOptions = {}): PwaState {
     let cancelled = false;
     void readServiceWorkerSyncAt().then((at) => {
       if (cancelled || at == null) return;
-      setLastSyncedAt((prev) =>
-        prev == null ? at : Math.max(prev, at),
-      );
+      setLastSyncedAt((prev) => (prev == null ? at : Math.max(prev, at)));
     });
     const onMessage = (event: MessageEvent) => {
       const data = event.data as { type?: string; at?: number };
-      if (data?.type === "sentravyn:synced" && typeof data.at === "number") {
+      if (data?.type === 'sentravyn:synced' && typeof data.at === 'number') {
         // The service worker just confirmed a successful online fetch; keep
         // the page-side timestamp (the source of truth for the banner) in
         // step with it so it survives across navigations.
@@ -246,14 +243,16 @@ export function usePwaState(options: UsePwaStateOptions = {}): PwaState {
           /* private mode: in-memory state still shows the sync */
         }
         setLastSyncedAt((prev) =>
-          prev == null ? (data.at as number) : Math.max(prev, data.at as number),
+          prev == null
+            ? (data.at as number)
+            : Math.max(prev, data.at as number),
         );
       }
     };
-    navigator.serviceWorker.addEventListener("message", onMessage);
+    navigator.serviceWorker.addEventListener('message', onMessage);
     return () => {
       cancelled = true;
-      navigator.serviceWorker.removeEventListener("message", onMessage);
+      navigator.serviceWorker.removeEventListener('message', onMessage);
     };
   }, []);
 
@@ -272,10 +271,10 @@ export function usePwaState(options: UsePwaStateOptions = {}): PwaState {
     };
     recompute();
     // Only worth a timer while a sync timestamp exists.
-    const interval = window.setInterval(recompute, Math.max(
-      15_000,
-      STALE_AFTER_MS - (Date.now() - lastSyncedAt),
-    ));
+    const interval = window.setInterval(
+      recompute,
+      Math.max(15_000, STALE_AFTER_MS - (Date.now() - lastSyncedAt)),
+    );
     return () => {
       window.clearInterval(interval);
     };
@@ -298,12 +297,12 @@ export function usePwaState(options: UsePwaStateOptions = {}): PwaState {
  * timestamp state required by docs/ROADMAP.md Phase 6.
  */
 export function formatLastSync(lastSyncedAt: number | null): string {
-  if (lastSyncedAt == null) return "No live data synced yet on this device.";
+  if (lastSyncedAt == null) return 'No live data synced yet on this device.';
   try {
     const d = new Date(lastSyncedAt);
-    if (Number.isNaN(d.getTime())) return "Last sync time unavailable.";
+    if (Number.isNaN(d.getTime())) return 'Last sync time unavailable.';
     return `Last synced ${d.toLocaleString()}.`;
   } catch {
-    return "Last sync time unavailable.";
+    return 'Last sync time unavailable.';
   }
 }

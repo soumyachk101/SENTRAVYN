@@ -65,7 +65,9 @@ describe('SENTRAVYN family-safety API (e2e)', () => {
 
     beforeAll(async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; family-safety e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; family-safety e2e not run',
+        );
         return;
       }
       process.env.AUTH_JWT_SECRET =
@@ -116,7 +118,9 @@ describe('SENTRAVYN family-safety API (e2e)', () => {
 
     function skip(): void {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; family-safety e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; family-safety e2e not run',
+        );
       }
     }
 
@@ -264,7 +268,7 @@ describe('SENTRAVYN family-safety API (e2e)', () => {
       const aHasNoPlan =
         aPlanBody === null ||
         aPlanBody === undefined ||
-        (Object.keys(aPlanBody ?? {}).length === 0);
+        Object.keys(aPlanBody ?? {}).length === 0;
       expect(aHasNoPlan).toBe(true);
       expect(aPlanBody?.meetingPoint).not.toBe('Community Hall');
     });

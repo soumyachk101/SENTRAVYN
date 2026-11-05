@@ -101,7 +101,11 @@ describe('SENTRAVYN places API (e2e)', () => {
       // under a real token for a non-privileged role (SAFETY-POLICY.md 9).
       const hash = await bcrypt.hash('e2e-public-password', 4);
       await prisma.user.create({
-        data: { email: `e2e-public-places-${runId}@sentravyn.test`, role: 'PUBLIC', passwordHash: hash },
+        data: {
+          email: `e2e-public-places-${runId}@sentravyn.test`,
+          role: 'PUBLIC',
+          passwordHash: hash,
+        },
       });
       const login = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
@@ -127,7 +131,9 @@ describe('SENTRAVYN places API (e2e)', () => {
   describe('GET /api/v1/places (public read)', () => {
     it('default mode returns the seeded place with a computed VERIFIED label and no distance fields', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; places list e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; places list e2e not run',
+        );
         return;
       }
       const res = await request(app.getHttpServer())
@@ -151,7 +157,9 @@ describe('SENTRAVYN places API (e2e)', () => {
 
     it('radius mode returns distanceMeters and the distanceIsCalculation disclosure', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; radius search e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; radius search e2e not run',
+        );
         return;
       }
       const res = await request(app.getHttpServer())
@@ -185,7 +193,9 @@ describe('SENTRAVYN places API (e2e)', () => {
 
     it('an empty radius returns the fixed coverage note', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; coverage-note e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; coverage-note e2e not run',
+        );
         return;
       }
       // A far-away centre finds no place with a known location in range.
@@ -202,7 +212,9 @@ describe('SENTRAVYN places API (e2e)', () => {
   describe('GET /api/v1/places/:id (public detail)', () => {
     it('returns the place with its shelter profiles, evidence and the label', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; place detail e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; place detail e2e not run',
+        );
         return;
       }
       const res = await request(app.getHttpServer())
@@ -226,7 +238,9 @@ describe('SENTRAVYN places API (e2e)', () => {
 
     it('rejects an unknown place id with 404', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; detail 404 e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; detail 404 e2e not run',
+        );
         return;
       }
       await request(app.getHttpServer())
@@ -238,7 +252,9 @@ describe('SENTRAVYN places API (e2e)', () => {
   describe('POST /api/v1/places/:id/evidence (authenticated, any role)', () => {
     it('is 401 without a token', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; evidence 401 e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; evidence 401 e2e not run',
+        );
         return;
       }
       await request(app.getHttpServer())
@@ -256,7 +272,8 @@ describe('SENTRAVYN places API (e2e)', () => {
         .post(`/api/v1/places/${placeId}/evidence`)
         .set('Authorization', `Bearer ${publicToken}`)
         .send({
-          claim: 'Resident reported the shelter was accepting walk-ins on arrival',
+          claim:
+            'Resident reported the shelter was accepting walk-ins on arrival',
           sourceUrl: 'https://example.com/e2e-report',
         })
         .expect(201);
@@ -268,13 +285,17 @@ describe('SENTRAVYN places API (e2e)', () => {
       expect(typeof res.body.createdAt).toBe('string');
 
       // The row is in the DB.
-      const stored = await prisma.placeEvidence.findUnique({ where: { id: evidenceId } });
+      const stored = await prisma.placeEvidence.findUnique({
+        where: { id: evidenceId },
+      });
       expect(stored).not.toBeNull();
 
       // Verification state is untouched: the place is still VERIFIED with no
       // stale flag, and the shelter profile still says VERIFIED (SAFETY-POLICY.md 9:
       // a submission must not promote/demote official state).
-      const placeAfter = await prisma.place.findUnique({ where: { id: placeId } });
+      const placeAfter = await prisma.place.findUnique({
+        where: { id: placeId },
+      });
       expect(placeAfter!.verification).toBe('VERIFIED');
       expect(placeAfter!.staleSince).toBeNull();
       const profileAfter = await prisma.shelterProfile.findUnique({
@@ -302,7 +323,9 @@ describe('SENTRAVYN places API (e2e)', () => {
 
     it('rejects an unknown place id with 404 and an undeclared body field with 400', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; evidence 404/400 e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; evidence 404/400 e2e not run',
+        );
         return;
       }
       await request(app.getHttpServer())

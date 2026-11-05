@@ -53,7 +53,9 @@ describe('SENTRAVYN guides API (e2e, Phase 5 gate)', () => {
   describe('unauthenticated access (no database required)', () => {
     it('GET /api/v1/guides is public and answers 200 with an empty list when the DB is reachable', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; public list e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; public list e2e not run',
+        );
         return;
       }
       const res = await request(app.getHttpServer())
@@ -68,9 +70,7 @@ describe('SENTRAVYN guides API (e2e, Phase 5 gate)', () => {
       '/api/v1/admin/guides/some-id/review',
       '/api/v1/admin/guides/some-id/approve',
     ])('POST %s without a token expects 401', async (path) => {
-      await request(app.getHttpServer())
-        .post(path)
-        .expect(401);
+      await request(app.getHttpServer()).post(path).expect(401);
     });
   });
 
@@ -110,7 +110,9 @@ describe('SENTRAVYN guides API (e2e, Phase 5 gate)', () => {
 
     it('create -> review -> approve -> publish -> list -> retire, with audit rows and version bumps', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; guide lifecycle e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; guide lifecycle e2e not run',
+        );
         return;
       }
 
@@ -177,7 +179,9 @@ describe('SENTRAVYN guides API (e2e, Phase 5 gate)', () => {
       const publicList = await request(app.getHttpServer())
         .get('/api/v1/guides?hazardType=EARTHQUAKE')
         .expect(200);
-      expect(publicList.body.items.some((g: { id: string }) => g.id === guideId)).toBe(true);
+      expect(
+        publicList.body.items.some((g: { id: string }) => g.id === guideId),
+      ).toBe(true);
 
       // 6. A revision write is refused once PUBLISHED (immutability).
       await request(app.getHttpServer())
@@ -260,7 +264,9 @@ describe('SENTRAVYN guides API (e2e, Phase 5 gate)', () => {
 
     it('an incomplete guide is rejected at publication (400 with a clear message)', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; incomplete-publication case not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; incomplete-publication case not run',
+        );
         return;
       }
       // Create a guide with no references, reviewer or authority, then push

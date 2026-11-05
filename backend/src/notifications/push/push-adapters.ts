@@ -99,7 +99,8 @@ export class WebPushAdapter implements PushAdapter {
     webpush.setServerKeys({
       vapidDetails: {
         subject:
-          this.config.get<string>('WEB_BASE_URL') ?? 'https://sentravyn.example',
+          this.config.get<string>('WEB_BASE_URL') ??
+          'https://sentravyn.example',
         publicKey: base64urlToBase64(publicKey),
         privateKey: base64urlToBase64(privateKey),
       },
@@ -222,9 +223,7 @@ export class PushChannelDelivery extends PushAdapterRegistry {
  * it here, so every adapter reads its provider credentials through the same
  * `ConfigService.get` path the API uses.
  */
-export function buildPushAdapters(
-  config: ConfigService,
-): PushAdapterRegistry {
+export function buildPushAdapters(config: ConfigService): PushAdapterRegistry {
   return new PushAdapterRegistry([
     new WebPushAdapter(config),
     new FcmAdapter(config),

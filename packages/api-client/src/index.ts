@@ -53,10 +53,7 @@ import {
 
 export { ApiError } from './api-error';
 export { createAuthClient, type LoginInput, type AuthClient } from './auth';
-export {
-  createFamilyClient,
-  type FamilyClient,
-} from './family';
+export { createFamilyClient, type FamilyClient } from './family';
 export {
   createPlacesClient,
   type PlacesClient,
@@ -74,10 +71,7 @@ export {
   type AuditClient,
 } from './audit';
 export { createReviewClient, type ReviewClient } from './review';
-export {
-  createGuidesClient,
-  type GuidesClient,
-} from './guides';
+export { createGuidesClient, type GuidesClient } from './guides';
 export {
   createRequester,
   type Requester,
@@ -308,10 +302,7 @@ export class SentravynApiClient {
   }
 
   /** DELETE /family/contacts/:id. Owner-scoped. */
-  familyDeleteContact(
-    contactId: string,
-    accessToken: string,
-  ): Promise<void> {
+  familyDeleteContact(contactId: string, accessToken: string): Promise<void> {
     return createFamilyClient(this.requester).deleteContact(
       contactId,
       accessToken,
@@ -346,9 +337,7 @@ export class SentravynApiClient {
   }
 
   /** GET /family/household-plan. null when the user has not stored one. */
-  familyHouseholdPlan(
-    accessToken: string,
-  ): Promise<HouseholdPlanView | null> {
+  familyHouseholdPlan(accessToken: string): Promise<HouseholdPlanView | null> {
     return createFamilyClient(this.requester).getHouseholdPlan(accessToken);
   }
 

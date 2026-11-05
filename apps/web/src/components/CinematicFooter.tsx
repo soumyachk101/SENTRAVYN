@@ -89,12 +89,13 @@ export function CinematicFooter() {
 
   // Pause when the tab/document is hidden, to keep CPU/GPU usage low.
   useEffect(() => {
-    if (typeof document === "undefined" || !("visibilityState" in document)) {
+    if (typeof document === 'undefined' || !('visibilityState' in document)) {
       return;
     }
     const onVisibilityChange = () => setTabHidden(document.hidden);
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () =>
+      document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
   const togglePlay = useCallback(() => {
@@ -154,28 +155,70 @@ export function CinematicFooter() {
           <div className="footwork__group">
             <h3>Preparedness</h3>
             <ul>
-              <li><a href="/alerts" className="planned">Emergency alerts</a></li>
+              <li>
+                <a href="/alerts" className="planned">
+                  Emergency alerts
+                </a>
+              </li>
               {/* /guides is a real page now (Phase 5): live link, no .planned. */}
-              <li><Link href="/guides">Safety guides</Link></li>
-              <li><a href="/map" className="planned">Emergency map</a></li>
-              <li><a href="/prepare" className="planned">Household preparedness</a></li>
+              <li>
+                <Link href="/guides">Safety guides</Link>
+              </li>
+              <li>
+                <a href="/map" className="planned">
+                  Emergency map
+                </a>
+              </li>
+              <li>
+                <a href="/prepare" className="planned">
+                  Household preparedness
+                </a>
+              </li>
             </ul>
           </div>
           <div className="footwork__group">
             <h3>Trust &amp; sources</h3>
             <ul>
-              <li><a href="/data-sources" className="planned">Data sources</a></li>
-              <li><a href="/verification" className="planned">Place verification</a></li>
-              <li><a href="/about" className="planned">About SENTRAVYN</a></li>
+              <li>
+                <a href="/data-sources" className="planned">
+                  Data sources
+                </a>
+              </li>
+              <li>
+                <a href="/verification" className="planned">
+                  Place verification
+                </a>
+              </li>
+              <li>
+                <a href="/about" className="planned">
+                  About SENTRAVYN
+                </a>
+              </li>
             </ul>
           </div>
           <div className="footwork__group">
             <h3>Legal &amp; privacy</h3>
             <ul>
-              <li><a href="/privacy" className="planned">Privacy</a></li>
-              <li><a href="/security" className="planned">Security</a></li>
-              <li><a href="/terms" className="planned">Terms</a></li>
-              <li><a href="/contact" className="planned">Contact</a></li>
+              <li>
+                <a href="/privacy" className="planned">
+                  Privacy
+                </a>
+              </li>
+              <li>
+                <a href="/security" className="planned">
+                  Security
+                </a>
+              </li>
+              <li>
+                <a href="/terms" className="planned">
+                  Terms
+                </a>
+              </li>
+              <li>
+                <a href="/contact" className="planned">
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
         </nav>

@@ -44,7 +44,8 @@ export const es: LocaleResource = {
     hazard: 'Riesgo',
     language: 'Idioma',
     loading: 'Cargando guías…',
-    error: 'No se pudo cargar la guía. La API puede estar fuera de línea o la solicitud falló.',
+    error:
+      'No se pudo cargar la guía. La API puede estar fuera de línea o la solicitud falló.',
     offline: 'Parece que no hay conexión. No se pudo obtener la guía.',
     retry: 'Reintentar',
   },

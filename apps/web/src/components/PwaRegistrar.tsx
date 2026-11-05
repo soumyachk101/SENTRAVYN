@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { isServiceWorkerSupported, registerServiceWorker } from "@/lib/pwa";
+import { useEffect } from 'react';
+import { isServiceWorkerSupported, registerServiceWorker } from '@/lib/pwa';
 
 /**
  * Registers the offline service worker on every page visit (Phase 6).

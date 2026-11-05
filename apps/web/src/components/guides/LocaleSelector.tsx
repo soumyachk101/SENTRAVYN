@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 /**
  * Locale selector for the guide surfaces (Phase 5 localization foundation).
@@ -9,7 +9,11 @@
  * matching `language` filter, so content and chrome stay in step.
  */
 
-import { SUPPORTED_LOCALES, RESOURCES, type LocaleCode } from "@sentravyn/localization";
+import {
+  SUPPORTED_LOCALES,
+  RESOURCES,
+  type LocaleCode,
+} from '@sentravyn/localization';
 
 export function LocaleSelector({
   current,
