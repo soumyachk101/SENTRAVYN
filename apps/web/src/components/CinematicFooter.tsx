@@ -151,7 +151,7 @@ export function CinematicFooter() {
             <ul>
               <li><a href="/alerts" className="planned">Emergency alerts</a></li>
               <li><a href="/guides" className="planned">Safety guides</a></li>
-              <li><a href="/map" className="planned">Emergency map</a></li>
+              <li><a href="/map">Emergency map</a></li>
               <li><a href="/prepare" className="planned">Household preparedness</a></li>
             </ul>
           </div>

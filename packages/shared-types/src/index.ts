@@ -359,10 +359,17 @@ export interface AlertDetail {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 4: places API (public). Mirrors backend/src/geospatial/geo.service.ts
-// (PlaceGeoRow) and backend/src/shelters/shelter-policy.ts (VerificationLabel)
-// so surfaces can assert on one contract; `kind` is a free string on the
-// backend (schema comment: "hospital", "shelter", "fire_station", ...).
+// Phase 4: places API (public). Mirrors backend/src/places/places.service.ts
+// (a1) response shapes and backend/src/shelters/shelter-policy.ts
+// (VerificationLabel) so surfaces assert on the real contract; `kind` is a
+// free string on the backend (schema comment: "hospital", "shelter", ...).
+//
+// GET /places has two modes:
+//   - Radius mode (both lat + lng): items are PlaceListItemNear (nearest
+//     first, each with distanceMeters + the distanceIsCalculation disclosure),
+//     and a coverageNote only when the search is empty. No pagination.
+//   - Default mode (no coordinates): items are PlaceListItemListed (the full
+//     record) with a pagination envelope. Distance fields are absent.
 // ---------------------------------------------------------------------------
 
 /**
@@ -381,11 +388,11 @@ export type VerificationLabel =
   | 'INCOMPLETE';
 
 /**
- * One place row from GET /places (radius and list modes share this shape;
- * in radius mode distanceMeters is always present; in list mode it is absent).
- * Distance is a calculation, never a safety recommendation (PRODUCT-SPEC 5).
+ * The fields common to every place row, in either /places mode. `kind` is a
+ * free string; trust attributes are passed through verbatim so surfaces
+ * render verification and staleness (a listing is never a "safe" claim).
  */
-export interface PlaceGeoRow {
+export interface PlaceListItemBase {
   id: string;
   name: string;
   kind: string;
@@ -397,18 +404,56 @@ export interface PlaceGeoRow {
   staleSince: string | null;
   lat: number | null;
   lng: number | null;
-  /** Radius mode only: geodetic metres from the query centre. */
-  distanceMeters?: number | null;
   /** The computed display label the surface must show. */
   verificationLabel: VerificationLabel;
   /** Human-readable reasons the label is not plain VERIFIED (empty when it is). */
   verificationLabelReasons: string[];
 }
 
-/** Envelope for GET /places radius mode: { items, pagination }. */
-export interface PlacesRadiusResult {
-  items: PlaceGeoRow[];
-  pagination: { total: number };
+/** A radius-mode row: geodetic distance + the mandatory calculation disclosure. */
+export interface PlaceListItemNear extends PlaceListItemBase {
+  /** Geodetic metres from the search centre (geography type, ADR-004). */
+  distanceMeters: number;
+  /** Literal true: distance is a derived calculation, never a recommendation. */
+  distanceIsCalculation: true;
+}
+
+/** A default-mode row: the full place record (no distance fields). */
+export interface PlaceListItemListed extends PlaceListItemBase {
+  sourceAuthority: string | null;
+  accessibility: string | null;
+  capacityNote: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
+
+/** One /places row: either a radius row or a full-record row. */
+export type PlaceListItem = PlaceListItemNear | PlaceListItemListed;
+
+/**
+ * The /places envelope. Radius mode omits `pagination` and carries
+ * `coverageNote` when empty; default mode carries `pagination` and omits
+ * `coverageNote`. Distance is a calculation, never a safety recommendation
+ * (PRODUCT-SPEC.md 5).
+ */
+export interface PlacesListResponse {
+  items: PlaceListItem[];
+  /** Default mode only: { page, pageSize, total }. Absent in radius mode. */
+  pagination?: { page: number; pageSize: number; total: number };
+  /** The fixed coverage disclosure; present only when a radius search is empty. */
+  coverageNote?: string;
+}
+
+/**
+ * A convenience row type for surfaces that consume radius-mode results: the
+ * base fields plus an optional distance. (The API radius row is
+ * PlaceListItemNear, which is assignable to this.)
+ */
+export interface PlaceGeoRow extends PlaceListItemBase {
+  distanceMeters?: number | null;
+  distanceIsCalculation?: boolean;
 }
 
 /** One shelter profile inside a place detail (verification, inspection, expiry). */
@@ -418,13 +463,19 @@ export interface ShelterProfileView {
   hazardApplicability: string[];
   capacity: string | null;
   inspectAuthority: string | null;
+  /** ISO 8601. */
   inspectionDate: string | null;
   /** UNVERIFIED / EVIDENCE_REVIEW / VERIFIED. */
   verification: string;
+  /** ISO 8601. */
   expiresAt: string | null;
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
 }
 
-/** One piece of evidence a user submitted about a place (never safety proof). */
+/** One user-submitted evidence view (untrusted user data; asserts nothing). */
 export interface PlaceEvidenceView {
   id: string;
   claim: string;
@@ -435,20 +486,20 @@ export interface PlaceEvidenceView {
 }
 
 /**
- * Full place detail: GET /places/:id. Carries the place row, its shelter
- * profiles and evidence, and the computed verification label plus the
- * human-readable reasons it is (or is not) plain VERIFIED.
+ * Full place detail: GET /places/:id. Carries the place record (the full
+ * listed shape), its shelter profiles, its user-submitted evidence, and the
+ * computed verification label plus the reasons it is (or is not) VERIFIED.
  */
 export interface PlaceDetail {
-  place: PlaceGeoRow;
-  shelters: ShelterProfileView[];
-  evidence: PlaceEvidenceView[];
+  place: PlaceListItemListed;
   /**
    * The place's computed display label, carried at the top level so a
-   * surface can render the chip without re-deriving it from the row.
+   * surface can render the chip without re-deriving it from the record.
    */
   verificationLabel: VerificationLabel;
   verificationLabelReasons: string[];
+  shelterProfiles: ShelterProfileView[];
+  evidence: PlaceEvidenceView[];
 }
 
 // ---------------------------------------------------------------------------

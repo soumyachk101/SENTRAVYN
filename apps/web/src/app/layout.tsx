@@ -1,7 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Background from "@/components/Background";
 import { CinematicFooter } from "@/components/CinematicFooter";
+import {
+  FONT_VARS,
+  geist,
+  inter,
+  interLatinExt,
+  plexMono400,
+  plexMono500,
+  plexMono600,
+  plexMono700,
+  plexMonoLatinExt,
+} from "@/lib/fonts";
 import "./globals.css";
 
 // The canonical origin for absolute-URL metadata (canonical/OG tags). A real
@@ -37,9 +48,31 @@ export default function RootLayout({
 }: {
   children: ReactNode;
 }) {
+  // next/font loads the self-hosted woff2 files as @font-face and injects a
+  // CSS var (--font-*) per family on <html>. The token vars in globals.css
+  // (DESIGN.md typography) are re-pointed at those real families via FONT_VARS,
+  // so every surface (hero, map, footer ASCII) uses the loaded fonts.
+  const fontClasses = [
+    geist.variable,
+    inter.variable,
+    interLatinExt.variable,
+    plexMono400.variable,
+    plexMono500.variable,
+    plexMono600.variable,
+    plexMono700.variable,
+    plexMonoLatinExt.variable,
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <html lang="en">
-      <body>
+      {/*
+        The next/font .variable classes set --font-* on <body>; FONT_VARS
+        re-points the DESIGN.md token vars (--font-display/-body/-mono) at
+        those real families, and lives on <body> so every descendant
+        (hero, map, footer ASCII) inherits them.
+      */}
+      <body className={fontClasses} style={FONT_VARS as CSSProperties}>
         <Background />
         <div className="app-shell">
           <a className="skip-link" href="#main">

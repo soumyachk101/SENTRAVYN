@@ -586,9 +586,433 @@ body {
   }
 }
 
-/* Reduced motion: footer stays static (DESIGN.md 4; Gate A). */
+/* ------------------------------------------------------------------ */
+/* Phase 4: place-discovery map (apps/web/src/components/map).       */
+/* Colour is never the only signal: every verification chip carries a */
+/* text label (DESIGN.md 3 / SAFETY-POLICY.md 8). No neon.           */
+/* ------------------------------------------------------------------ */
+.map-panel {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.map-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.map-panel__title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-xs);
+}
+
+.map-panel__sub {
+  color: var(--slate-300);
+  margin: 0;
+  max-width: 46ch;
+}
+
+.map-panel__tile-notice {
+  max-width: 340px;
+  border-left: 2px solid var(--accent-calm);
+  padding-left: var(--space-md);
+}
+
+.map-panel__tile-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--alert-amber);
+}
+
+.map-panel__tile-note {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  margin: var(--space-xxs) 0;
+}
+
+.map-panel__grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--space-lg);
+}
+
+.map-panel__controls {
+  display: grid;
+  gap: var(--space-md);
+  align-content: start;
+}
+
+.map-panel__field {
+  border: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-md);
+  margin: 0;
+}
+
+.map-panel__field > legend {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+  padding: 0;
+}
+
+.map-panel__centres,
+.map-panel__radii,
+.map-panel__kind {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxs);
+}
+
+.map-panel__centre,
+.map-panel__radius,
+.map-panel__kind {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--slate-300);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--slate-500) 28%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-xxs) var(--space-xs);
+  min-height: 44px; /* touch target >= 44px (DESIGN.md 7) */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.map-panel__centre[aria-pressed="true"],
+.map-panel__radius[aria-pressed="true"],
+.map-panel__kind[aria-pressed="true"] {
+  color: var(--paper-50);
+  background: var(--ink-700);
+  border-color: color-mix(in srgb, var(--accent-calm) 60%, transparent);
+}
+
+.map-panel__centre:focus-visible,
+.map-panel__radius:focus-visible,
+.map-panel__kind:focus-visible,
+.map-panel__retry:focus-visible,
+.map-panel__item-btn:focus-visible,
+.map-panel__sheet-close:focus-visible {
+  outline: 2px solid var(--accent-calm);
+  outline-offset: 2px;
+}
+
+.map-panel__legend {
+  list-style: none;
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-xxs);
+}
+
+.map-panel__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: 0.8125rem;
+  color: var(--slate-300);
+}
+
+.map-panel__legend-item input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-calm);
+}
+
+.map-panel__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+
+.map-panel__stage {
+  position: relative;
+  min-height: 420px;
+}
+
+.map-panel__canvas {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+  overflow: hidden;
+}
+
+/* MapLibre attribution must stay visible (ODbL, mandatory). */
+.map-panel__stage .maplibregl-ctrl-attrib {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+
+/* The data layer overlays the stage; it must never scroll the page. */
+.map-panel__results,
+.map-panel__state {
+  position: relative;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.map-panel__state {
+  background: color-mix(in srgb, var(--ink-800) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.map-panel__state h3 {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  margin: 0 0 var(--space-xs);
+}
+
+.map-panel__state p {
+  color: var(--slate-300);
+  margin: 0;
+  max-width: 52ch;
+}
+
+/* The API's fixed coverage disclosure, shown in the empty radius state. */
+.map-panel__coverage-note {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  border-left: 2px solid var(--slate-500);
+  padding-left: var(--space-sm);
+}
+
+.map-panel__state--error {
+  border-color: color-mix(in srgb, var(--alert-red) 45%, transparent);
+}
+
+.map-panel__retry {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--paper-50);
+  background: var(--accent-calm);
+  border: 1px solid var(--accent-calm);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-md);
+  min-height: 44px;
+  cursor: pointer;
+  align-self: start;
+}
+
+.map-panel__stale {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--alert-amber);
+  margin: 0;
+}
+
+.map-panel__results-meta {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  margin: 0;
+}
+
+.map-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-xxs);
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.map-panel__item-btn {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  text-align: left;
+  background: color-mix(in srgb, var(--ink-800) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 18%, transparent);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-sm);
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--paper-50);
+}
+
+.map-panel__item-name {
+  font-weight: 600;
+  font-family: var(--font-display);
+}
+
+.map-panel__item-cat {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.map-panel__item-dist {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--slate-300);
+}
+
+/* Verification-state chip: a text label is required; colour is a support. */
+.map-panel__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+}
+
+.map-panel__chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Detail sheet: bottom sheet on mobile, side card on larger screens. */
+.map-panel__sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 50;
+  background: var(--ink-800);
+  border-top: 1px solid color-mix(in srgb, var(--slate-500) 30%, transparent);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-2);
+}
+
+.map-panel__sheet-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.map-panel__sheet-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.map-panel__sheet-close {
+  font-size: 1rem;
+  color: var(--slate-300);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--slate-500) 30%, transparent);
+  border-radius: var(--radius-md);
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.map-panel__sheet-dl {
+  margin: var(--space-md) 0;
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.map-panel__sheet-dl dt {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--slate-500);
+}
+
+.map-panel__sheet-dl dd {
+  margin: 0;
+}
+
+.map-panel__reasons,
+.map-panel__shelters,
+.map-panel__evidence {
+  margin: var(--space-md) 0;
+}
+
+.map-panel__reasons h4,
+.map-panel__shelters h4,
+.map-panel__evidence h4 {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+  margin: 0 0 var(--space-xs);
+}
+
+.map-panel__reasons ul,
+.map-panel__shelters ul,
+.map-panel__evidence ul {
+  margin: 0;
+  padding-left: var(--space-md);
+  color: var(--slate-300);
+  font-size: 0.875rem;
+}
+
+.map-panel__disclaimer {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--slate-500);
+  border-top: 1px solid color-mix(in srgb, var(--slate-500) 18%, transparent);
+  padding-top: var(--space-sm);
+}
+
+/* Responsive: mobile composition — the sheet stays a bottom sheet, the
+   controls collapse above the map, and there is no horizontal scroll. */
+@media (max-width: 768px) {
+  .map-panel__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .map-panel__stage {
+    min-height: 340px;
+  }
+  .map-panel__results,
+  .map-panel__state {
+    min-height: 340px;
+  }
+  .map-panel__sheet {
+    inset: auto 0 0 0;
+  }
+}
+
+@media (min-width: 769px) {
+  .map-panel__sheet {
+    inset: auto auto 0 0;
+    width: 380px;
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--slate-500) 30%, transparent);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 8: reduced-motion guard for map animations (DESIGN.md 4).    */
+/* No animated fly-to is used (jumpTo is instant), so under reduced   */
+/* motion the attribution / transitions simply stop animating.        */
+/* ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
-  .skip-link {
+  .map-panel__item-btn,
+  .map-panel__centre,
+  .map-panel__radius,
+  .map-panel__kind,
+  .map-panel__sheet {
     transition: none;
   }
 }

@@ -14,9 +14,8 @@ import type {
   LocationShareView,
   Paginated,
   PlaceDetail,
-  PlaceGeoRow,
   PlaceQueueItem,
-  PlacesRadiusResult,
+  PlacesListResponse,
   ProviderUpsertInput,
   ProviderView,
   PublicUser,
@@ -250,20 +249,21 @@ export class SentravynApiClient {
   // ------------------------------------------------------------- Phase 4 places
 
   /**
-   * GET /places (list mode, PUBLIC). No token. Distance fields are
-   * null/absent in list mode; every row still carries the computed
-   * verificationLabel.
+   * GET /places (default/list mode, PUBLIC). No token. The paginated
+   * envelope; distance fields are absent in this mode, but every row still
+   * carries the computed verificationLabel.
    */
-  placesList(params?: PlacesListParams): Promise<Paginated<PlaceGeoRow>> {
+  placesList(params?: PlacesListParams): Promise<PlacesListResponse> {
     return createPlacesClient(this.requester).list(params);
   }
 
   /**
    * GET /places?lat=&lng= (radius mode, PUBLIC). No geolocation is involved:
    * the centre is explicit. Each row carries distanceMeters — a calculation,
-   * never a safety recommendation.
+   * never a safety recommendation (distanceIsCalculation: true). No
+   * pagination; a coverageNote when the search is empty.
    */
-  placesNearby(params: PlacesNearbyParams): Promise<PlacesRadiusResult> {
+  placesNearby(params: PlacesNearbyParams): Promise<PlacesListResponse> {
     return createPlacesClient(this.requester).nearby(params);
   }
 
