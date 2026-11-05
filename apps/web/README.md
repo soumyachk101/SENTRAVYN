@@ -11,8 +11,47 @@ operational emergency service — see `README.md` at the repository root and
 Phase 1 foundation shell: branded landing surface with the custom background
 system, premium typography, the mandatory cinematic ASCII footer, and the PWA
 manifest + icons. The Phase 4 place-discovery map now lives at `/map` (see
-below). Remaining feature surfaces (alerts, guides, offline) arrive in later
-phases.
+below), reviewed safety guides at `/guides` (Phase 5), and the public alerts
+surface at `/alerts` (see below).
+
+## Routes
+
+| Route | Purpose | Data source |
+|---|---|---|
+| `/` | Branded landing + account sign-in | None (static preparedness content, no live data) |
+| `/map` | Phase 4 place-discovery map (see below) | `@sentravyn/api-client` places |
+| `/guides`, `/guides/[id]` | Phase 5 reviewed safety guides | `GET /guides`, `GET /guides/:id` |
+| `/alerts` | Public alerts list with freshness + information-class labels | `GET /api/v1/alerts` via `@sentravyn/api-client` |
+| `/alerts/[id]` | One alert: revision history + source provenance | `GET /api/v1/alerts/:id` |
+| `/prepare` | Household preparedness checklists (general guidance only) | None (copy-only) |
+| `/verification` | How place verification labels work | None (copy-only) |
+| `/data-sources` | Honest candidate-source register | None (copy-only, mirrors `docs/DATA-SOURCES.md`) |
+| `/about` | What SENTRAVYN is and is not | None (copy-only) |
+| `/contact` | Honest contact routes (no form wired yet) | None (copy-only) |
+| `/privacy`, `/terms`, `/security` | Working privacy/terms/security summaries | None (copy-only) |
+
+## Emergency alerts (`/alerts`)
+
+The Phase 3 public alert surface
+(`src/components/alerts/AlertsClient.tsx`, routed at
+`src/app/alerts/page.tsx`):
+
+- **How it works.** A client component calls `@sentravyn/api-client`
+  `listAlerts` (`GET /api/v1/alerts`, public-safe statuses only — the server
+  guarantees quarantined/unreviewed records never reach the list). Each row
+  shows the headline, issuer, CAP severity/urgency/certainty, the
+  issued/effective/expiry times, the information-class label, and the
+  API-computed freshness label (fresh / stale / expired / unknown — stale and
+  expired are always labelled, never hidden as current).
+- **Detail.** `/alerts/[id]` fetches the `AlertDetail` envelope
+  (`getAlertDetail`): the record, its revision chain and its source
+  provenance (provider, fetch time, source link).
+- **States.** loading, empty ("no public alerts" — not "no events
+  occurring"), error + retry, offline, and per-record freshness labels
+  (CLAUDE.md rule 10). No geolocation is requested anywhere.
+- **Asserted by** `src/components/alerts/__tests__/AlertsClient.test.tsx`
+  (jsdom, mirrors the MapPanel test pattern: empty + error/retry states and
+  the STALE freshness label text).
 
 ## Commands
 
@@ -23,7 +62,7 @@ pnpm dev:web              # next dev on :3000
 pnpm --filter @sentravyn/web build
 pnpm --filter @sentravyn/web typecheck
 pnpm --filter @sentravyn/web lint
-pnpm --filter @sentravyn/web test   # jsdom map render test
+pnpm --filter @sentravyn/web test   # jsdom map + alerts render tests
 ```
 
 ## Emergency map (`/map`)

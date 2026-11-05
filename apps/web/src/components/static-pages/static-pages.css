@@ -1,0 +1,249 @@
+/* Static information surfaces (/about, /contact, /data-sources,
+   /prepare, /terms, /privacy, /verification).
+
+   Scoped under .info-page so no shared globals.css is touched. Tokens and
+   the state-panel classes come from globals.css (DESIGN.md). No neon, no
+   emoji; every label is text, colour is support only. */
+
+.info-page {
+  max-width: 760px;
+}
+
+.info-page__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--slate-300);
+}
+
+.info-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+.info-sub {
+  color: var(--slate-300);
+  max-width: 60ch;
+  margin: 0 0 var(--space-lg);
+}
+
+.info-block {
+  margin-bottom: var(--space-xl);
+}
+
+.info-block h2 {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--paper-50);
+}
+
+.info-block h3 {
+  margin: var(--space-md) 0 var(--space-xs);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  color: var(--paper-100);
+}
+
+.info-block p,
+.info-block li {
+  margin: 0 0 var(--space-sm);
+  color: var(--paper-100);
+  font-size: 0.9375rem;
+  max-width: 68ch;
+}
+
+.info-block ul,
+.info-block ol {
+  margin: 0;
+  padding-left: var(--space-md);
+}
+
+.info-block li {
+  margin-bottom: var(--space-xs);
+}
+
+.info-block a {
+  color: var(--accent-calm);
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.info-block a:hover,
+.info-block a:focus-visible {
+  color: var(--paper-50);
+}
+
+.info-block a:focus-visible {
+  outline: 2px solid var(--accent-calm);
+  outline-offset: 2px;
+}
+
+/* A notice panel for honest "not available yet" states (no placeholder
+   endpoints disguised as implemented functionality — CLAUDE.md rule 15). */
+.info-notice {
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  background: color-mix(in srgb, var(--ink-800) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+  border-left: 3px solid var(--alert-amber);
+  border-radius: var(--radius-lg);
+}
+
+.info-notice__title {
+  margin: 0 0 var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--alert-amber);
+}
+
+.info-notice p {
+  margin: 0;
+  color: var(--slate-300);
+  font-size: 0.875rem;
+}
+
+/* Checklist items (prepare page). */
+.info-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.info-checklist li {
+  position: relative;
+  padding: var(--space-xs) 0 0 var(--space-md);
+}
+
+.info-checklist li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--accent-calm);
+}
+
+/* Label table (verification page). */
+.info-label-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 var(--space-lg);
+  font-size: 0.875rem;
+}
+
+.info-label-table caption {
+  caption-side: top;
+  text-align: left;
+  color: var(--slate-300);
+  font-size: 0.8125rem;
+  margin-bottom: var(--space-xs);
+}
+
+.info-label-table th,
+.info-label-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+}
+
+.info-label-table th {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+
+.info-label-table td {
+  color: var(--paper-100);
+}
+
+.info-label-table .info-label-value {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+/* Provider register rows (data-sources page). */
+.info-source-row {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+}
+
+.info-source-row:last-child {
+  border-bottom: none;
+}
+
+.info-source-row__name {
+  margin: 0 0 var(--space-xxs);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--paper-50);
+}
+
+.info-source-row__use {
+  margin: 0 0 var(--space-xs);
+  color: var(--slate-300);
+  font-size: 0.875rem;
+}
+
+.info-source-row__status {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate-500);
+}
+
+@media (max-width: 480px) {
+  .info-label-table {
+    font-size: 0.8125rem;
+  }
+
+  .info-label-table th,
+  .info-label-table td {
+    padding: var(--space-xs);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .info-block a {
+    transition: none;
+  }
+}
+
+.info-source-row__link {
+  color: var(--accent-calm);
+  text-decoration: underline;
+}
+
+.info-source-row__link:hover,
+.info-source-row__link:focus-visible {
+  color: var(--paper-50);
+}
+
+.info-source-row__link:focus-visible {
+  outline: 2px solid var(--accent-calm);
+  outline-offset: 2px;
+}
+
+.info-source-row p {
+  margin: 0 0 var(--space-xs);
+}
