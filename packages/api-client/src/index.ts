@@ -2,22 +2,32 @@ import type {
   Alert,
   AlertDetail,
   AlertQueueItem,
+  ApproveGuideInput,
   AuditEventView,
   AuthTokens,
   AuthRegisterInput,
+  CreateGuideInput,
+  GuideDetail,
+  GuideListParams,
   Paginated,
+  PaginatedGuideView,
   PlaceQueueItem,
   ProviderUpsertInput,
   ProviderView,
   PublicUser,
+  PublishGuideInput,
   ReviewDecisionInput,
   ReviewDecisionResult,
+  ReviewGuideInput,
+  RetireGuideInput,
   ReviewQueueKind,
   SeedResult,
+  UpdateGuideInput,
 } from '@sentravyn/shared-types';
 import type { LoginInput } from './auth';
 import { createAuthClient } from './auth';
 import { createAuditClient } from './audit';
+import { createGuidesClient } from './guides';
 import { createProvidersClient, type ProvidersSeedInput } from './providers';
 import { createReviewClient } from './review';
 import {
@@ -42,6 +52,10 @@ export {
   createReviewClient,
   type ReviewClient,
 } from './review';
+export {
+  createGuidesClient,
+  type GuidesClient,
+} from './guides';
 export {
   createRequester,
   type Requester,
@@ -220,5 +234,78 @@ export class SentravynApiClient {
     accessToken: string,
   ): Promise<ReviewDecisionResult> {
     return createReviewClient(this.requester).decide(input, accessToken);
+  }
+
+  // ------------------------------------------------------------------ Phase 5
+
+  /**
+   * GET /guides (public). Only APPROVED/PUBLISHED guides are exposed; each
+   * view carries the computed freshness label (SAFETY-POLICY.md 8).
+   */
+  guidesList(params: GuideListParams = {}): Promise<PaginatedGuideView> {
+    return createGuidesClient(this.requester).list(params);
+  }
+
+  /** GET /guides/:id (public): the PUBLISHED current version + revisions. */
+  guidesOne(id: string): Promise<GuideDetail> {
+    return createGuidesClient(this.requester).one(id);
+  }
+
+  /** POST /admin/guides (REVIEWER and above): DRAFT at version 1. */
+  guidesCreate(
+    input: CreateGuideInput,
+    accessToken: string,
+  ): Promise<GuideDetail> {
+    return createGuidesClient(this.requester).create(input, accessToken);
+  }
+
+  /** PATCH /admin/guides/:id: new revision + version bump. */
+  guidesUpdate(
+    id: string,
+    input: UpdateGuideInput,
+    accessToken: string,
+  ): Promise<GuideDetail> {
+    return createGuidesClient(this.requester).update(id, input, accessToken);
+  }
+
+  /** POST /admin/guides/:id/review: DRAFT -> IN_REVIEW. */
+  guidesReview(
+    id: string,
+    input: ReviewGuideInput,
+    accessToken: string,
+  ): Promise<GuideDetail> {
+    return createGuidesClient(this.requester).review(id, input, accessToken);
+  }
+
+  /** POST /admin/guides/:id/approve: IN_REVIEW -> APPROVED (completeness gate). */
+  guidesApprove(
+    id: string,
+    input: ApproveGuideInput,
+    accessToken: string,
+  ): Promise<GuideDetail> {
+    return createGuidesClient(this.requester).approve(id, input, accessToken);
+  }
+
+  /** POST /admin/guides/:id/publish: APPROVED -> PUBLISHED. */
+  guidesPublish(
+    id: string,
+    input: PublishGuideInput,
+    accessToken: string,
+  ): Promise<GuideDetail> {
+    return createGuidesClient(this.requester).publish(id, input, accessToken);
+  }
+
+  /** POST /admin/guides/:id/retire: PUBLISHED -> RETIRED. */
+  guidesRetire(
+    id: string,
+    input: RetireGuideInput,
+    accessToken: string,
+  ): Promise<GuideDetail> {
+    return createGuidesClient(this.requester).retire(id, input, accessToken);
+  }
+
+  /** POST /admin/guides/:id/reopen: RETIRED -> DRAFT. */
+  guidesReopen(id: string, accessToken: string): Promise<GuideDetail> {
+    return createGuidesClient(this.requester).reopen(id, accessToken);
   }
 }
