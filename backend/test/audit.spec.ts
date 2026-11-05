@@ -52,12 +52,13 @@ describe('AuditService', () => {
     expect(call.data.detail).toBe('x'.repeat(2000));
   });
 
-  it('AUDIT_ACTIONS contains the 9 canonical keys', () => {
+  it('AUDIT_ACTIONS contains the 10 canonical keys', () => {
     expect(Object.keys(AUDIT_ACTIONS).sort()).toEqual(
       [
         'ALERT_CANCELLED',
         'ALERT_PUBLISHED',
         'ALERT_UPDATED',
+        'PLACE_EVIDENCE_ADDED',
         'PROVIDER_CHANGED',
         'SESSION_REFRESHED',
         'SESSION_REVOKED',
