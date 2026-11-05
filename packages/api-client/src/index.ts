@@ -364,6 +364,7 @@ export class SentravynApiClient {
       input,
       accessToken,
     );
+  }
   // ------------------------------------------------------------------ Phase 5
 
   /**
