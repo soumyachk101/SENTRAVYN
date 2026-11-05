@@ -7,6 +7,7 @@ import { Badge } from "@/lib/ui";
 const NAV: Array<{ href: string; label: string; minRole: "any" | "REVIEWER" | "ADMIN" }> = [
   { href: "/", label: "Overview", minRole: "any" },
   { href: "/review", label: "Review", minRole: "REVIEWER" },
+  { href: "/guides", label: "Guides", minRole: "REVIEWER" },
   { href: "/providers", label: "Providers", minRole: "any" },
   { href: "/audit", label: "Audit", minRole: "ADMIN" },
 ];

@@ -45,6 +45,12 @@ export default function AdminHome() {
             <span>Quarantined alerts and unverified shelter profiles. REVIEWER+.</span>
           </div>
         </Link>
+        <Link className="workspace" href="/guides">
+          <div>
+            <strong>Safety guides</strong>
+            <span>Review, approve, publish, retire and reopen reviewed guides. REVIEWER+.</span>
+          </div>
+        </Link>
         <Link className="workspace" href="/providers">
           <div>
             <strong>Data providers</strong>

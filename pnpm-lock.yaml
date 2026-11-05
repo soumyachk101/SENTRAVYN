@@ -83,6 +83,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@sentravyn/localization':
+        specifier: workspace:*
+        version: link:../../packages/localization
       next:
         specifier: 16.4.5
         version: 16.4.5(@babel/core@7.29.7)(@types/node@22.10.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
