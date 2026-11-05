@@ -52,12 +52,22 @@ describe('AuditService', () => {
     expect(call.data.detail).toBe('x'.repeat(2000));
   });
 
-  it('AUDIT_ACTIONS contains the 9 canonical keys', () => {
+  it('AUDIT_ACTIONS contains the canonical keys, including the guide workflow actions', () => {
+    // The five GUIDE_* keys are the privileged guide mutations
+    // (backend/src/guides/guides.service.ts; SAFETY-POLICY.md 10,
+    // SECURITY.md 6): every guide approval/retirement leaves a traceable
+    // record. GUIDE_REVIEWED/UPDATED/RETIRED are recorded on their
+    // transitions; GUIDE_APPROVED on the completeness-gated approval.
     expect(Object.keys(AUDIT_ACTIONS).sort()).toEqual(
       [
         'ALERT_CANCELLED',
         'ALERT_PUBLISHED',
         'ALERT_UPDATED',
+        'GUIDE_APPROVED',
+        'GUIDE_PUBLISHED',
+        'GUIDE_RETIRED',
+        'GUIDE_REVIEWED',
+        'GUIDE_UPDATED',
         'PROVIDER_CHANGED',
         'SESSION_REFRESHED',
         'SESSION_REVOKED',

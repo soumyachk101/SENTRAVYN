@@ -10,6 +10,7 @@ import { AuditModule } from './audit/audit.module';
 import { ProvidersModule } from './providers/providers.module';
 import { AdminReviewModule } from './admin/admin-review.module';
 import { IngestModule } from './integrations/ingest.module';
+import { GuidesModule } from './guides/guides.module';
 
 @Module({
   imports: [
@@ -32,6 +33,8 @@ import { IngestModule } from './integrations/ingest.module';
     AdminReviewModule,
     // Phase 3: provider adapters + ingestion pipeline.
     IngestModule,
+    // Phase 5: reviewed safety-guides workflow (public + privileged).
+    GuidesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
