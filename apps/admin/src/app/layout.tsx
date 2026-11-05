@@ -6,9 +6,17 @@ import { CinematicFooter } from '@/components/CinematicFooter';
 import { Header } from '@/components/Header';
 import { SessionProvider } from '@/lib/session';
 
+// The canonical origin for absolute-URL metadata. A real deployment sets
+// NEXT_PUBLIC_ADMIN_BASE_URL; until then we fall back to the example domain
+// rather than fabricate a production host (CLAUDE.md: never claim a domain
+// without evidence).
+const METADATA_BASE = new URL(
+  process.env.NEXT_PUBLIC_ADMIN_BASE_URL ?? "https://sentravyn.example",
+);
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://sentravyn.example'),
-  title: 'SENTRAVYN — Administration',
+  metadataBase: METADATA_BASE,
+  title: "SENTRAVYN — Administration",
   description:
     'Restricted administration console for SENTRAVYN: source configuration, ' +
     'alert review, place verification, guide approval and audit history.',

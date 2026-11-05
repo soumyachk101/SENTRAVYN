@@ -71,16 +71,31 @@ describe('AuditService', () => {
     expect(call.data.detail).toBe('x'.repeat(2000));
   });
 
-  it('AUDIT_ACTIONS contains the 14 canonical keys (incl. Phase 9 MFA + session-revoke-all)', () => {
+  it('AUDIT_ACTIONS contains the 20 canonical keys, including the guide/place-evidence and Phase 9 MFA + session-revoke-all actions', () => {
+    // PLACE_EVIDENCE_ADDED records a user-submitted place evidence row
+    // (Phase 4 places API; SAFETY-POLICY.md section 9). The five GUIDE_*
+    // keys are the privileged guide mutations (Phase 5,
+    // backend/src/guides/guides.service.ts; SAFETY-POLICY.md 10,
+    // SECURITY.md 6): every guide approval/retirement leaves a traceable
+    // record. GUIDE_REVIEWED/UPDATED/RETIRED are recorded on their
+    // transitions; GUIDE_APPROVED on the completeness-gated approval.
+    // SESSION_REVOKED_ALL + the four MFA_* keys are the Phase 9 hardening
+    // actions (backend/src/auth/mfa/mfa.service.ts; SECURITY.md 2).
     expect(Object.keys(AUDIT_ACTIONS).sort()).toEqual(
       [
         'ALERT_CANCELLED',
         'ALERT_PUBLISHED',
         'ALERT_UPDATED',
+        'GUIDE_APPROVED',
+        'GUIDE_PUBLISHED',
+        'GUIDE_RETIRED',
+        'GUIDE_REVIEWED',
+        'GUIDE_UPDATED',
         'MFA_DISABLED',
         'MFA_ENABLED',
         'MFA_SETUP',
         'MFA_VERIFIED',
+        'PLACE_EVIDENCE_ADDED',
         'PROVIDER_CHANGED',
         'SESSION_REFRESHED',
         'SESSION_REVOKED',

@@ -241,7 +241,7 @@ describe('AdminReviewService (SAFETY-POLICY.md 3, Gate E)', () => {
       });
       expect(prisma.adminReviewDecision.create).toHaveBeenCalledWith({
         data: {
-          shelterId: 'sh-1',
+          shelter: { connect: { id: 'sh-1' } },
           decision: 'SHELTER_VERIFIED',
           rationale: null,
           actor: { connect: { id: USER.id } },
@@ -338,7 +338,7 @@ describe('AdminReviewService (SAFETY-POLICY.md 3, Gate E)', () => {
       expect(updateData.publishedAt).toBeInstanceOf(Date);
       expect(prisma.adminReviewDecision.create).toHaveBeenCalledWith({
         data: {
-          alertId: 'al-1',
+          alert: { connect: { id: 'al-1' } },
           decision: 'REVIEW_APPROVED',
           rationale: null,
           actor: { connect: { id: USER.id } },

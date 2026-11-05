@@ -11,6 +11,9 @@ import { ProvidersModule } from './providers/providers.module';
 import { AdminReviewModule } from './admin/admin-review.module';
 import { IngestModule } from './integrations/ingest.module';
 import { ThrottlingModule } from './common/throttling/throttling.module';
+import { GeoModule } from './geospatial/geo.module';
+import { PlacesModule } from './places/places.module';
+import { GuidesModule } from './guides/guides.module';
 
 @Module({
   imports: [
@@ -33,6 +36,11 @@ import { ThrottlingModule } from './common/throttling/throttling.module';
     AdminReviewModule,
     // Phase 3: provider adapters + ingestion pipeline.
     IngestModule,
+    // Phase 4: PostGIS spatial service and the places discovery / evidence API.
+    GeoModule,
+    PlacesModule,
+    // Phase 5: reviewed safety-guides workflow (public + privileged).
+    GuidesModule,
     // Phase 9: global rate limiting (SECURITY.md 3) — APP_GUARD ThrottlerGuard,
     // Redis-backed storage (degrades to no-op when REDIS_URL is unset).
     ThrottlingModule,

@@ -76,6 +76,14 @@ export class GdacsAdapter implements ProviderAdapter {
         );
         continue;
       }
+      // The provider-native identifier must be a string or a number, preserved
+      // verbatim for provenance + dedup (DATA-SOURCES.md 1). An object/array/
+      // boolean eventid is not a usable identifier: reject it rather than
+      // stringify it to a garbage "gdacs:[object Object]" externalRef.
+      if (typeof eventid !== 'string' && typeof eventid !== 'number') {
+        result.rejected.push(this.rejected('unknown', 'INVALID_EVENTID', rawPayload, fetchedAtIso, 'eventid must be a string or number'));
+        continue;
+      }
       const sourceId = String(eventid);
 
       if (typeof event.title !== 'string' || event.title.length === 0) {

@@ -15,11 +15,45 @@ export const AUDIT_ACTIONS = {
   ALERT_CANCELLED: 'ALERT_CANCELLED',
   SHELTER_VERIFIED: 'SHELTER_VERIFIED',
   SHELTER_REJECTED: 'SHELTER_REJECTED',
+  /**
+   * Records a user-submitted place evidence row (POST /places/:id/evidence).
+   * The submission is stored and audited (SAFETY-POLICY.md section 9) but it
+   * NEVER mutates place/shelter verification state.
+   */
+  PLACE_EVIDENCE_ADDED: 'PLACE_EVIDENCE_ADDED',
   PROVIDER_CHANGED: 'PROVIDER_CHANGED',
   USER_ROLE_CHANGED: 'USER_ROLE_CHANGED',
   SESSION_REVOKED: 'SESSION_REVOKED',
   /** Records a refresh-token rotation (new hash + fresh expiry on an in-flight session). */
   SESSION_REFRESHED: 'SESSION_REFRESHED',
+  /**
+   * A safety guide entered IN_REVIEW: a named reviewer/authority recorded
+   * and lastReviewedAt stamped (SAFETY-POLICY.md 10). Detail carries the
+   * from/to state, reviewer, authority, review date and version.
+   */
+  GUIDE_REVIEWED: 'GUIDE_REVIEWED',
+  /**
+   * A safety guide cleared the completeness gate and moved
+   * IN_REVIEW -> APPROVED: reviewer + authority + a non-empty references
+   * array + hazardType are all present.
+   */
+  GUIDE_APPROVED: 'GUIDE_APPROVED',
+  /**
+   * An approved safety guide moved APPROVED -> PUBLISHED and became
+   * visible on the public surface (SAFETY-POLICY.md 10).
+   */
+  GUIDE_PUBLISHED: 'GUIDE_PUBLISHED',
+  /**
+   * A published safety guide moved PUBLISHED -> RETIRED and dropped out of
+   * the public surface; content is surfaced as retired, never silently
+   * hidden (SAFETY-POLICY.md 8).
+   */
+  GUIDE_RETIRED: 'GUIDE_RETIRED',
+  /**
+   * Privileged content writes on a safety guide: create (DRAFT, v1 + first
+   * revision), new revision (version bump), or a RETIRED -> DRAFT reopen.
+   */
+  GUIDE_UPDATED: 'GUIDE_UPDATED',
   /** Credential-compromise path: every active session for a user is revoked. */
   SESSION_REVOKED_ALL: 'SESSION_REVOKED_ALL',
   /** MFA: a TOTP seed + 8 single-use recovery codes were issued to an account. */

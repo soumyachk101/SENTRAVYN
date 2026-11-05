@@ -27,7 +27,13 @@ import {
 
 const LIMIT_OPTIONS = [25, 50, 100, 200] as const;
 
-const KNOWN_ENTITIES = ['alert', 'place', 'shelter', 'dataProvider'] as const;
+const KNOWN_ENTITIES = [
+  "alert",
+  "place",
+  "shelter",
+  "dataProvider",
+  "guide",
+] as const;
 
 export default function AuditPage() {
   const { signedIn, loading, allowed, role } = useRequireRole('ADMIN');

@@ -65,7 +65,7 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 - Stale/unknown states.
 - Licensed tile and geocoding provider.
 
-**Phase 4 status:** implementation has landed for the PostGIS place layer (geography column + backfill + GIST index via reviewed SQL migrations, ADR-016), the places API (list, detail, radius search with distance-as-calculation envelopes, 5-value verification display labels computed via the shelter policy, ADR-018), the shelter evidence workflow (user-submitted PlaceEvidence is stored and audited under PLACE_EVIDENCE_ADDED and never changes verification state), and the web place-discovery map (MapLibre raster tiles, mandatory attribution, no geolocation, ADR-017). Spatial-correctness and no-false-shelter-claim gate evidence is pending the maintainers' PostGIS-backed test runs; scheduled/geocoding coverage is out of scope and recorded in docs/PHASE-4-PLAN.md. No production tile host or geocoding provider is claimed.
+**Phase 4 status (backend):** the places backend has landed. The places API is implemented: `GET /api/v1/places` (paginated list by default, PostGIS radius search when `lat` and `lng` are supplied, with `distanceMeters` and a literal `distanceIsCalculation: true` envelope and the fixed empty-radius coverage note), `GET /api/v1/places/:id` (place detail with its shelter profiles, evidence and the computed read-path label), and `POST /api/v1/places/:id/evidence` (authenticated, any role) which stores a user-submitted `PlaceEvidence` row and records a `PLACE_EVIDENCE_ADDED` audit action without mutating `Place.verification` or `ShelterProfile.verification` (SAFETY-POLICY.md §9). Every returned place carries the 6-value read-path `verificationLabel` (VERIFIED/REVIEWED/UNVERIFIED/STALE/EXPIRED/INCOMPLETE) computed by the shared shelter-policy label engine, so a stored-verified shelter whose evidence has lapsed is downgraded, never shown live (ADR-018). The module is registered in `backend/src/app.module.ts`. Evidence-backed coverage: a mocked-Prisma unit spec and a DB-gated e2e spec assert list/detail/label, distance disclosure, coverage note, the evidence write, the audit row and that verification state is unchanged. The web place-discovery map (MapLibre raster tiles, attribution, no geolocation, ADR-017), the shared-types/API-client contracts and the geocoding/licensed-tile workstream are owned by a separate workstream and are not claimed here. No production tile host or geocoding provider is claimed. The spatial-correctness / no-false-shelter-claim gate remains pending the maintainers' PostGIS-backed test runs.
 
 **Gate:** Spatial correctness and no false shelter claims.
 
@@ -77,6 +77,30 @@ Build incrementally. Each phase has a gate; do not start the next phase with unr
 - Source references and review dates.
 - Localization foundation.
 - Content freshness and retirement.
+
+**Phase 5 status:** implementation has landed for the reviewed safety-guides
+workflow. The `SafetyGuide` / `GuideRevision` schema (ADR-009) now has a
+guides module (`backend/src/guides/`) exposing a public surface
+(`GET /guides`, `GET /guides/:id` — APPROVED/PUBLISHED only, with a
+`lastReviewedAt`-based `stale` flag and per-view freshness label) and a
+privileged surface (`/admin/guides`: create, revise, review, approve,
+publish, retire, reopen) mirroring the admin-review RBAC pattern. New
+revision writes bump `version` and append a `GuideRevision` row in one
+transaction; approval/publish are completeness-gated (reviewer + authority +
+non-empty references + hazardType). Privileged mutations are audited under the
+canonical `GUIDE_*` actions (`AUDIT_ACTIONS`), and the review policy,
+responsible role, versioning and retirement rules are documented in
+`docs/SAFETY-GUIDES.md`. The public web app has a guide index and detail
+page (`/guides`, `/guides/[id]`, hazard tabs, loading/empty/error/offline/
+stale states), the admin console has a role-gated `/guides` approval
+workflow with the guide audit trail, and the localization foundation
+(`@sentravyn/localization`, `en` + `es`) drives the UI chrome while the
+`language` column drives content. Delivery-gate evidence: unit tests
+(`backend/test/guides.spec.ts`, `audit.spec.ts`), DB-gated e2e
+(`backend/test/e2e/guides.e2e-spec.ts`), api-client and localization unit
+tests — initial published guide content is still pending a named safety
+reviewer, so the Phase 5 gate (safety-reviewer approval of the content
+workflow and initial published material) has not been claimed.
 
 **Gate:** Safety reviewer approves content workflow and initial published material.
 

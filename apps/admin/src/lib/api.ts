@@ -9,8 +9,17 @@ import {
   type MfaVerifyResult,
   type DecideInput,
   type DecideResult,
+  type GuideApproveInput,
+  type GuideCreateInput,
+  type GuideDetail,
+  type GuideListQuery,
+  type GuidePublishInput,
+  type GuideRetireInput,
+  type GuideReviewInput,
+  type GuideUpdateInput,
   type PlaceQueueItem,
   type AlertQueueItem,
+  type PaginatedGuideView,
   type ProviderUpsertInput,
   type ProviderView,
   type PublicUser,
@@ -167,6 +176,41 @@ function refreshFromStoredRefreshToken(
 }
 
 /**
+ * Deduplicates concurrent refresh calls (rotating-token race).
+ *
+ * The refresh endpoint rotates in place and invalidates the previous refresh
+ * token (backend/src/auth/auth.service.ts). Two requests that both 401 in
+ * parallel would each trigger a refresh: the first succeeds and rotates; the
+ * second uses the now-invalid token, fails, and would clear a session that is
+ * still valid. Mirrors the web app's `pendingRefresh` dedup: concurrent
+ * callers await a single in-flight rotation and reuse its written session.
+ */
+let pendingRefresh: Promise<AuthTokenPair | null> | null = null;
+
+function dedupedRefresh(refreshToken: string): Promise<AuthTokenPair | null> {
+  if (typeof window === "undefined") return Promise.resolve(null);
+  if (pendingRefresh === null) {
+    pendingRefresh = (async () => {
+      try {
+        const pair = await refreshFromStoredRefreshToken(refreshToken);
+        writeSession({
+          accessToken: pair.accessToken,
+          refreshToken: pair.refreshToken,
+          user: pair.user,
+        });
+        return pair;
+      } catch {
+        clearSession();
+        return null;
+      }
+    })().finally(() => {
+      pendingRefresh = null;
+    });
+  }
+  return pendingRefresh;
+}
+
+/**
  * Authenticated request with exactly one refresh-and-retry on 401.
  * The retried request is never retried again.
  */
@@ -184,18 +228,11 @@ async function request<T>(
 
   if (!res.ok) {
     if (res.status === 401 && !opts.noRetry && session) {
-      try {
-        const refreshed = await refreshFromStoredRefreshToken(
-          session.refreshToken,
-        );
-        writeSession({
-          accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken,
-          user: refreshed.user,
-        });
-      } catch {
-        clearSession();
-        throw new ApiError(401, 'Session expired. Please sign in again.', '');
+      // Deduped: concurrent 401s share one rotation, so a rotating refresh
+      // token is never replayed by a second caller (see dedupedRefresh).
+      const refreshed = await dedupedRefresh(session.refreshToken);
+      if (refreshed === null) {
+        throw new ApiError(401, "Session expired. Please sign in again.", "");
       }
       // Exactly one retry, with the fresh access token.
       const retried = await rawRequest(method, path, {
@@ -430,5 +467,103 @@ export const auditApi = {
     }
     const qs = params.toString();
     return request<AuditEvent[]>('GET', `/admin/audit${qs ? `?${qs}` : ''}`);
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Guides (Phase 5: reviewed safety-guides workflow)                   */
+/* ------------------------------------------------------------------ */
+
+function buildGuideQuery(params: GuideListQuery = {}): string {
+  const q = new URLSearchParams();
+  if (params.page !== undefined) q.set("page", String(params.page));
+  if (params.pageSize !== undefined) q.set("pageSize", String(params.pageSize));
+  if (params.hazardType) q.set("hazardType", params.hazardType);
+  if (params.approval) q.set("approval", params.approval);
+  if (params.language) q.set("language", params.language);
+  if (params.stale !== undefined) q.set("stale", String(params.stale));
+  const qs = q.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/**
+ * Guide-workflow API (REVIEWER, OPERATOR and ADMIN; the server enforces it).
+ * Every mutation writes an audit row (SECURITY.md 6) and the surface shows
+ * the API's error messages verbatim on 400/403.
+ */
+export const guidesApi = {
+  /** GET /admin/guides — every approval state (admin listing). */
+  list(params: GuideListQuery = {}): Promise<PaginatedGuideView> {
+    return request<PaginatedGuideView>(
+      "GET",
+      `/admin/guides${buildGuideQuery(params)}`,
+    );
+  },
+
+  /** GET /admin/guides/:id — one guide in any state. */
+  one(id: string): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "GET",
+      `/admin/guides/${encodeURIComponent(id)}`,
+    );
+  },
+
+  /** POST /admin/guides — create a DRAFT at version 1. */
+  create(input: GuideCreateInput): Promise<GuideDetail> {
+    return request<GuideDetail>("POST", "/admin/guides", input);
+  },
+
+  /** PATCH /admin/guides/:id — new revision + version bump. */
+  update(id: string, input: GuideUpdateInput): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "PATCH",
+      `/admin/guides/${encodeURIComponent(id)}`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/review — DRAFT -> IN_REVIEW. */
+  review(id: string, input: GuideReviewInput = {}): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/review`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/approve — IN_REVIEW -> APPROVED. */
+  approve(id: string, input: GuideApproveInput = {}): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/approve`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/publish — APPROVED -> PUBLISHED. */
+  publish(id: string, input: GuidePublishInput = {}): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/publish`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/retire — PUBLISHED -> RETIRED. */
+  retire(id: string, input: GuideRetireInput = {}): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/retire`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/reopen — RETIRED -> DRAFT. */
+  reopen(id: string): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/reopen`,
+      {},
+    );
   },
 };

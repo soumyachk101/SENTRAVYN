@@ -81,6 +81,19 @@ describe('GdacsAdapter (Phase 3, ADR-007)', () => {
     expect(result.rejected[0].sourceId).toBe('unknown');
   });
 
+  it('rejects an element whose eventid is an object/array/boolean (INVALID_EVENTID, never stringified to garbage)', () => {
+    const result = adapter.parse(
+      JSON.stringify([
+        { eventid: { nested: 'object' }, title: 'T', datetime: '2026-01-01T00:00:00Z' },
+      ]),
+      FETCHED_AT,
+    );
+
+    expect(result.events).toHaveLength(0);
+    expect(result.rejected).toHaveLength(1);
+    expect(result.rejected[0].code).toBe('INVALID_EVENTID');
+  });
+
   it('rejects an element missing a usable title with MISSING_TITLE', () => {
     const result = adapter.parse(
       '[{"eventid": 7, "datetime": "2026-01-01T00:00:00Z"}]',

@@ -1,11 +1,16 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { authApi } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { isMfaPending, type MfaPendingLogin } from '@/lib/types';
-import { Badge, describeError, Eyebrow, Field } from '@/lib/ui';
+import {
+  Badge,
+  describeError,
+  Eyebrow,
+  Field,
+} from '@/lib/ui';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** A TOTP code is 6 digits; a recovery code is 4-4-4 (13 chars). */
@@ -25,6 +30,11 @@ export default function LoginPage() {
   const pathname = usePathname();
   const session = useSession();
   const [tab, setTab] = useState<'login' | 'register'>('login');
+  // Roving tabindex on the tabs (WAI-ARIA tabs pattern), mirroring the
+  // public web AuthPanel: focus moves with the selection; the inactive tab
+  // is removed from the tab order.
+  const loginTabRef = useRef<HTMLButtonElement>(null);
+  const registerTabRef = useRef<HTMLButtonElement>(null);
 
   // Login form
   const [lEmail, setLEmail] = useState('');
@@ -393,11 +403,25 @@ export default function LoginPage() {
             role="tablist"
             aria-label="Authentication method"
             className="tabs"
+            // Arrow-key navigation between the two tabs (WAI-ARIA tabs pattern),
+            // mirroring the public web AuthPanel. Focus moves with the selection;
+            // the inactive tab is removed from the tab order.
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowRight') {
+                setTab('register');
+                registerTabRef.current?.focus();
+              } else if (event.key === 'ArrowLeft') {
+                setTab('login');
+                loginTabRef.current?.focus();
+              }
+            }}
           >
             <button
               type="button"
               role="tab"
+              ref={loginTabRef}
               aria-selected={tab === 'login'}
+              tabIndex={tab === 'login' ? 0 : -1}
               className={tab === 'login' ? 'tab tab--active' : 'tab'}
               onClick={() => setTab('login')}
             >
@@ -406,7 +430,9 @@ export default function LoginPage() {
             <button
               type="button"
               role="tab"
+              ref={registerTabRef}
               aria-selected={tab === 'register'}
+              tabIndex={tab === 'register' ? 0 : -1}
               className={tab === 'register' ? 'tab tab--active' : 'tab'}
               onClick={() => setTab('register')}
             >

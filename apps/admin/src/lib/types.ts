@@ -195,3 +195,113 @@ export class ApiError extends Error {
     this.body = body;
   }
 }
+
+/* ------------------------------------------------------------------------ */
+/* Phase 5: safety-guide workflow (GET /guides, /admin/guides + sub-routes). */
+/* Mirrors packages/shared-types and backend/src/guides; admin lib types are */
+/* self-contained, so the contract is duplicated verbatim here.              */
+/* ------------------------------------------------------------------------ */
+
+export type GuideApprovalState =
+  | "DRAFT"
+  | "IN_REVIEW"
+  | "APPROVED"
+  | "PUBLISHED"
+  | "RETIRED";
+
+export type GuideFreshness = "fresh" | "stale" | "unknown";
+
+export interface GuideRevisionView {
+  revision: number;
+  body: string;
+  /** ISO 8601. */
+  createdAt: string;
+}
+
+export interface GuideView {
+  id: string;
+  hazardType: string;
+  jurisdiction: string | null;
+  language: string;
+  author: string | null;
+  reviewer: string | null;
+  authority: string | null;
+  approval: GuideApprovalState;
+  version: number;
+  /** ISO 8601; null when the guide has never been reviewed. */
+  lastReviewedAt: string | null;
+  references: string[];
+  /** Body of the current revision; null if none was written. */
+  body: string | null;
+  freshness: GuideFreshness;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GuideDetail extends GuideView {
+  revisions: GuideRevisionView[];
+}
+
+export interface GuideListQuery {
+  page?: number;
+  pageSize?: number;
+  hazardType?: string;
+  approval?: GuideApprovalState;
+  language?: string;
+  stale?: boolean;
+}
+
+export interface PaginatedGuideView {
+  items: GuideView[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+}
+
+export interface GuideUpdateInput {
+  body?: string;
+  jurisdiction?: string;
+  language?: string;
+  author?: string;
+  reviewer?: string;
+  authority?: string;
+  references?: string[];
+}
+
+/** Body for POST /admin/guides (DRAFT at version 1; body is required). */
+export interface GuideCreateInput {
+  hazardType: string;
+  /** Non-empty; a placeholder guide must say so explicitly in the body. */
+  body: string;
+  jurisdiction?: string;
+  language?: string;
+  author?: string;
+  reviewer?: string;
+  authority?: string;
+  references?: string[];
+}
+
+export interface GuideReviewInput {
+  reviewer?: string;
+  authority?: string;
+  /** ISO 8601; defaults to now. */
+  reviewedAt?: string;
+}
+
+export interface GuideApproveInput {
+  rationale?: string;
+  reviewedAt?: string;
+}
+
+export interface GuidePublishInput {
+  rationale?: string;
+  reviewedAt?: string;
+}
+
+export interface GuideRetireInput {
+  rationale?: string;
+  /** ISO 8601; defaults to now. */
+  retiredAt?: string;
+}
