@@ -7,16 +7,17 @@
  *
  *   - Organization + WebSite describe the actual publisher. No logo, no
  *     founding data, no invented credentials or ratings.
- *   - TechArticle is produced ONLY from a genuine guide record, and each
- *     optional field is included just when the record actually carries it —
- *     missing values are omitted, never invented or null-padded.
+ *   - TechArticle is produced ONLY from a genuine published-guide record, and
+ *     each optional field is included just when the record actually carries
+ *     it — missing values are omitted, never invented or null-padded.
+ *   - BreadcrumbList mirrors the visible "All guides" back-link on the guide
+ *     detail page (Home > Safety guides > this guide).
  *   - There is NO FAQPage: the public surface has no visible FAQ content, so
- *     none is emitted (no invented Q&A).
+ *     none is emitted (no invented Q&A; docs/SEO-AEO-GEO.md).
  *
  * The builders return a single embedding-ready `@graph` object so the caller
- * can hand it to Next's `metadata.jsonLd` (which renders a
- * <script type="application/ld+json"> tag). Keeping them pure functions with
- * no JSX makes them trivially unit-testable.
+ * can hand it to an inline <script type="application/ld+json"> tag. Keeping
+ * them pure functions with no JSX makes them trivially unit-testable.
  */
 
 /** The approved brand name (CLAUDE.md) — the organization is "SENTRAVYN". */
@@ -48,7 +49,7 @@ export interface JsonLdNode {
   [key: string]: unknown;
 }
 
-/** A single `@graph` document, ready for `metadata.jsonLd`. */
+/** A single `@graph` document, ready to inline as application/ld+json. */
 export interface JsonLdGraph {
   '@context': string;
   '@graph': JsonLdNode[];
@@ -88,31 +89,45 @@ export function siteGraph(base: string): JsonLdGraph {
 }
 
 /**
- * The fields of a guide that map cleanly to schema.org. Mirrors the public
- * surface shape (`@/lib/api` `GuideDetail` / api-client `GuidesClient.one`).
- * `author` / `reviewer` / `references` are nullable/optional on purpose —
- * the caller only passes what the record actually has.
+ * The fields of a guide that map to schema.org, taken straight from the
+ * published-guide record. Nullable/optional fields are optional on purpose —
+ * the caller only passes what the record actually has, so a builder emits a
+ * key only when it is present.
+ *
+ * Field honesty (docs/SEO-AEO-GEO.md; CLAUDE.md rule 3):
+ *   - author / reviewer / authority / lastReviewedAt are null when the guide
+ *     carries no value, and the builder omits the corresponding key in that
+ *     case — it never invents an author, reviewer, authority or review date.
+ *   - `references` are the guide's recorded source citations; only genuine
+ *     http(s) URLs are carried (schema.org `isBasedOn`), non-URL strings are
+ *     dropped rather than forced into a false property.
  */
 export interface GuideArticleInput {
   /** Absolute canonical URL of the guide page. */
   url: string;
   /** Human-readable headline, e.g. "Earthquake — Berlin". */
   headline: string;
-  /** Named author, when the record carries one (else omit). */
-  author?: string | null;
-  /** Named responsible reviewer, when recorded (else omit). */
-  reviewer?: string | null;
   /** ISO 8601 real creation timestamp of the guide. */
   datePublished: string;
   /** ISO 8601 real last-modification timestamp of the guide. */
   dateModified: string;
   /** BCP-47 style code, e.g. "en". */
   language: string;
+  /** Named author, when the record carries one (null otherwise -> omitted). */
+  author?: string | null;
+  /** Named responsible reviewer, when recorded (null otherwise -> omitted). */
+  reviewer?: string | null;
   /**
-   * Authoritative source references (the guide's visible citations). Only
-   * genuine http(s) URLs are carried; non-URL strings are dropped rather
-   * than forced into a false property.
+   * The verifying authority name, when recorded (null otherwise ->
+   * omitted). Carried as an Organization extension property.
    */
+  authority?: string | null;
+  /**
+   * The guide's real last review timestamp, when it has ever been reviewed
+   * (null otherwise -> omitted). Emitted as the `lastReviewed` extension.
+   */
+  lastReviewedAt?: string | null;
+  /** Authoritative source references (the guide's visible citations). */
   references: string[];
 }
 
@@ -120,12 +135,13 @@ export interface GuideArticleInput {
  * Build the embedding-ready TechArticle graph for ONE published guide.
  *
  * Field presence rules (never fabricate):
- *   - author / reviewer → a `Person` with the recorded name, else the key is
- *     omitted entirely (no empty `Person` placeholders).
- *   - source references → `isBasedOn` (valid on TechArticle via CreativeWork)
- *     as an array of the recorded URLs. Omitted when there are no URLs.
- *   - publisher → inlined Organization, always (we are the verified
- *     publisher). No ratings, no invented credentials.
+ *   - author / reviewer -> a `Person` with the recorded name; the key is
+ *     omitted entirely when null (no empty `Person` placeholders).
+ *   - authority -> an `Organization` extension property; omitted when null.
+ *   - lastReviewedAt -> `lastReviewed` (ISO date string); omitted when null.
+ *   - references -> `isBasedOn` (valid on TechArticle via CreativeWork) as
+ *     an array of the recorded http(s) URLs. Omitted when there are none.
+ *   - publisher -> inlined Organization, always (we are the publisher).
  */
 export function guideArticleGraph(guide: GuideArticleInput): JsonLdGraph {
   const article: JsonLdNode = {
@@ -144,6 +160,12 @@ export function guideArticleGraph(guide: GuideArticleInput): JsonLdGraph {
   if (guide.reviewer) {
     article.reviewer = [{ '@type': 'Person', name: guide.reviewer }];
   }
+  if (guide.authority) {
+    article.authority = { '@type': 'Organization', name: guide.authority };
+  }
+  if (guide.lastReviewedAt) {
+    article.lastReviewed = guide.lastReviewedAt;
+  }
 
   const urlRefs = guide.references.filter((r) =>
     /^https?:\/\//i.test(r.trim()),
@@ -158,5 +180,46 @@ export function guideArticleGraph(guide: GuideArticleInput): JsonLdGraph {
   return {
     '@context': 'https://schema.org',
     '@graph': [article],
+  };
+}
+
+/**
+ * BreadcrumbList for a guide detail page, mirroring the visible navigation
+ * (Home > Safety guides > this guide). `guideLabel` is the same human-
+ * readable headline the page shows as its H1.
+ */
+export function guideBreadcrumbGraph(
+  base: string,
+  guideUrl: string,
+  guideLabel: string,
+): JsonLdGraph {
+  const origin = base.replace(/\/+$/, '');
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: origin,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Safety guides',
+            item: `${origin}/guides`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: guideLabel,
+            item: guideUrl,
+          },
+        ],
+      },
+    ],
   };
 }

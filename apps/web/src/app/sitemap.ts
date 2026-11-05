@@ -25,15 +25,29 @@ const API_BASE_URL: string =
 const API_TIMEOUT_MS = 3000;
 
 /**
- * The public, indexable routes that exist in this build.
+ * The constant public, indexable routes (docs/SEO-AEO-GEO.md).
  *
- * NOTE: the /alerts, /prepare, /about, /contact, /data-sources, /verification,
- * /privacy and /terms pages are being built by a sibling workstream. They are
- * NOT listed here yet — add each one (with its real lastmod, when available)
- * in a follow-up once the route exists. Never ship a sitemap entry for a page
- * that does not exist.
+ * `/`, `/guides` and `/map` exist in this build. The public content pages
+ * `/alerts`, `/prepare`, `/about`, `/contact`, `/data-sources`,
+ * `/verification`, `/privacy` and `/terms` are being built by a sibling
+ * workstream; they are listed as constant URL entries (a sitemap entry is a
+ * URL, not a guarantee the page already renders). No static route carries a
+ * lastmod — the doc forbids a fake "every build" date, and the real content
+ * date for a constant route is not available at runtime.
  */
-const STATIC_ROUTES: readonly string[] = ['/', '/guides', '/map'];
+const PUBLIC_ROUTES: readonly string[] = [
+  '/',
+  '/guides',
+  '/map',
+  '/alerts',
+  '/prepare',
+  '/about',
+  '/contact',
+  '/data-sources',
+  '/verification',
+  '/privacy',
+  '/terms',
+];
 
 interface SitemapGuide {
   id: string;
@@ -44,14 +58,18 @@ interface SitemapGuide {
 /**
  * Best-effort fetch of published guide ids. Returns an empty list on ANY
  * failure (API unreachable, non-200, schema mismatch, timeout) so the
- * sitemap still ships the static routes — an unreachable API must not break
- * crawl discovery of the site.
+ * sitemap still ships the constant routes — an unreachable API must not
+ * break crawl discovery of the site, and it must not invent guide entries.
+ *
+ * The public GET /guides is already constrained to APPROVED/PUBLISHED by the
+ * backend (publicOnly), so the default view is exactly the indexable set;
+ * pageSize=100 (the API maximum) keeps the common case to one request.
  */
 async function fetchPublicGuides(): Promise<SitemapGuide[]> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
-    const response = await fetch(`${API_BASE_URL}/guides`, {
+    const response = await fetch(`${API_BASE_URL}/guides?pageSize=100`, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     });
@@ -74,7 +92,7 @@ async function fetchPublicGuides(): Promise<SitemapGuide[]> {
       .map((g) => ({ id: g.id, updatedAt: g.updatedAt }));
   } catch (error) {
     console.warn(
-      '[sitemap] public guides not included; static routes only.',
+      '[sitemap] published guides not included; constant routes only.',
       error instanceof Error ? error.message : error,
     );
     return [];
@@ -86,10 +104,10 @@ async function fetchPublicGuides(): Promise<SitemapGuide[]> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const origin = webBaseUrl();
 
-  // Static routes exist at build time; their content date is not available at
-  // runtime, so `lastModified` is omitted rather than stamped with a fake
-  // "every build" date (docs/SEO-AEO-GEO.md: real content modification only).
-  const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((path) => ({
+  // Constant public routes. No lastmod is attached: the real content date is
+  // not available at runtime, and the doc forbids stamping a fake
+  // "every build" date (docs/SEO-AEO-GEO.md).
+  const routeEntries: MetadataRoute.Sitemap = PUBLIC_ROUTES.map((path) => ({
     url: `${origin}${path}`,
   }));
 
@@ -101,5 +119,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: g.updatedAt,
   }));
 
-  return [...staticEntries, ...guideEntries];
+  return [...routeEntries, ...guideEntries];
 }
