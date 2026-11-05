@@ -57,6 +57,12 @@ export default function AdminHome() {
             <span>Immutable record of privileged changes. ADMIN.</span>
           </div>
         </Link>
+        <Link className="workspace" href="/security">
+          <div>
+            <strong>Security</strong>
+            <span>Multi-factor authentication and active session management.</span>
+          </div>
+        </Link>
         <Link className="workspace" href="/login">
           <div>
             <strong>Sign in</strong>

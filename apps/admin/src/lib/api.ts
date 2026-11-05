@@ -3,6 +3,10 @@ import {
   type AuditEvent,
   type AuditQuery,
   type AuthTokenPair,
+  type LoginResponse,
+  type MfaSetupResult,
+  type MfaStatusView,
+  type MfaVerifyResult,
   type DecideInput,
   type DecideResult,
   type PlaceQueueItem,
@@ -12,6 +16,7 @@ import {
   type PublicUser,
   type QueueKind,
   type SeedResult,
+  type SessionView,
 } from "./types";
 
 /**
@@ -245,8 +250,73 @@ export const authApi = {
     });
   },
 
-  login(input: LoginInput): Promise<AuthTokenPair> {
-    return request<AuthTokenPair>("POST", "/auth/login", input, {
+  login(input: LoginInput): Promise<LoginResponse> {
+    return request<LoginResponse>("POST", "/auth/login", input, {
+      noRetry: true,
+    });
+  },
+
+  /**
+   * Privileged login step 2 (SECURITY.md section 2): exchange the pending MFA
+   * token returned by login() for a full token pair once a valid TOTP or
+   * single-use recovery code is presented.
+   */
+  completeMfa(input: {
+    mfaTempToken: string;
+    code: string;
+  }): Promise<AuthTokenPair> {
+    return request<AuthTokenPair>("POST", "/auth/mfa/complete", input, {
+      noRetry: true,
+    });
+  },
+
+  /** Report MFA state (enabled + remaining recovery codes, never the seed). */
+  mfaStatus(): Promise<MfaStatusView> {
+    return request<MfaStatusView>("GET", "/auth/mfa/status");
+  },
+
+  /** Begin TOTP enrolment: returns a one-time seed, URI and 8 recovery codes. */
+  mfaSetup(): Promise<MfaSetupResult> {
+    return request<MfaSetupResult>("POST", "/auth/mfa/setup", undefined, {
+      noRetry: true,
+    });
+  },
+
+  /** Confirm a valid TOTP/recovery code, enabling MFA on the account. */
+  mfaVerify(code: string): Promise<MfaVerifyResult> {
+    return request<MfaVerifyResult>("POST", "/auth/mfa/verify", { code }, {
+      noRetry: true,
+    });
+  },
+
+  /** Disable MFA after proving a valid second factor. */
+  mfaDisable(code: string): Promise<void> {
+    return request<void>("POST", "/auth/mfa/disable", { code }, {
+      noRetry: true,
+    });
+  },
+
+  /** List the caller's active sessions (metadata only; no token material). */
+  sessions(): Promise<SessionView[]> {
+    return request<SessionView[]>("GET", "/auth/sessions");
+  },
+
+  /**
+   * Credential-compromise path (SECURITY.md section 2): revoke every active
+   * session for the caller. Returns the number of sessions revoked.
+   */
+  revokeAllSessions(): Promise<{ revoked: number }> {
+    return request<{ revoked: number }>("POST", "/auth/sessions/revoke-all", undefined, {
+      noRetry: true,
+    });
+  },
+
+  /**
+   * Revoke a single one of the caller's sessions by id. Idempotent: a
+   * foreign or already-revoked id is a no-op on the server.
+   */
+  revokeSession(sessionId: string): Promise<void> {
+    return request<void>("POST", `/auth/sessions/${sessionId}/revoke`, undefined, {
       noRetry: true,
     });
   },

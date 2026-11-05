@@ -22,6 +22,56 @@ export interface AuthTokenPair {
   user: PublicUser;
 }
 
+/**
+ * Returned by POST /auth/login instead of a token pair when the account is a
+ * privileged role (OPERATOR/ADMIN) with MFA enrolled: a short-lived pending
+ * token (5 minutes) plus the number of single-use recovery codes left.
+ * POST /auth/mfa/complete exchanges it plus a TOTP/recovery code for a full
+ * token pair (SECURITY.md section 2).
+ */
+export interface MfaPendingLogin {
+  mfaPending: true;
+  mfaTempToken: string;
+  recoveryCodesRemaining: number;
+}
+
+export type LoginResponse = AuthTokenPair | MfaPendingLogin;
+
+export function isMfaPending(
+  response: LoginResponse,
+): response is MfaPendingLogin {
+  return (response as MfaPendingLogin).mfaPending === true;
+}
+
+export interface MfaSetupResult {
+  /** Base32 TOTP seed, shown once. */
+  secret: string;
+  /** otpauth:// URI for authenticator apps. */
+  uri: string;
+  /** 8 single-use recovery codes, shown once; only their hashes persist. */
+  recoveryCodes: string[];
+  mfaEnabled: false;
+}
+
+export interface MfaStatusView {
+  mfaEnabled: boolean;
+  recoveryCodesRemaining: number;
+}
+
+export interface MfaVerifyResult {
+  mfaEnabled: true;
+  recoveryCodesRemaining: number;
+}
+
+/** Session metadata (GET /auth/sessions); never carries token material. */
+export interface SessionView {
+  id: string;
+  userAgent: string | null;
+  ip: string | null;
+  createdAt: string;
+  expiresAt: string;
+}
+
 /** Provider registry view (GET /providers; no credential material). */
 export interface ProviderView {
   key: string;

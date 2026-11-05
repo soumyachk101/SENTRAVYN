@@ -705,6 +705,51 @@ textarea.input {
   color: var(--slate-500);
 }
 
+/* Screen-reader-only text (e.g. table column headers for icon buttons). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A bordered monospace block for showing secrets / recovery codes once. */
+.mono-block {
+  margin-top: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--ink-800);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 18%, transparent);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.mono-block h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--slate-300);
+}
+
+.mono-block code {
+  display: block;
+  margin: 0;
+}
+
+.mono-block ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.25rem;
+}
+
 .provenance {
   margin-top: var(--space-md);
   padding: var(--space-md);

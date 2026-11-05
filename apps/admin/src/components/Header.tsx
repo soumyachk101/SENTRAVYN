@@ -9,6 +9,7 @@ const NAV: Array<{ href: string; label: string; minRole: "any" | "REVIEWER" | "A
   { href: "/review", label: "Review", minRole: "REVIEWER" },
   { href: "/providers", label: "Providers", minRole: "any" },
   { href: "/audit", label: "Audit", minRole: "ADMIN" },
+  { href: "/security", label: "Security", minRole: "any" },
 ];
 
 /**
