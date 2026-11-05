@@ -26,6 +26,34 @@ export const AUDIT_ACTIONS = {
   SESSION_REVOKED: 'SESSION_REVOKED',
   /** Records a refresh-token rotation (new hash + fresh expiry on an in-flight session). */
   SESSION_REFRESHED: 'SESSION_REFRESHED',
+  /**
+   * A safety guide entered IN_REVIEW: a named reviewer/authority recorded
+   * and lastReviewedAt stamped (SAFETY-POLICY.md 10). Detail carries the
+   * from/to state, reviewer, authority, review date and version.
+   */
+  GUIDE_REVIEWED: 'GUIDE_REVIEWED',
+  /**
+   * A safety guide cleared the completeness gate and moved
+   * IN_REVIEW -> APPROVED: reviewer + authority + a non-empty references
+   * array + hazardType are all present.
+   */
+  GUIDE_APPROVED: 'GUIDE_APPROVED',
+  /**
+   * An approved safety guide moved APPROVED -> PUBLISHED and became
+   * visible on the public surface (SAFETY-POLICY.md 10).
+   */
+  GUIDE_PUBLISHED: 'GUIDE_PUBLISHED',
+  /**
+   * A published safety guide moved PUBLISHED -> RETIRED and dropped out of
+   * the public surface; content is surfaced as retired, never silently
+   * hidden (SAFETY-POLICY.md 8).
+   */
+  GUIDE_RETIRED: 'GUIDE_RETIRED',
+  /**
+   * Privileged content writes on a safety guide: create (DRAFT, v1 + first
+   * revision), new revision (version bump), or a RETIRED -> DRAFT reopen.
+   */
+  GUIDE_UPDATED: 'GUIDE_UPDATED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

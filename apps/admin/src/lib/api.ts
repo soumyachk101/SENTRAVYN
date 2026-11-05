@@ -5,8 +5,17 @@ import {
   type AuthTokenPair,
   type DecideInput,
   type DecideResult,
+  type GuideApproveInput,
+  type GuideCreateInput,
+  type GuideDetail,
+  type GuideListQuery,
+  type GuidePublishInput,
+  type GuideRetireInput,
+  type GuideReviewInput,
+  type GuideUpdateInput,
   type PlaceQueueItem,
   type AlertQueueItem,
+  type PaginatedGuideView,
   type ProviderUpsertInput,
   type ProviderView,
   type PublicUser,
@@ -371,6 +380,104 @@ export const auditApi = {
     return request<AuditEvent[]>(
       "GET",
       `/admin/audit${qs ? `?${qs}` : ""}`,
+    );
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/* Guides (Phase 5: reviewed safety-guides workflow)                   */
+/* ------------------------------------------------------------------ */
+
+function buildGuideQuery(params: GuideListQuery = {}): string {
+  const q = new URLSearchParams();
+  if (params.page !== undefined) q.set("page", String(params.page));
+  if (params.pageSize !== undefined) q.set("pageSize", String(params.pageSize));
+  if (params.hazardType) q.set("hazardType", params.hazardType);
+  if (params.approval) q.set("approval", params.approval);
+  if (params.language) q.set("language", params.language);
+  if (params.stale !== undefined) q.set("stale", String(params.stale));
+  const qs = q.toString();
+  return qs ? `?${qs}` : "";
+}
+
+/**
+ * Guide-workflow API (REVIEWER, OPERATOR and ADMIN; the server enforces it).
+ * Every mutation writes an audit row (SECURITY.md 6) and the surface shows
+ * the API's error messages verbatim on 400/403.
+ */
+export const guidesApi = {
+  /** GET /admin/guides — every approval state (admin listing). */
+  list(params: GuideListQuery = {}): Promise<PaginatedGuideView> {
+    return request<PaginatedGuideView>(
+      "GET",
+      `/admin/guides${buildGuideQuery(params)}`,
+    );
+  },
+
+  /** GET /admin/guides/:id — one guide in any state. */
+  one(id: string): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "GET",
+      `/admin/guides/${encodeURIComponent(id)}`,
+    );
+  },
+
+  /** POST /admin/guides — create a DRAFT at version 1. */
+  create(input: GuideCreateInput): Promise<GuideDetail> {
+    return request<GuideDetail>("POST", "/admin/guides", input);
+  },
+
+  /** PATCH /admin/guides/:id — new revision + version bump. */
+  update(id: string, input: GuideUpdateInput): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "PATCH",
+      `/admin/guides/${encodeURIComponent(id)}`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/review — DRAFT -> IN_REVIEW. */
+  review(id: string, input: GuideReviewInput = {}): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/review`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/approve — IN_REVIEW -> APPROVED. */
+  approve(id: string, input: GuideApproveInput = {}): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/approve`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/publish — APPROVED -> PUBLISHED. */
+  publish(id: string, input: GuidePublishInput = {}): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/publish`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/retire — PUBLISHED -> RETIRED. */
+  retire(id: string, input: GuideRetireInput = {}): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/retire`,
+      input,
+    );
+  },
+
+  /** POST /admin/guides/:id/reopen — RETIRED -> DRAFT. */
+  reopen(id: string): Promise<GuideDetail> {
+    return request<GuideDetail>(
+      "POST",
+      `/admin/guides/${encodeURIComponent(id)}/reopen`,
+      {},
     );
   },
 };

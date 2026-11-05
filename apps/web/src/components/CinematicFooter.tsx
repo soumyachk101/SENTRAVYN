@@ -13,6 +13,7 @@ import {
   FOOTER_SUPPORTING_COPY,
   FOOTER_FRAME_INTERVAL_MS,
 } from "./footwork-frames";
+import Link from "next/link";
 
 /**
  * Signature cinematic footer (DESIGN.md 4 — mandatory).
@@ -150,7 +151,8 @@ export function CinematicFooter() {
             <h3>Preparedness</h3>
             <ul>
               <li><a href="/alerts" className="planned">Emergency alerts</a></li>
-              <li><a href="/guides" className="planned">Safety guides</a></li>
+              {/* /guides is a real page now (Phase 5): live link, no .planned. */}
+              <li><Link href="/guides">Safety guides</Link></li>
               <li><a href="/map" className="planned">Emergency map</a></li>
               <li><a href="/prepare" className="planned">Household preparedness</a></li>
             </ul>
