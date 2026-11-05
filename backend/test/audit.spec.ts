@@ -4,14 +4,22 @@ describe('AuditService', () => {
   function build() {
     const auditEventCreate = jest.fn().mockResolvedValue({});
     // only auditEvent delegate is used by these tests; never is the minimal type escape
-    const service = new AuditService({ auditEvent: { create: auditEventCreate } } as never);
+    const service = new AuditService({
+      auditEvent: { create: auditEventCreate },
+    } as never);
     return { service, auditEventCreate };
   }
 
   it('record() writes an AuditEvent with the right fields', async () => {
     const { service, auditEventCreate } = build();
 
-    await service.record('user-1', AUDIT_ACTIONS.ALERT_PUBLISHED, 'Alert', 'alert-9', 'published');
+    await service.record(
+      'user-1',
+      AUDIT_ACTIONS.ALERT_PUBLISHED,
+      'Alert',
+      'alert-9',
+      'published',
+    );
 
     expect(auditEventCreate).toHaveBeenCalledTimes(1);
     expect(auditEventCreate).toHaveBeenCalledWith({
@@ -28,7 +36,12 @@ describe('AuditService', () => {
   it('record() passes null actor through for system-driven actions', async () => {
     const { service, auditEventCreate } = build();
 
-    await service.record(null, AUDIT_ACTIONS.PROVIDER_CHANGED, 'Provider', 'p-1');
+    await service.record(
+      null,
+      AUDIT_ACTIONS.PROVIDER_CHANGED,
+      'Provider',
+      'p-1',
+    );
 
     expect(auditEventCreate).toHaveBeenCalledWith({
       data: {
@@ -45,7 +58,13 @@ describe('AuditService', () => {
     const { service, auditEventCreate } = build();
     const detail = 'x'.repeat(2500);
 
-    await service.record(null, AUDIT_ACTIONS.ALERT_CANCELLED, 'Alert', 'a-2', detail);
+    await service.record(
+      null,
+      AUDIT_ACTIONS.ALERT_CANCELLED,
+      'Alert',
+      'a-2',
+      detail,
+    );
 
     const call = auditEventCreate.mock.calls[0][0];
     expect(call.data.detail).toHaveLength(2000);

@@ -84,18 +84,30 @@ function createService(
       issuePendingToken: async () => 'pending-token',
       verifyPending: jest.fn(),
     } as unknown as MfaService);
-  return { service: new AuthService(prisma as unknown as PrismaService, config, jwt, defaultMfa), jwt };
+  return {
+    service: new AuthService(
+      prisma as unknown as PrismaService,
+      config,
+      jwt,
+      defaultMfa,
+    ),
+    jwt,
+  };
 }
 
 /** Narrows a login() result to the full-token shape (non-MFA path). */
 function tokensOf(result: AuthTokens | { mfaPending: boolean }): AuthTokens {
   if ('mfaPending' in result) {
-    throw new Error(`expected a token pair, got MFA-pending result: ${JSON.stringify(result)}`);
+    throw new Error(
+      `expected a token pair, got MFA-pending result: ${JSON.stringify(result)}`,
+    );
   }
   return result as AuthTokens;
 }
 
-function userRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function userRow(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     id: 'user-1',
     email: 'alice@example.com',
@@ -115,18 +127,31 @@ describe('AuthService', () => {
   it('register stores a bcrypt cost-12 hash and returns the public shape', async () => {
     const prisma = createPrismaMock();
     prisma.user.findUnique.mockResolvedValue(null);
-    prisma.user.create.mockImplementation(({ data }) => Promise.resolve(userRow(data)));
+    prisma.user.create.mockImplementation(({ data }) =>
+      Promise.resolve(userRow(data)),
+    );
     const { service } = createService(prisma);
 
-    const result = await service.register('Alice@Example.com', 'Alice', 'correct-horse-battery');
+    const result = await service.register(
+      'Alice@Example.com',
+      'Alice',
+      'correct-horse-battery',
+    );
 
-    const storedHash = prisma.user.create.mock.calls[0][0].data.passwordHash as string;
+    const storedHash = prisma.user.create.mock.calls[0][0].data
+      .passwordHash as string;
     expect(storedHash.startsWith('$2')).toBe(true);
     // Cost-12 cost factor is encoded in the hash prefix.
-    expect(storedHash.startsWith('$2b$12$') || storedHash.startsWith('$2y$12$')).toBe(true);
-    expect(await bcrypt.compare('correct-horse-battery', storedHash)).toBe(true);
+    expect(
+      storedHash.startsWith('$2b$12$') || storedHash.startsWith('$2y$12$'),
+    ).toBe(true);
+    expect(await bcrypt.compare('correct-horse-battery', storedHash)).toBe(
+      true,
+    );
     // Email is lowercased and the response carries no credential fields.
-    expect(prisma.user.create.mock.calls[0][0].data.email).toBe('alice@example.com');
+    expect(prisma.user.create.mock.calls[0][0].data.email).toBe(
+      'alice@example.com',
+    );
     expect(result).toEqual({
       id: 'user-1',
       email: 'alice@example.com',
@@ -158,9 +183,9 @@ describe('AuthService', () => {
     const { service } = createService(prisma);
 
     const compareSpy = jest.spyOn(mockBcrypt, 'compare');
-    await expect(service.login('alice@example.com', 'wrong-password')).rejects.toThrow(
-      'Invalid email or password',
-    );
+    await expect(
+      service.login('alice@example.com', 'wrong-password'),
+    ).rejects.toThrow('Invalid email or password');
     expect(compareSpy).toHaveBeenCalled();
     expect(prisma.session.create).not.toHaveBeenCalled();
     compareSpy.mockRestore();
@@ -172,9 +197,9 @@ describe('AuthService', () => {
     const { service } = createService(prisma);
 
     const compareSpy = jest.spyOn(mockBcrypt, 'compare');
-    await expect(service.login('nobody@example.com', 'whatever-123')).rejects.toThrow(
-      'Invalid email or password',
-    );
+    await expect(
+      service.login('nobody@example.com', 'whatever-123'),
+    ).rejects.toThrow('Invalid email or password');
     expect(compareSpy).toHaveBeenCalled();
     expect(prisma.session.create).not.toHaveBeenCalled();
     compareSpy.mockRestore();
@@ -187,7 +212,10 @@ describe('AuthService', () => {
     prisma.session.create.mockResolvedValue({});
     const { service, jwt } = createService(prisma);
 
-    const result = await service.login('alice@example.com', 'correct-horse-battery');
+    const result = await service.login(
+      'alice@example.com',
+      'correct-horse-battery',
+    );
     const tokens = tokensOf(result);
     expect(tokens.accessToken).toEqual(expect.any(String));
     expect(tokens.refreshToken).toHaveLength(64); // 256-bit hex
@@ -202,7 +230,9 @@ describe('AuthService', () => {
     const created = prisma.session.create.mock.calls[0][0].data;
     expect(created.tokenHash.length).toBe(64);
     expect(created.expiresAt).toBeInstanceOf(Date);
-    const payload = await jwt.verifyAsync(tokens.accessToken, { secret: JWT_SECRET });
+    const payload = await jwt.verifyAsync(tokens.accessToken, {
+      secret: JWT_SECRET,
+    });
     expect(payload.sub).toBe('user-1');
     expect(payload.email).toBe('alice@example.com');
   });
@@ -212,7 +242,9 @@ describe('AuthService', () => {
     prisma.session.findUnique.mockResolvedValue(null);
     const { service } = createService(prisma);
 
-    await expect(service.refresh('not-a-known-token')).rejects.toThrow('Invalid refresh token');
+    await expect(service.refresh('not-a-known-token')).rejects.toThrow(
+      'Invalid refresh token',
+    );
     expect(prisma.session.update).not.toHaveBeenCalled();
   });
 
@@ -227,7 +259,9 @@ describe('AuthService', () => {
     });
     const { service } = createService(prisma);
 
-    await expect(service.refresh('rotated-away-token')).rejects.toThrow('Invalid refresh token');
+    await expect(service.refresh('rotated-away-token')).rejects.toThrow(
+      'Invalid refresh token',
+    );
     expect(prisma.session.update).not.toHaveBeenCalled();
   });
 
@@ -340,7 +374,9 @@ describe('AuthService', () => {
 
   it('me returns the public shape and rejects unknown users', async () => {
     const prisma = createPrismaMock();
-    prisma.user.findUnique.mockResolvedValue(userRow({ passwordHash: 'x'.repeat(60) }));
+    prisma.user.findUnique.mockResolvedValue(
+      userRow({ passwordHash: 'x'.repeat(60) }),
+    );
     const { service } = createService(prisma);
 
     await expect(service.me('user-1')).resolves.toEqual({
@@ -375,13 +411,18 @@ describe('AuthService', () => {
     );
     const mfa = {
       requiresMfaStep: jest.fn().mockReturnValue(true),
-      status: jest.fn().mockResolvedValue({ mfaEnabled: true, recoveryCodesRemaining: 3 }),
+      status: jest
+        .fn()
+        .mockResolvedValue({ mfaEnabled: true, recoveryCodesRemaining: 3 }),
       issuePendingToken: jest.fn().mockResolvedValue('mfa-pending'),
       verifyPending: jest.fn(),
     } as unknown as MfaService;
     const { service } = createService(prisma, JWT_SECRET, mfa);
 
-    const result = await service.login('alice@example.com', 'correct-horse-battery');
+    const result = await service.login(
+      'alice@example.com',
+      'correct-horse-battery',
+    );
     // No session is created on the pending path — only after step 2.
     expect(result).toEqual({
       mfaPending: true,
@@ -402,7 +443,11 @@ describe('AuthService', () => {
       requiresMfaStep: () => true,
       status: async () => ({ mfaEnabled: true, recoveryCodesRemaining: 8 }),
       issuePendingToken: async () => 'mfa-pending',
-      verifyPending: jest.fn().mockResolvedValue({ id: 'user-1', role: 'ADMIN', email: 'alice@example.com' }),
+      verifyPending: jest.fn().mockResolvedValue({
+        id: 'user-1',
+        role: 'ADMIN',
+        email: 'alice@example.com',
+      }),
     } as unknown as MfaService;
     const { service } = createService(prisma, JWT_SECRET, mfa);
 
@@ -416,7 +461,9 @@ describe('AuthService', () => {
   it('completeMfaLogin fails closed when MfaService rejects the pending token', async () => {
     const prisma = createPrismaMock();
     const mfa = {
-      verifyPending: jest.fn().mockRejectedValue(new Error('Invalid MFA pending token')),
+      verifyPending: jest
+        .fn()
+        .mockRejectedValue(new Error('Invalid MFA pending token')),
     } as unknown as MfaService;
     const { service } = createService(prisma, JWT_SECRET, mfa);
 

@@ -1,9 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule, ThrottlerModuleOptions } from '@nestjs/throttler';
+import {
+  ThrottlerGuard,
+  ThrottlerModule,
+  ThrottlerModuleOptions,
+} from '@nestjs/throttler';
 import { ThrottlerStorageModule } from './throttler-storage.module';
-import { RedisThrottlerStorage, throttlerTracker } from './throttler-storage.service';
+import {
+  RedisThrottlerStorage,
+  throttlerTracker,
+} from './throttler-storage.service';
 
 /**
  * Global rate limiting (SECURITY.md section 3: "Rate limits and abuse
@@ -30,7 +37,9 @@ import { RedisThrottlerStorage, throttlerTracker } from './throttler-storage.ser
  * request is bounded by the tighter of the two plus a block window when it
  * exceeds the auth limit.
  */
-export function throttlerOptions(config: ConfigService): ThrottlerModuleOptions {
+export function throttlerOptions(
+  config: ConfigService,
+): ThrottlerModuleOptions {
   const int = (key: string, fallback: number): number => {
     const raw = config.get<string>(key);
     const n = raw === undefined || raw === '' ? NaN : Number(raw);
@@ -41,7 +50,11 @@ export function throttlerOptions(config: ConfigService): ThrottlerModuleOptions 
     setHeaders: true,
     errorMessage: 'Too many requests; retry later.',
     throttlers: [
-      { name: 'default', limit: int('THROTTLE_DEFAULT_LIMIT', 300), ttl: 60_000 },
+      {
+        name: 'default',
+        limit: int('THROTTLE_DEFAULT_LIMIT', 300),
+        ttl: 60_000,
+      },
       {
         name: 'auth',
         limit: int('THROTTLE_AUTH_LIMIT', 15),

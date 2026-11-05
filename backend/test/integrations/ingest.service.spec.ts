@@ -90,14 +90,23 @@ function makePrisma(state: PrismaState) {
         ...data,
       })),
       update: jest.fn(
-        async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => ({
+        async ({
+          where,
+          data,
+        }: {
+          where: { id: string };
+          data: Record<string, unknown>;
+        }) => ({
           id: where.id,
           data,
         }),
       ),
     },
     alertRevision: {
-      create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 'rev-1', ...data })),
+      create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 'rev-1',
+        ...data,
+      })),
     },
     providerFetch: {
       create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({
@@ -117,8 +126,14 @@ function makePrisma(state: PrismaState) {
 function makeService(prismaStub: ReturnType<typeof makePrisma>) {
   const prisma = prismaStub as unknown as PrismaService;
   const audit = new AuditService(prisma);
-  const registry = new ProviderAdapterRegistry([new GdacsAdapter(), new CapAdapter()]);
-  return { service: new IngestService(prisma, audit, registry), prisma: prismaStub };
+  const registry = new ProviderAdapterRegistry([
+    new GdacsAdapter(),
+    new CapAdapter(),
+  ]);
+  return {
+    service: new IngestService(prisma, audit, registry),
+    prisma: prismaStub,
+  };
 }
 
 function zeroed(providerKey: string): IngestOutcome {
@@ -157,13 +172,21 @@ describe('IngestService (Phase 3 pipeline, ADR-005/ADR-007)', () => {
 
     // Exactly one raw record per ingest call, keyed by the fetch ref (ADR-007).
     expect(prisma.rawSourceRecord.create).toHaveBeenCalledTimes(1);
-    expect(prisma.rawSourceRecord.create.mock.calls[0][0].data.sourceId).toBe(FETCH_REF);
-    expect(prisma.rawSourceRecord.create.mock.calls[0][0].data.rawPayload).toBe(gdacsPayload);
-    expect(prisma.rawSourceRecord.create.mock.calls[0][0].data.payloadHash).toBe(payloadHash(gdacsPayload));
+    expect(prisma.rawSourceRecord.create.mock.calls[0][0].data.sourceId).toBe(
+      FETCH_REF,
+    );
+    expect(prisma.rawSourceRecord.create.mock.calls[0][0].data.rawPayload).toBe(
+      gdacsPayload,
+    );
+    expect(
+      prisma.rawSourceRecord.create.mock.calls[0][0].data.payloadHash,
+    ).toBe(payloadHash(gdacsPayload));
 
     // Two alerts, both VALIDATED / UNVERIFIED / OFFICIAL_SOURCE, linked to the raw record.
     expect(prisma.alert.create).toHaveBeenCalledTimes(2);
-    const [first, second] = prisma.alert.create.mock.calls.map((call) => call[0].data);
+    const [first, second] = prisma.alert.create.mock.calls.map(
+      (call) => call[0].data,
+    );
     expect(first.externalRef).toBe('gdacs:4242');
     expect(second.externalRef).toBe('gdacs:4243');
     expect(first.status).toBe('VALIDATED');
@@ -276,9 +299,15 @@ describe('IngestService (Phase 3 pipeline, ADR-005/ADR-007)', () => {
       }),
     );
     // The cancel is audited under ALERT_CANCELLED.
-    const auditCalls = prisma.auditEvent.create.mock.calls.map((call) => call[0].data);
-    expect(auditCalls.some((data) => data.action === AUDIT_ACTIONS.ALERT_CANCELLED)).toBe(true);
-    expect(prisma.providerFetch.create.mock.calls[0][0].data.status).toBe('SUCCESS');
+    const auditCalls = prisma.auditEvent.create.mock.calls.map(
+      (call) => call[0].data,
+    );
+    expect(
+      auditCalls.some((data) => data.action === AUDIT_ACTIONS.ALERT_CANCELLED),
+    ).toBe(true);
+    expect(prisma.providerFetch.create.mock.calls[0][0].data.status).toBe(
+      'SUCCESS',
+    );
   });
 
   it('quarantines a CAP test message: QUARANTINED alert, non-empty quarantinedIds', async () => {
@@ -296,17 +325,26 @@ describe('IngestService (Phase 3 pipeline, ADR-005/ADR-007)', () => {
     expect(outcome.quarantinedIds).toEqual(['raw-1']);
     expect(prisma.alert.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ status: 'QUARANTINED', verification: 'UNVERIFIED' }),
+        data: expect.objectContaining({
+          status: 'QUARANTINED',
+          verification: 'UNVERIFIED',
+        }),
       }),
     );
-    const detail = prisma.auditEvent.create.mock.calls[0][0].data.detail as string;
-    expect(JSON.parse(detail)).toMatchObject({ action: 'quarantined', code: 'TEST_MESSAGE' });
+    const detail = prisma.auditEvent.create.mock.calls[0][0].data
+      .detail as string;
+    expect(JSON.parse(detail)).toMatchObject({
+      action: 'quarantined',
+      code: 'TEST_MESSAGE',
+    });
   });
 
   it('returns a zeroed outcome and a FAILED ProviderFetch for an unknown provider (never throws)', async () => {
     const { service, prisma } = makeService(makePrisma({}));
 
-    const outcome = await service.ingest('does-not-exist', 'whatever', { fetchedAt: FETCHED_AT });
+    const outcome = await service.ingest('does-not-exist', 'whatever', {
+      fetchedAt: FETCHED_AT,
+    });
 
     expect(outcome).toEqual(zeroed('does-not-exist'));
     // The provider row is registered on demand.

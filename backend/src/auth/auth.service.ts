@@ -114,7 +114,9 @@ export class AuthService {
     password: string,
   ): Promise<PublicUser> {
     const normalized = email.toLowerCase();
-    const existing = await this.prisma.user.findUnique({ where: { email: normalized } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: normalized },
+    });
     if (existing) {
       throw new ConflictException('Email already in use');
     }
@@ -146,7 +148,9 @@ export class AuthService {
     password: string,
   ): Promise<AuthTokens | MfaPendingLogin> {
     const normalized = email.toLowerCase();
-    const user = await this.prisma.user.findUnique({ where: { email: normalized } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalized },
+    });
     const hash = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
     const matches = await bcrypt.compare(password, hash);
     if (!user || !matches) {
@@ -181,7 +185,9 @@ export class AuthService {
     code: string,
   ): Promise<AuthTokens> {
     const subject = await this.mfa.verifyPending(mfaTempToken, code);
-    const user = await this.prisma.user.findUnique({ where: { id: subject.id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: subject.id },
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid MFA request subject');
     }
@@ -198,10 +204,16 @@ export class AuthService {
   async refresh(refreshToken: string): Promise<AuthTokens> {
     const session = await this.findSession(refreshToken);
     // Revoked, expired, and unknown tokens are indistinguishable on purpose.
-    if (!session || session.revokedAt !== null || session.expiresAt <= new Date()) {
+    if (
+      !session ||
+      session.revokedAt !== null ||
+      session.expiresAt <= new Date()
+    ) {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    const user = await this.prisma.user.findUnique({ where: { id: session.userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: session.userId },
+    });
     if (!user) {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -220,7 +232,9 @@ export class AuthService {
     } catch (error) {
       // Best-effort revocation; log only the session id, never token material.
       const logger = new Logger(AuthService.name);
-      logger.warn(`refresh rotation conflict, revoking session ${session.id}: ${String(error)}`);
+      logger.warn(
+        `refresh rotation conflict, revoking session ${session.id}: ${String(error)}`,
+      );
       await this.prisma.session
         .update({ where: { id: session.id }, data: { revokedAt: new Date() } })
         .catch(() => undefined);
@@ -228,8 +242,16 @@ export class AuthService {
     }
     // Written directly via prisma.auditEvent because AuditModule already
     // imports AuthModule, so injecting AuditService would be circular.
-    await this.writeAudit(session.userId, AUDIT_ACTIONS.SESSION_REFRESHED, 'session', session.id, 'rotation');
-    const accessToken = await this.signAccessToken(user as unknown as UserRecord);
+    await this.writeAudit(
+      session.userId,
+      AUDIT_ACTIONS.SESSION_REFRESHED,
+      'session',
+      session.id,
+      'rotation',
+    );
+    const accessToken = await this.signAccessToken(
+      user as unknown as UserRecord,
+    );
     return {
       accessToken,
       refreshToken: nextRefreshToken,
@@ -247,7 +269,13 @@ export class AuthService {
       where: { id: session.id },
       data: { revokedAt: new Date() },
     });
-    await this.writeAudit(session.userId, AUDIT_ACTIONS.SESSION_REVOKED, 'session', session.id, 'logout');
+    await this.writeAudit(
+      session.userId,
+      AUDIT_ACTIONS.SESSION_REVOKED,
+      'session',
+      session.id,
+      'logout',
+    );
   }
 
   /** Writes an audit row directly via Prisma (AuditService would be circular). */

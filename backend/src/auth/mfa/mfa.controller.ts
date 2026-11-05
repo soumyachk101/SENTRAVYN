@@ -11,7 +11,10 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { IsString, MaxLength, MinLength } from 'class-validator';
 import { MfaService, MfaStatus } from './mfa.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { CurrentUser, AuthUser } from '../../common/rbac/current-user.decorator';
+import {
+  CurrentUser,
+  AuthUser,
+} from '../../common/rbac/current-user.decorator';
 
 export class MfaCodeDto {
   @IsString()
@@ -38,7 +41,8 @@ export class MfaController {
   @Post('setup')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Begin TOTP enrolment: returns a one-time seed, URI and 8 recovery codes',
+    summary:
+      'Begin TOTP enrolment: returns a one-time seed, URI and 8 recovery codes',
   })
   setup(@CurrentUser() user: AuthUser) {
     return this.mfa.setup(user.id);
@@ -48,7 +52,8 @@ export class MfaController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Confirm a valid TOTP/recovery code, which enables MFA on the account',
+    summary:
+      'Confirm a valid TOTP/recovery code, which enables MFA on the account',
   })
   verify(@CurrentUser() user: AuthUser, @Body() dto: MfaCodeDto) {
     return this.mfa.verifyMfa(user.id, dto.code);
@@ -65,7 +70,8 @@ export class MfaController {
   @Get('status')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
-    summary: 'Report MFA state (enabled + remaining recovery codes, never the seed)',
+    summary:
+      'Report MFA state (enabled + remaining recovery codes, never the seed)',
   })
   status(@CurrentUser() user: AuthUser): Promise<MfaStatus> {
     return this.mfa.status(user.id);

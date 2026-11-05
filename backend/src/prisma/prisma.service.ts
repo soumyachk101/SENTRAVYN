@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnApplicationShutdown, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnApplicationShutdown,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 
@@ -7,7 +12,10 @@ import { ConfigService } from '@nestjs/config';
  * the database is reachable and report honest readiness (see health module).
  */
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnApplicationShutdown {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnApplicationShutdown
+{
   private readonly logger = new Logger(PrismaService.name);
 
   constructor(private readonly config: ConfigService) {

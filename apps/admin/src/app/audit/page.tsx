@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useState } from "react";
-import { auditApi } from "@/lib/api";
-import { useRequireRole } from "@/lib/session";
-import { type AuditEvent } from "@/lib/types";
+import { useCallback, useEffect, useState } from 'react';
+import { auditApi } from '@/lib/api';
+import { useRequireRole } from '@/lib/session';
+import { type AuditEvent } from '@/lib/types';
 import {
   Badge,
   describeError,
@@ -14,7 +14,7 @@ import {
   InsufficientRolePanel,
   LoadingPanel,
   SigninRequiredPanel,
-} from "@/lib/ui";
+} from '@/lib/ui';
 
 /**
  * Audit trail (SECURITY.md 6). ADMIN-only; the API enforces it too and the
@@ -27,44 +27,39 @@ import {
 
 const LIMIT_OPTIONS = [25, 50, 100, 200] as const;
 
-const KNOWN_ENTITIES = [
-  "alert",
-  "place",
-  "shelter",
-  "dataProvider",
-] as const;
+const KNOWN_ENTITIES = ['alert', 'place', 'shelter', 'dataProvider'] as const;
 
 export default function AuditPage() {
-  const { signedIn, loading, allowed, role } = useRequireRole("ADMIN");
+  const { signedIn, loading, allowed, role } = useRequireRole('ADMIN');
 
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [state, setState] = useState<
-    | { status: "loading" }
-    | { status: "error"; error: string }
-    | { status: "ready" }
-  >({ status: "loading" });
+    | { status: 'loading' }
+    | { status: 'error'; error: string }
+    | { status: 'ready' }
+  >({ status: 'loading' });
 
   const [limit, setLimit] = useState<number>(100);
-  const [entityFilter, setEntityFilter] = useState<string>("");
-  const [entityDraft, setEntityDraft] = useState<string>("");
+  const [entityFilter, setEntityFilter] = useState<string>('');
+  const [entityDraft, setEntityDraft] = useState<string>('');
 
   const fetchEvents = useCallback(async () => {
-    const filter = entityFilter.trim() === "" ? undefined : entityFilter.trim();
+    const filter = entityFilter.trim() === '' ? undefined : entityFilter.trim();
     auditApi
       .list({ limit, entity: filter })
       .then((data) => {
         setEvents(data);
-        setState({ status: "ready" });
+        setState({ status: 'ready' });
       })
       .catch((err: unknown) => {
         setEvents([]);
-        setState({ status: "error", error: describeError(err) });
+        setState({ status: 'error', error: describeError(err) });
       });
   }, [limit, entityFilter]);
 
   const load = useCallback(() => {
     if (!allowed) return;
-    setState({ status: "loading" });
+    setState({ status: 'loading' });
     void fetchEvents();
   }, [allowed, fetchEvents]);
 
@@ -75,7 +70,7 @@ export default function AuditPage() {
   function applyEntity() {
     if (entityDraft === entityFilter) return;
     setEntityFilter(entityDraft);
-    setState({ status: "loading" });
+    setState({ status: 'loading' });
   }
 
   return (
@@ -83,8 +78,8 @@ export default function AuditPage() {
       <Eyebrow>Audit</Eyebrow>
       <h1>Audit trail</h1>
       <p className="sub">
-        Immutable record of privileged changes to alerts, providers,
-        shelters, verification state and user access. Newest first.
+        Immutable record of privileged changes to alerts, providers, shelters,
+        verification state and user access. Newest first.
       </p>
 
       {loading ? (
@@ -106,7 +101,7 @@ export default function AuditPage() {
                 value={limit}
                 onChange={(e) => {
                   setLimit(Number(e.target.value));
-                  setState({ status: "loading" });
+                  setState({ status: 'loading' });
                 }}
               >
                 {LIMIT_OPTIONS.map((n) => (
@@ -138,18 +133,14 @@ export default function AuditPage() {
               </datalist>
             </label>
 
-            <button
-              type="button"
-              className="btn btn--sm"
-              onClick={applyEntity}
-            >
+            <button type="button" className="btn btn--sm" onClick={applyEntity}>
               Apply filter
             </button>
           </div>
 
-          {state.status === "loading" ? (
+          {state.status === 'loading' ? (
             <LoadingPanel label="Loading audit events" />
-          ) : state.status === "error" ? (
+          ) : state.status === 'error' ? (
             <ErrorPanel message={state.error} onRetry={load} />
           ) : events.length === 0 ? (
             <EmptyPanel
@@ -157,7 +148,7 @@ export default function AuditPage() {
               body={
                 entityFilter
                   ? `No events recorded for entity "${entityFilter}" yet.`
-                  : "No privileged changes have been recorded yet."
+                  : 'No privileged changes have been recorded yet.'
               }
             />
           ) : (
@@ -175,7 +166,9 @@ export default function AuditPage() {
                 <tbody>
                   {events.map((ev) => (
                     <tr key={ev.id}>
-                      <td className="cell-time">{formatDateTime(ev.createdAt)}</td>
+                      <td className="cell-time">
+                        {formatDateTime(ev.createdAt)}
+                      </td>
                       <td>
                         <Badge tone="neutral">{ev.action}</Badge>
                       </td>

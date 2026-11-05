@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   AdminReviewService,
   AlertQueueItem,
@@ -18,7 +15,11 @@ import type { AuditService } from '../src/audit/audit.service';
 type MockPrisma = {
   alert: { findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
   place: { findUnique: jest.Mock; update: jest.Mock };
-  shelterProfile: { findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+  shelterProfile: {
+    findMany: jest.Mock;
+    findUnique: jest.Mock;
+    update: jest.Mock;
+  };
   dataProvider: { findMany: jest.Mock };
   adminReviewDecision: { create: jest.Mock };
   $transaction: jest.Mock;
@@ -52,7 +53,11 @@ function createAuditMock(): MockAudit {
 function decisionDto(
   kind: 'alert' | 'place' | 'shelter',
   id: string,
-  decision: 'REVIEW_APPROVED' | 'REVIEW_REJECTED' | 'SHELTER_VERIFIED' | 'SHELTER_STALE',
+  decision:
+    | 'REVIEW_APPROVED'
+    | 'REVIEW_REJECTED'
+    | 'SHELTER_VERIFIED'
+    | 'SHELTER_STALE',
   extras: Partial<AdminReviewDecisionDto> = {},
 ): AdminReviewDecisionDto {
   const dto = new AdminReviewDecisionDto();
@@ -165,7 +170,10 @@ describe('AdminReviewService (SAFETY-POLICY.md 3, Gate E)', () => {
       });
 
       await expect(
-        service.decide(USER, decisionDto('shelter', 'sh-1', 'SHELTER_VERIFIED')),
+        service.decide(
+          USER,
+          decisionDto('shelter', 'sh-1', 'SHELTER_VERIFIED'),
+        ),
       ).rejects.toThrow(BadRequestException);
       expect(prisma.$transaction).not.toHaveBeenCalled();
       expect(prisma.adminReviewDecision.create).not.toHaveBeenCalled();
@@ -241,7 +249,9 @@ describe('AdminReviewService (SAFETY-POLICY.md 3, Gate E)', () => {
       });
       expect(audit.record).toHaveBeenCalledTimes(1);
       expect(audit.record.mock.calls[0][0]).toBe(USER.id);
-      expect(audit.record.mock.calls[0][1]).toBe(AUDIT_ACTIONS.SHELTER_VERIFIED);
+      expect(audit.record.mock.calls[0][1]).toBe(
+        AUDIT_ACTIONS.SHELTER_VERIFIED,
+      );
       expect(result).toEqual({
         decisionId: 'dec-1',
         decision: 'SHELTER_VERIFIED',
@@ -319,9 +329,11 @@ describe('AdminReviewService (SAFETY-POLICY.md 3, Gate E)', () => {
           data: expect.objectContaining({ status: 'PUBLISHED' }),
         }),
       );
-      const updateData = (prisma.alert.update.mock.calls[0][0] as {
-        data: { status: string; publishedAt: Date };
-      }).data;
+      const updateData = (
+        prisma.alert.update.mock.calls[0][0] as {
+          data: { status: string; publishedAt: Date };
+        }
+      ).data;
       expect(updateData.status).toBe('PUBLISHED');
       expect(updateData.publishedAt).toBeInstanceOf(Date);
       expect(prisma.adminReviewDecision.create).toHaveBeenCalledWith({
@@ -363,10 +375,7 @@ describe('AdminReviewService (SAFETY-POLICY.md 3, Gate E)', () => {
       prisma.alert.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.decide(
-          USER,
-          decisionDto('alert', 'al-9', 'REVIEW_APPROVED'),
-        ),
+        service.decide(USER, decisionDto('alert', 'al-9', 'REVIEW_APPROVED')),
       ).rejects.toThrow(NotFoundException);
       expect(prisma.adminReviewDecision.create).not.toHaveBeenCalled();
       expect(audit.record).not.toHaveBeenCalled();

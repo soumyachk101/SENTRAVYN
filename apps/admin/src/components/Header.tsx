@@ -1,15 +1,19 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { roleAtLeast, useSession } from "@/lib/session";
-import { Badge } from "@/lib/ui";
+import Link from 'next/link';
+import { roleAtLeast, useSession } from '@/lib/session';
+import { Badge } from '@/lib/ui';
 
-const NAV: Array<{ href: string; label: string; minRole: "any" | "REVIEWER" | "ADMIN" }> = [
-  { href: "/", label: "Overview", minRole: "any" },
-  { href: "/review", label: "Review", minRole: "REVIEWER" },
-  { href: "/providers", label: "Providers", minRole: "any" },
-  { href: "/audit", label: "Audit", minRole: "ADMIN" },
-  { href: "/security", label: "Security", minRole: "any" },
+const NAV: Array<{
+  href: string;
+  label: string;
+  minRole: 'any' | 'REVIEWER' | 'ADMIN';
+}> = [
+  { href: '/', label: 'Overview', minRole: 'any' },
+  { href: '/review', label: 'Review', minRole: 'REVIEWER' },
+  { href: '/providers', label: 'Providers', minRole: 'any' },
+  { href: '/audit', label: 'Audit', minRole: 'ADMIN' },
+  { href: '/security', label: 'Security', minRole: 'any' },
 ];
 
 /**
@@ -32,7 +36,7 @@ export function Header() {
       <nav className="site-header__nav" aria-label="Primary">
         {NAV.map((item) => {
           const gated =
-            item.minRole !== "any"
+            item.minRole !== 'any'
               ? !roleAtLeast(user?.role, item.minRole)
               : false;
           return (
@@ -42,7 +46,14 @@ export function Header() {
               className="site-header__link"
             >
               {item.label}
-              {gated ? <span className="site-header__lock" title="Requires a higher role">requires higher role</span> : null}
+              {gated ? (
+                <span
+                  className="site-header__lock"
+                  title="Requires a higher role"
+                >
+                  requires higher role
+                </span>
+              ) : null}
             </Link>
           );
         })}
@@ -53,7 +64,7 @@ export function Header() {
           <Badge tone="muted">Checking session…</Badge>
         ) : user ? (
           <>
-            <Badge tone={user.role === "ADMIN" ? "warn" : "neutral"}>
+            <Badge tone={user.role === 'ADMIN' ? 'warn' : 'neutral'}>
               {user.role}
             </Badge>
             <button

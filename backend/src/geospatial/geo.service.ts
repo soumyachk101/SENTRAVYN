@@ -88,7 +88,11 @@ export class GeoService {
    * derived index column). Returns true when the place existed, false when
    * the id was unknown. Both statements run in one $transaction.
    */
-  async updatePlaceLocation(placeId: string, lat: number, lng: number): Promise<boolean> {
+  async updatePlaceLocation(
+    placeId: string,
+    lat: number,
+    lng: number,
+  ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const { count } = await tx.place.updateMany({
         where: { id: placeId },

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useCallback,
@@ -6,13 +6,13 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-} from "react";
+} from 'react';
 import {
   FOOTER_FRAMES,
   FOOTER_MESSAGE,
   FOOTER_SUPPORTING_COPY,
   FOOTER_FRAME_INTERVAL_MS,
-} from "./footwork-frames";
+} from './footwork-frames';
 
 /**
  * Signature cinematic footer (DESIGN.md 4 — mandatory).
@@ -37,11 +37,11 @@ function useReducedMotion(): boolean {
   // an effect. SSR-safe server snapshot (assumes motion is allowed).
   return useSyncExternalStore(
     (onStoreChange) => {
-      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-      mq.addEventListener("change", onStoreChange);
-      return () => mq.removeEventListener("change", onStoreChange);
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      mq.addEventListener('change', onStoreChange);
+      return () => mq.removeEventListener('change', onStoreChange);
     },
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     () => false,
   );
 }
@@ -66,7 +66,7 @@ export function CinematicFooter() {
   // Stop when the footer scrolls out of view / tab hidden (DESIGN.md 4).
   useEffect(() => {
     const el = stageRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -96,8 +96,8 @@ export function CinematicFooter() {
     <footer className="cinematic-footer">
       <div className="footwork">
         <p className="footwork__label">
-          An artistic visualisation. Not a real event, prediction or
-          scientific simulation.
+          An artistic visualisation. Not a real event, prediction or scientific
+          simulation.
         </p>
 
         <div className="footwork__stage" ref={stageRef}>
@@ -121,8 +121,12 @@ export function CinematicFooter() {
             </button>
           ) : (
             <>
-              <button type="button" onClick={togglePlay} aria-pressed={!playing}>
-                {playing ? "Pause" : "Play"}
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-pressed={!playing}
+              >
+                {playing ? 'Pause' : 'Play'}
               </button>
               <button type="button" onClick={replay}>
                 Replay
@@ -135,27 +139,57 @@ export function CinematicFooter() {
           <div className="footwork__group">
             <h3>Preparedness</h3>
             <ul>
-              <li><a href="/alerts">Emergency alerts</a></li>
-              <li><a href="/guides">Safety guides</a></li>
-              <li><a href="/map">Emergency map</a></li>
-              <li><a href="/prepare">Household preparedness</a></li>
+              <li>
+                <a href="/alerts">Emergency alerts</a>
+              </li>
+              <li>
+                <a href="/guides">Safety guides</a>
+              </li>
+              <li>
+                <a href="/map">Emergency map</a>
+              </li>
+              <li>
+                <a href="/prepare">Household preparedness</a>
+              </li>
             </ul>
           </div>
           <div className="footwork__group">
             <h3>Trust &amp; sources</h3>
             <ul>
-              <li><a href="/data-sources" className="planned">Data sources</a></li>
-              <li><a href="/verification" className="planned">Place verification</a></li>
-              <li><a href="/about">About SENTRAVYN</a></li>
+              <li>
+                <a href="/data-sources" className="planned">
+                  Data sources
+                </a>
+              </li>
+              <li>
+                <a href="/verification" className="planned">
+                  Place verification
+                </a>
+              </li>
+              <li>
+                <a href="/about">About SENTRAVYN</a>
+              </li>
             </ul>
           </div>
           <div className="footwork__group">
             <h3>Legal &amp; privacy</h3>
             <ul>
-              <li><a href="/privacy">Privacy</a></li>
-              <li><a href="/security">Security</a></li>
-              <li><a href="/terms" className="planned">Terms</a></li>
-              <li><a href="/contact" className="planned">Contact</a></li>
+              <li>
+                <a href="/privacy">Privacy</a>
+              </li>
+              <li>
+                <a href="/security">Security</a>
+              </li>
+              <li>
+                <a href="/terms" className="planned">
+                  Terms
+                </a>
+              </li>
+              <li>
+                <a href="/contact" className="planned">
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
         </nav>

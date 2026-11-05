@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { GdacsAdapter } from '../../src/integrations/adapters/gdacs.adapter';
 
-const fixturePath = resolve(__dirname, '..', 'fixtures', 'gdacs', 'sample-events.json');
+const fixturePath = resolve(
+  __dirname,
+  '..',
+  'fixtures',
+  'gdacs',
+  'sample-events.json',
+);
 const samplePayload = readFileSync(fixturePath, 'utf8');
 
 const FETCHED_AT = new Date('2026-02-12T08:00:00Z');
@@ -33,7 +39,9 @@ describe('GdacsAdapter (Phase 3, ADR-007)', () => {
     expect(first.issuer).toBe('GDACS');
     expect(first.msgType).toBe('alert');
     expect(first.issuedAt).toBe('2026-02-12T06:00:00.000Z');
-    expect(first.body).toBe('Magnitude 5.1 earthquake reported near the continental shelf.');
+    expect(first.body).toBe(
+      'Magnitude 5.1 earthquake reported near the continental shelf.',
+    );
     expect(first.rawPayload).toBe(samplePayload);
     expect(first.fetchedAt).toBe(FETCHED_AT.toISOString());
 

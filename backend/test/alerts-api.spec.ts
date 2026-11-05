@@ -75,7 +75,10 @@ function alertRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function revisionRow(revision: number, overrides: Record<string, unknown> = {}) {
+function revisionRow(
+  revision: number,
+  overrides: Record<string, unknown> = {},
+) {
   return {
     revision,
     status: 'RECEIVED',

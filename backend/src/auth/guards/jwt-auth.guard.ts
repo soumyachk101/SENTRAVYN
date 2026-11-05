@@ -45,7 +45,12 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [context.getHandler(), context.getClass()])) {
+    if (
+      this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
+        context.getHandler(),
+        context.getClass(),
+      ])
+    ) {
       return true;
     }
 
@@ -60,7 +65,9 @@ export class JwtAuthGuard implements CanActivate {
     // must be a random 256-bit value (32 random bytes, hex/base64).
     if (!secret) {
       // Client sees a generic 500; the config detail stays in server logs (SECURITY.md 3).
-      logger.warn('AUTH_JWT_SECRET is not configured; refusing to verify access tokens');
+      logger.warn(
+        'AUTH_JWT_SECRET is not configured; refusing to verify access tokens',
+      );
       throw new InternalServerErrorException('Authentication is misconfigured');
     }
     let payload: AccessTokenPayload;
@@ -72,7 +79,11 @@ export class JwtAuthGuard implements CanActivate {
     if (!payload || typeof payload.sub !== 'string') {
       throw new UnauthorizedException('Invalid or missing access token');
     }
-    request.user = { id: payload.sub, role: payload.role, email: payload.email };
+    request.user = {
+      id: payload.sub,
+      role: payload.role,
+      email: payload.email,
+    };
     return true;
   }
 }

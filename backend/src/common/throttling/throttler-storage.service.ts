@@ -1,7 +1,10 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis, { RedisOptions } from 'ioredis';
-import { ThrottlerStorage, ThrottlerGetTrackerFunction } from '@nestjs/throttler';
+import {
+  ThrottlerStorage,
+  ThrottlerGetTrackerFunction,
+} from '@nestjs/throttler';
 
 /**
  * The per-increment result the v6 ThrottlerGuard consumes
@@ -51,7 +54,9 @@ export const throttlerTracker: ThrottlerGetTrackerFunction = (req) => {
  * counter and the block marker live under separate Redis keys.
  */
 @Injectable()
-export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy {
+export class RedisThrottlerStorage
+  implements ThrottlerStorage, OnModuleDestroy
+{
   private readonly logger = new Logger(RedisThrottlerStorage.name);
   private client: Redis | null = null;
 
@@ -88,7 +93,9 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
       try {
         await this.client.connect();
       } catch {
-        this.logger.warn('throttler storage: Redis connect failed; limiter degraded to no-op');
+        this.logger.warn(
+          'throttler storage: Redis connect failed; limiter degraded to no-op',
+        );
         this.client.disconnect();
         this.client = null;
         return null;
@@ -107,7 +114,12 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
     const redis = await this.ensureClient();
     if (!redis) {
       // No Redis configured (or connect failed): unlimited.
-      return { totalHits: 0, timeToExpire: 0, isBlocked: false, timeToBlockExpire: 0 };
+      return {
+        totalHits: 0,
+        timeToExpire: 0,
+        isBlocked: false,
+        timeToBlockExpire: 0,
+      };
     }
     try {
       const counterKey = `throttle:${throttlerName}:${key}`;
@@ -148,7 +160,12 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
       };
     } catch {
       this.logger.warn('throttler storage read failed; treating as unlimited');
-      return { totalHits: 0, timeToExpire: 0, isBlocked: false, timeToBlockExpire: 0 };
+      return {
+        totalHits: 0,
+        timeToExpire: 0,
+        isBlocked: false,
+        timeToBlockExpire: 0,
+      };
     }
   }
 

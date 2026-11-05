@@ -51,16 +51,16 @@ export class ApiError extends Error {
 
   constructor(status: number, message: string) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.status = status;
   }
 }
 
 const API_BASE_URL: string =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000/api/v1';
 
-const ACCESS_TOKEN_KEY = "sentravyn.accessToken";
-const REFRESH_TOKEN_KEY = "sentravyn.refreshToken";
+const ACCESS_TOKEN_KEY = 'sentravyn.accessToken';
+const REFRESH_TOKEN_KEY = 'sentravyn.refreshToken';
 
 interface StoredSession {
   accessToken: string | null;
@@ -68,7 +68,7 @@ interface StoredSession {
 }
 
 export function getStoredSession(): StoredSession {
-  if (typeof window === "undefined") {
+  if (typeof window === 'undefined') {
     return { accessToken: null, refreshToken: null };
   }
   return {
@@ -78,20 +78,20 @@ export function getStoredSession(): StoredSession {
 }
 
 export function clearSession(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 function saveTokens(
-  tokens: Pick<AuthTokens, "accessToken" | "refreshToken">,
+  tokens: Pick<AuthTokens, 'accessToken' | 'refreshToken'>,
 ): void {
   window.localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
   window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
 }
 
 interface RequestOptions {
-  method: "GET" | "POST";
+  method: 'GET' | 'POST';
   path: string;
   body?: unknown;
   authToken?: string;
@@ -103,12 +103,12 @@ async function readApiError(response: Response): Promise<ApiError> {
     const text = await response.text();
     if (text.length > 0) {
       const parsed: unknown = JSON.parse(text);
-      if (parsed !== null && typeof parsed === "object") {
+      if (parsed !== null && typeof parsed === 'object') {
         const body = parsed as { message?: string | string[] };
-        if (typeof body.message === "string" && body.message.length > 0) {
+        if (typeof body.message === 'string' && body.message.length > 0) {
           message = body.message;
         } else if (Array.isArray(body.message) && body.message.length > 0) {
-          message = body.message.join("; ");
+          message = body.message.join('; ');
         }
       }
     }
@@ -120,9 +120,9 @@ async function readApiError(response: Response): Promise<ApiError> {
 
 export async function apiRequest<T>(options: RequestOptions): Promise<T> {
   const headers: Record<string, string> = {};
-  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.authToken !== undefined) {
-    headers["Authorization"] = `Bearer ${options.authToken}`;
+    headers['Authorization'] = `Bearer ${options.authToken}`;
   }
 
   let response: Response;
@@ -130,11 +130,12 @@ export async function apiRequest<T>(options: RequestOptions): Promise<T> {
     response = await fetch(`${API_BASE_URL}${options.path}`, {
       method: options.method,
       headers,
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      body:
+        options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
   } catch {
     // fetch rejects (offline, DNS, CORS failure): the API is unreachable.
-    throw new ApiError(0, "The SENTRAVYN API could not be reached.");
+    throw new ApiError(0, 'The SENTRAVYN API could not be reached.');
   }
 
   if (!response.ok) {
@@ -148,7 +149,10 @@ export async function apiRequest<T>(options: RequestOptions): Promise<T> {
   try {
     return JSON.parse(text) as T;
   } catch {
-    throw new ApiError(response.status, "The API returned an unexpected response.");
+    throw new ApiError(
+      response.status,
+      'The API returned an unexpected response.',
+    );
   }
 }
 
@@ -156,8 +160,8 @@ export async function apiRequest<T>(options: RequestOptions): Promise<T> {
 
 export async function login(request: LoginRequest): Promise<AuthTokens> {
   const tokens = await apiRequest<AuthTokens>({
-    method: "POST",
-    path: "/auth/login",
+    method: 'POST',
+    path: '/auth/login',
     body: request,
   });
   saveTokens(tokens);
@@ -166,8 +170,8 @@ export async function login(request: LoginRequest): Promise<AuthTokens> {
 
 export async function register(request: RegisterRequest): Promise<PublicUser> {
   return apiRequest<PublicUser>({
-    method: "POST",
-    path: "/auth/register",
+    method: 'POST',
+    path: '/auth/register',
     body: request,
   });
 }
@@ -187,8 +191,8 @@ export async function logout(): Promise<boolean> {
   let revoked = false;
   try {
     await apiRequest<unknown>({
-      method: "POST",
-      path: "/auth/logout",
+      method: 'POST',
+      path: '/auth/logout',
       body: { refreshToken },
     });
     revoked = true;
@@ -203,18 +207,22 @@ export async function logout(): Promise<boolean> {
 
 async function authenticatedRequest<T>(path: string): Promise<T> {
   const { accessToken } = getStoredSession();
-  return apiRequest<T>({ method: "GET", path, authToken: accessToken ?? undefined });
+  return apiRequest<T>({
+    method: 'GET',
+    path,
+    authToken: accessToken ?? undefined,
+  });
 }
 
 export async function getMe(): Promise<PublicUser> {
   try {
-    return await authenticatedRequest<PublicUser>("/auth/me");
+    return await authenticatedRequest<PublicUser>('/auth/me');
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 401) throw error;
     // Exactly one refresh + retry; a second 401 propagates to the caller.
     const refreshed = await refreshStoredSession();
     if (refreshed === null) throw error;
-    return authenticatedRequest<PublicUser>("/auth/me");
+    return authenticatedRequest<PublicUser>('/auth/me');
   }
 }
 
@@ -226,7 +234,7 @@ let pendingRefresh: Promise<AuthTokens | null> | null = null;
  * returned so callers can fall back to the signed-out state.
  */
 export function refreshStoredSession(): Promise<AuthTokens | null> {
-  if (typeof window === "undefined") return Promise.resolve(null);
+  if (typeof window === 'undefined') return Promise.resolve(null);
   const { refreshToken } = getStoredSession();
   if (refreshToken === null) return Promise.resolve(null);
   if (pendingRefresh === null) {
@@ -242,8 +250,8 @@ async function rotateStoredSession(
 ): Promise<AuthTokens | null> {
   try {
     const tokens = await apiRequest<AuthTokens>({
-      method: "POST",
-      path: "/auth/refresh",
+      method: 'POST',
+      path: '/auth/refresh',
       body: { refreshToken },
     });
     saveTokens(tokens);

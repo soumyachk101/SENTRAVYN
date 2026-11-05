@@ -55,10 +55,12 @@ describe('SENTRAVYN auth API (e2e)', () => {
       // register, wrong-password login) hold on every re-run against the same
       // disposable database.
       email = `e2e-auth-${Date.now()}@sentravyn.test`;
-      const res = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
-        email,
-        password: PASSWORD,
-      });
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email,
+          password: PASSWORD,
+        });
       expect(res.status).toBe(201);
     }
   });
@@ -94,26 +96,34 @@ describe('SENTRAVYN auth API (e2e)', () => {
         return;
       }
       const freshEmail = `e2e-register-${Date.now()}@sentravyn.test`;
-      const res = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
-        email: freshEmail,
-        password: 'phase2-e2e-password',
-      });
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email: freshEmail,
+          password: 'phase2-e2e-password',
+        });
       expect(res.status).toBe(201);
       expect(res.body).toMatchObject({ email: freshEmail, role: 'PUBLIC' });
       expect(res.body.id).toEqual(expect.any(String));
       // The public user shape must never leak credential material.
-      expect((res.body as Record<string, unknown>).passwordHash).toBeUndefined();
+      expect(
+        (res.body as Record<string, unknown>).passwordHash,
+      ).toBeUndefined();
     });
 
     it('returns 409 on a duplicate email', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; duplicate-register e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; duplicate-register e2e not run',
+        );
         return;
       }
-      const res = await request(app.getHttpServer()).post('/api/v1/auth/register').send({
-        email,
-        password: PASSWORD,
-      });
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({
+          email,
+          password: PASSWORD,
+        });
       expect(res.status).toBe(409);
     });
   });
@@ -121,13 +131,17 @@ describe('SENTRAVYN auth API (e2e)', () => {
   describe('POST /api/v1/auth/login (DB-gated)', () => {
     it('returns 401 with the generic message for a wrong password', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; wrong-password login e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; wrong-password login e2e not run',
+        );
         return;
       }
-      const res = await request(app.getHttpServer()).post('/api/v1/auth/login').send({
-        email,
-        password: 'definitely-the-wrong-password',
-      });
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({
+          email,
+          password: 'definitely-the-wrong-password',
+        });
       expect(res.status).toBe(401);
       expect(res.body.message).toBe('Invalid email or password');
     });
@@ -137,10 +151,12 @@ describe('SENTRAVYN auth API (e2e)', () => {
         console.log('SKIP: DATABASE_URL not configured; login e2e not run');
         return;
       }
-      const res = await request(app.getHttpServer()).post('/api/v1/auth/login').send({
-        email,
-        password: PASSWORD,
-      });
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({
+          email,
+          password: PASSWORD,
+        });
       expect(res.status).toBe(200);
       expect(res.body.accessToken).toEqual(expect.any(String));
       expect(res.body.refreshToken).toMatch(/^[0-9a-f]{64}$/);
@@ -151,7 +167,9 @@ describe('SENTRAVYN auth API (e2e)', () => {
   describe('POST /api/v1/auth/refresh + logout (DB-gated)', () => {
     it('rotates the refresh token, rejects the old one, and rejects after logout', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; refresh-rotation e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; refresh-rotation e2e not run',
+        );
         return;
       }
       const login = await request(app.getHttpServer())

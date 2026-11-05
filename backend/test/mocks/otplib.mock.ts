@@ -29,7 +29,9 @@ function base32Decode(input: string): Uint8Array {
   for (const ch of clean) {
     const idx = BASE32_ALPHABET.indexOf(ch);
     if (idx === -1) {
-      throw new Error(`Invalid Base32 string: Unknown letter "${ch}". Allowed: ABCDEFGHIJKLMNOPQRSTUVWXYZ234567`);
+      throw new Error(
+        `Invalid Base32 string: Unknown letter "${ch}". Allowed: ABCDEFGHIJKLMNOPQRSTUVWXYZ234567`,
+      );
     }
     value = (value << 5) | idx;
     bits += 5;
@@ -60,7 +62,11 @@ function base32Encode(bytes: Uint8Array): string {
   return out;
 }
 
-function hotp(secretBytes: Uint8Array, counter: number, digits: number): string {
+function hotp(
+  secretBytes: Uint8Array,
+  counter: number,
+  digits: number,
+): string {
   const buf = Buffer.alloc(8);
   buf.writeBigUInt64BE(BigInt(counter));
   const hmac = createHmac('sha1', secretBytes).update(buf).digest();
@@ -128,7 +134,12 @@ function verifyCore(options: {
     const tolerance = options.epochTolerance ?? 0;
     for (let i = 0; i <= tolerance; i += 1) {
       if (hotp(secretBytes, counter + i, digits) === token) {
-        return { valid: true, delta: i, epoch: counter + i, timeStep: counter + i };
+        return {
+          valid: true,
+          delta: i,
+          epoch: counter + i,
+          timeStep: counter + i,
+        };
       }
     }
     return { valid: false, delta: 0, epoch: counter, timeStep: counter };
@@ -136,11 +147,19 @@ function verifyCore(options: {
   const period = options.period ?? 30;
   const now = Math.floor(Date.now() / 1000);
   const baseCounter = Math.floor(now / period);
-  const toleranceSteps = Math.max(0, Math.floor((options.epochTolerance ?? 0) / period));
+  const toleranceSteps = Math.max(
+    0,
+    Math.floor((options.epochTolerance ?? 0) / period),
+  );
   for (let offset = -toleranceSteps; offset <= toleranceSteps; offset += 1) {
     const counter = baseCounter + offset;
     if (hotp(secretBytes, counter, digits) === token) {
-      return { valid: true, delta: -offset * period, epoch: now, timeStep: counter };
+      return {
+        valid: true,
+        delta: -offset * period,
+        epoch: now,
+        timeStep: counter,
+      };
     }
   }
   return { valid: false, delta: 0, epoch: now, timeStep: baseCounter };
@@ -164,7 +183,9 @@ export async function generate(options: {
 }
 
 /** verify(options) — otplib flat API; returns { valid, delta, epoch, timeStep }. */
-export async function verify(options: Parameters<typeof verifyCore>[0]): Promise<VerifyRecord> {
+export async function verify(
+  options: Parameters<typeof verifyCore>[0],
+): Promise<VerifyRecord> {
   return verifyCore(options);
 }
 
@@ -175,10 +196,16 @@ export function generateSync(options: Parameters<typeof generate>[0]): string {
     return hotp(secretBytes, options.counter ?? 0, options.digits ?? 6);
   }
   const period = options.period ?? 30;
-  return hotp(secretBytes, Math.floor(Date.now() / 1000 / period), options.digits ?? 6);
+  return hotp(
+    secretBytes,
+    Math.floor(Date.now() / 1000 / period),
+    options.digits ?? 6,
+  );
 }
 
-export function verifySync(options: Parameters<typeof verifyCore>[0]): VerifyRecord {
+export function verifySync(
+  options: Parameters<typeof verifyCore>[0],
+): VerifyRecord {
   return verifyCore(options);
 }
 

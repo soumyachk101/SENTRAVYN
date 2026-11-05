@@ -1,16 +1,11 @@
-"use client";
+'use client';
 
-import { usePathname, useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
-import { authApi } from "@/lib/api";
-import { useSession } from "@/lib/session";
-import { isMfaPending, type MfaPendingLogin } from "@/lib/types";
-import {
-  Badge,
-  describeError,
-  Eyebrow,
-  Field,
-} from "@/lib/ui";
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, type FormEvent } from 'react';
+import { authApi } from '@/lib/api';
+import { useSession } from '@/lib/session';
+import { isMfaPending, type MfaPendingLogin } from '@/lib/types';
+import { Badge, describeError, Eyebrow, Field } from '@/lib/ui';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** A TOTP code is 6 digits; a recovery code is 4-4-4 (13 chars). */
@@ -29,25 +24,27 @@ export default function LoginPage() {
   const router = useRouter();
   const pathname = usePathname();
   const session = useSession();
-  const [tab, setTab] = useState<"login" | "register">("login");
+  const [tab, setTab] = useState<'login' | 'register'>('login');
 
   // Login form
-  const [lEmail, setLEmail] = useState("");
-  const [lPassword, setLPassword] = useState("");
-  const [lErrors, setLErrors] = useState<{ email?: string; password?: string }>({});
+  const [lEmail, setLEmail] = useState('');
+  const [lPassword, setLPassword] = useState('');
+  const [lErrors, setLErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
   // MFA step (only when login returned a pending token)
   const [mfaPending, setMfaPending] = useState<MfaPendingLogin | null>(null);
-  const [mfaCode, setMfaCode] = useState("");
+  const [mfaCode, setMfaCode] = useState('');
   const [mfaBusy, setMfaBusy] = useState(false);
   const [mfaError, setMfaError] = useState<string | null>(null);
 
   // Register form
-  const [rEmail, setREmail] = useState("");
-  const [rName, setRName] = useState("");
-  const [rPassword, setRPassword] = useState("");
+  const [rEmail, setREmail] = useState('');
+  const [rName, setRName] = useState('');
+  const [rPassword, setRPassword] = useState('');
   const [rErrors, setRErrors] = useState<{
     email?: string;
     name?: string;
@@ -57,19 +54,20 @@ export default function LoginPage() {
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
-  const inputClass = "input";
-  const inputErrorClass = "input input--error";
+  const inputClass = 'input';
+  const inputErrorClass = 'input input--error';
 
   const redirect = (to: string) => {
     // Only return to admin paths; never to a foreign route.
-    const target = to && to.startsWith("/") && !to.startsWith("/login") ? to : "/";
+    const target =
+      to && to.startsWith('/') && !to.startsWith('/login') ? to : '/';
     router.replace(target);
   };
 
   function validateLogin(): boolean {
     const e: typeof lErrors = {};
-    if (!EMAIL_RE.test(lEmail)) e.email = "Enter a valid email address.";
-    if (lPassword.length === 0) e.password = "Enter your password.";
+    if (!EMAIL_RE.test(lEmail)) e.email = 'Enter a valid email address.';
+    if (lPassword.length === 0) e.password = 'Enter your password.';
     setLErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -79,7 +77,7 @@ export default function LoginPage() {
     if (!validateLogin()) return;
     setLoginBusy(true);
     setLoginError(null);
-    setMfaCode("");
+    setMfaCode('');
     setMfaError(null);
     try {
       const res = await authApi.login({ email: lEmail, password: lPassword });
@@ -105,7 +103,7 @@ export default function LoginPage() {
     if (!mfaPending) return;
     const code = mfaCode.trim().toUpperCase();
     if (!CODE_RE.test(code)) {
-      setMfaError("Enter a 6-digit TOTP code or one of your recovery codes.");
+      setMfaError('Enter a 6-digit TOTP code or one of your recovery codes.');
       return;
     }
     setMfaBusy(true);
@@ -127,9 +125,11 @@ export default function LoginPage() {
 
   function validateRegister(): boolean {
     const e: typeof rErrors = {};
-    if (!EMAIL_RE.test(rEmail)) e.email = "Enter a valid email address.";
-    if (rName.length > 120) e.name = "Display name is limited to 120 characters.";
-    if (rPassword.length < 12) e.password = "Password must be at least 12 characters.";
+    if (!EMAIL_RE.test(rEmail)) e.email = 'Enter a valid email address.';
+    if (rName.length > 120)
+      e.name = 'Display name is limited to 120 characters.';
+    if (rPassword.length < 12)
+      e.password = 'Password must be at least 12 characters.';
     setRErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -148,7 +148,7 @@ export default function LoginPage() {
       // Registration creates a PUBLIC account only; the user still needs to
       // sign in to obtain a session. Offer a direct path to that.
       setRegisteredEmail(user.email);
-      setTab("login");
+      setTab('login');
       setLEmail(user.email);
     } catch (err) {
       setRegisterError(describeError(err));
@@ -184,17 +184,17 @@ export default function LoginPage() {
             value={mfaCode}
             onChange={(e) => setMfaCode(e.target.value)}
             aria-invalid={Boolean(mfaError)}
-            aria-describedby={mfaError ? "mfa-code-error" : "mfa-code-hint"}
+            aria-describedby={mfaError ? 'mfa-code-error' : 'mfa-code-hint'}
           />
         </Field>
         <p className="field__hint" id="mfa-code-hint">
           Enter the current 6-digit code from your authenticator app, or one of
-          your single-use recovery codes.{" "}
+          your single-use recovery codes.{' '}
           {mfaPending
             ? mfaPending.recoveryCodesRemaining > 0
               ? `${mfaPending.recoveryCodesRemaining} recovery code(s) remain.`
-              : "No recovery codes remain."
-            : ""}
+              : 'No recovery codes remain.'
+            : ''}
         </p>
 
         {mfaError ? (
@@ -204,17 +204,13 @@ export default function LoginPage() {
         ) : null}
 
         <div className="form-actions">
-          <button
-            type="submit"
-            className="btn btn--primary"
-            disabled={mfaBusy}
-          >
+          <button type="submit" className="btn btn--primary" disabled={mfaBusy}>
             {mfaBusy ? (
               <>
                 <span className="spinner" aria-hidden="true" /> Verifying…
               </>
             ) : (
-              "Continue"
+              'Continue'
             )}
           </button>
           <button
@@ -222,7 +218,7 @@ export default function LoginPage() {
             className="btn btn--ghost"
             onClick={() => {
               setMfaPending(null);
-              setMfaCode("");
+              setMfaCode('');
               setMfaError(null);
             }}
           >
@@ -247,7 +243,7 @@ export default function LoginPage() {
             value={lEmail}
             onChange={(e) => setLEmail(e.target.value)}
             aria-invalid={Boolean(lErrors.email)}
-            aria-describedby={lErrors.email ? "l-email-error" : undefined}
+            aria-describedby={lErrors.email ? 'l-email-error' : undefined}
           />
         </Field>
 
@@ -261,7 +257,7 @@ export default function LoginPage() {
             value={lPassword}
             onChange={(e) => setLPassword(e.target.value)}
             aria-invalid={Boolean(lErrors.password)}
-            aria-describedby={lErrors.password ? "l-password-error" : undefined}
+            aria-describedby={lErrors.password ? 'l-password-error' : undefined}
           />
         </Field>
 
@@ -282,7 +278,7 @@ export default function LoginPage() {
                 <span className="spinner" aria-hidden="true" /> Signing in…
               </>
             ) : (
-              "Sign in"
+              'Sign in'
             )}
           </button>
         </div>
@@ -305,7 +301,7 @@ export default function LoginPage() {
             value={rEmail}
             onChange={(e) => setREmail(e.target.value)}
             aria-invalid={Boolean(rErrors.email)}
-            aria-describedby={rErrors.email ? "r-email-error" : undefined}
+            aria-describedby={rErrors.email ? 'r-email-error' : undefined}
           />
         </Field>
 
@@ -322,7 +318,7 @@ export default function LoginPage() {
             value={rName}
             onChange={(e) => setRName(e.target.value)}
             aria-invalid={Boolean(rErrors.name)}
-            aria-describedby={rErrors.name ? "r-name-error" : undefined}
+            aria-describedby={rErrors.name ? 'r-name-error' : undefined}
           />
         </Field>
 
@@ -337,7 +333,7 @@ export default function LoginPage() {
             value={rPassword}
             onChange={(e) => setRPassword(e.target.value)}
             aria-invalid={Boolean(rErrors.password)}
-            aria-describedby={rErrors.password ? "r-password-error" : undefined}
+            aria-describedby={rErrors.password ? 'r-password-error' : undefined}
           />
           <p className="field__hint">
             Minimum 12 characters. Registration creates a PUBLIC account;
@@ -362,7 +358,7 @@ export default function LoginPage() {
                 <span className="spinner" aria-hidden="true" /> Creating…
               </>
             ) : (
-              "Register"
+              'Register'
             )}
           </button>
         </div>
@@ -376,8 +372,8 @@ export default function LoginPage() {
       <h1>Sign in</h1>
       <p className="sub">
         Access to the admin console requires an authorised account. Privileged
-        roles (OPERATOR, ADMIN) that have enrolled MFA are required to
-        complete the second-factor step after entering their password.
+        roles (OPERATOR, ADMIN) that have enrolled MFA are required to complete
+        the second-factor step after entering their password.
       </p>
 
       {registeredEmail ? (
@@ -401,23 +397,23 @@ export default function LoginPage() {
             <button
               type="button"
               role="tab"
-              aria-selected={tab === "login"}
-              className={tab === "login" ? "tab tab--active" : "tab"}
-              onClick={() => setTab("login")}
+              aria-selected={tab === 'login'}
+              className={tab === 'login' ? 'tab tab--active' : 'tab'}
+              onClick={() => setTab('login')}
             >
               Sign in
             </button>
             <button
               type="button"
               role="tab"
-              aria-selected={tab === "register"}
-              className={tab === "register" ? "tab tab--active" : "tab"}
-              onClick={() => setTab("register")}
+              aria-selected={tab === 'register'}
+              className={tab === 'register' ? 'tab tab--active' : 'tab'}
+              onClick={() => setTab('register')}
             >
               Register
             </button>
           </div>
-          {tab === "login" ? loginForm() : registerForm()}
+          {tab === 'login' ? loginForm() : registerForm()}
         </>
       )}
     </section>

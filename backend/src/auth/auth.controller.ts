@@ -19,7 +19,12 @@ import {
   MinLength,
 } from 'class-validator';
 import { Request } from 'express';
-import { AuthService, AuthTokens, MfaPendingLogin, PublicUser } from './auth.service';
+import {
+  AuthService,
+  AuthTokens,
+  MfaPendingLogin,
+  PublicUser,
+} from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/rbac/current-user.decorator';
 
@@ -128,7 +133,9 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Rotate a refresh token, returning a new token pair' })
+  @ApiOperation({
+    summary: 'Rotate a refresh token, returning a new token pair',
+  })
   refresh(@Body() dto: RefreshDto) {
     return this.auth.refresh(dto.refreshToken);
   }
@@ -142,7 +149,9 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Current authenticated user (requires access token)' })
+  @ApiOperation({
+    summary: 'Current authenticated user (requires access token)',
+  })
   me(@Req() request: AuthRequest): Promise<PublicUser> {
     if (!request.user?.id) {
       // Unreachable when JwtAuthGuard is applied; guards are composable.
@@ -155,7 +164,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary:
-      'List the caller\'s active sessions (metadata only; never token material)',
+      "List the caller's active sessions (metadata only; never token material)",
   })
   sessions(@CurrentUser() user: AuthUser) {
     return this.auth.listSessions(user.id);
@@ -170,7 +179,10 @@ export class AuthController {
       'caller. Re-authenticate afterwards.',
   })
   async revokeAllSessions(@CurrentUser() user: AuthUser) {
-    const revoked = await this.auth.revokeAllSessions(user.id, 'user-initiated revoke-all');
+    const revoked = await this.auth.revokeAllSessions(
+      user.id,
+      'user-initiated revoke-all',
+    );
     return { revoked };
   }
 
@@ -179,7 +191,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary:
-      'Revoke one of the caller\'s sessions by id. Idempotent; a foreign or ' +
+      "Revoke one of the caller's sessions by id. Idempotent; a foreign or " +
       'already-revoked id is a no-op.',
   })
   revokeSession(

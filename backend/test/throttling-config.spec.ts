@@ -21,10 +21,9 @@ function configFrom(vars: Record<string, string>): ConfigService {
  * `throttlerOptions` returns the object-form ThrottlerModuleOptions (with a
  * `throttlers` array); narrow the array|object union to that form.
  */
-function byName(options: ReturnType<typeof throttlerOptions>): Record<
-  string,
-  ThrottlerOptions
-> {
+function byName(
+  options: ReturnType<typeof throttlerOptions>,
+): Record<string, ThrottlerOptions> {
   const throttlers: ThrottlerOptions[] = Array.isArray(options)
     ? options
     : options.throttlers;

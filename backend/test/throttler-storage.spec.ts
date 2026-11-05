@@ -1,6 +1,9 @@
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
-import { RedisThrottlerStorage, throttlerTracker } from '../src/common/throttling/throttler-storage.service';
+import {
+  RedisThrottlerStorage,
+  throttlerTracker,
+} from '../src/common/throttling/throttler-storage.service';
 
 /**
  * Unit tests for the Redis-backed throttler storage (SECURITY.md section 3).
@@ -51,7 +54,9 @@ describe('RedisThrottlerStorage', () => {
     });
 
     it('reports "unknown" when neither source is available', () => {
-      expect(throttlerTracker({ headers: {}, socket: {} } as never, {} as never)).toBe('unknown');
+      expect(
+        throttlerTracker({ headers: {}, socket: {} } as never, {} as never),
+      ).toBe('unknown');
     });
   });
 
@@ -78,7 +83,9 @@ describe('RedisThrottlerStorage', () => {
 
     it('counts hits per window and blocks a tracker that exceeds the limit', async () => {
       if (!redisConfigured) {
-        console.log('SKIP: REDIS_URL not configured; live-Redis throttle e2e not run');
+        console.log(
+          'SKIP: REDIS_URL not configured; live-Redis throttle e2e not run',
+        );
         return;
       }
       // Clean slate for a unique tracker + throttler name so the test never
@@ -86,10 +93,7 @@ describe('RedisThrottlerStorage', () => {
       const tracker = `throttle-test-${Date.now()}`;
       const name = 'test-window';
       await redis
-        .del(
-          `throttle:${name}:${tracker}`,
-          `throttle-block:${name}:${tracker}`,
-        )
+        .del(`throttle:${name}:${tracker}`, `throttle-block:${name}:${tracker}`)
         .catch(() => undefined);
 
       const storage = new RedisThrottlerStorage(configWith(redisUrl));
@@ -105,7 +109,13 @@ describe('RedisThrottlerStorage', () => {
       const r4 = await storage.increment(tracker, 60_000, 3, 300_000, name);
       expect(r4.totalHits).toBeGreaterThan(3);
       // A subsequent request within the block window reports isBlocked.
-      const blocked = await storage.increment(tracker, 60_000, 3, 300_000, name);
+      const blocked = await storage.increment(
+        tracker,
+        60_000,
+        3,
+        300_000,
+        name,
+      );
       expect(blocked.isBlocked).toBe(true);
       expect(blocked.timeToBlockExpire).toBeGreaterThan(0);
 
@@ -121,10 +131,7 @@ describe('RedisThrottlerStorage', () => {
 
       // Teardown.
       await redis
-        .del(
-          `throttle:${name}:${tracker}`,
-          `throttle-block:${name}:${tracker}`,
-        )
+        .del(`throttle:${name}:${tracker}`, `throttle-block:${name}:${tracker}`)
         .catch(() => undefined);
       // Release the storage's own lazy ioredis client so Jest can exit.
       await storage.onModuleDestroy();

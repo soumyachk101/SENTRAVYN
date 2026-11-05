@@ -76,7 +76,9 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
         connectTimeout: 1_500,
       });
       await flusher.connect().catch(() => undefined);
-      const stale = await flusher.keys('throttle:*').catch(() => [] as string[]);
+      const stale = await flusher
+        .keys('throttle:*')
+        .catch(() => [] as string[]);
       if (stale.length > 0) {
         await flusher.del(stale).catch(() => undefined);
       }
@@ -165,7 +167,9 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
 
     it('a non-privileged account logs in without an MFA step even when MFA is configured', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; PUBLIC-login MFA e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; PUBLIC-login MFA e2e not run',
+        );
         return;
       }
       const fresh = `e2e-mfa-public-${runId}@sentravyn.test`;
@@ -214,7 +218,11 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
         .expect(200);
       expect(Array.isArray(list.body)).toBe(true);
       expect(list.body.length).toBeGreaterThanOrEqual(1);
-      expect(Object.values(list.body[0]).some((v) => typeof v === 'string' && v.length === 64)).toBe(false);
+      expect(
+        Object.values(list.body[0]).some(
+          (v) => typeof v === 'string' && v.length === 64,
+        ),
+      ).toBe(false);
 
       // Credential-compromise path: revoke every active session. The current
       // refresh token stops working and an audit row records the event.
@@ -266,7 +274,9 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
         await redis.connect().catch(() => undefined);
         // Clean slate for the scoped IP so the test is deterministic
         // regardless of state left by previous runs.
-        const staleKeys = await redis.keys('throttle:*').catch(() => [] as string[]);
+        const staleKeys = await redis
+          .keys('throttle:*')
+          .catch(() => [] as string[]);
         if (staleKeys.length > 0) {
           await redis.del(staleKeys).catch(() => undefined);
         }
@@ -321,9 +331,7 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
         await strictApp.close();
       } finally {
         // Remove the scoped-IP throttle state so no residue outlives the test.
-        const keys = await redis
-          .keys('throttle:*')
-          .catch(() => [] as string[]);
+        const keys = await redis.keys('throttle:*').catch(() => [] as string[]);
         if (keys.length > 0) {
           await redis.del(keys).catch(() => undefined);
         }

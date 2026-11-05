@@ -14,7 +14,9 @@ export class HealthController {
   constructor(private readonly health: HealthService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Readiness: process + Redis (+ Postgres when configured)' })
+  @ApiOperation({
+    summary: 'Readiness: process + Redis (+ Postgres when configured)',
+  })
   readiness() {
     return this.health.checkReadiness();
   }

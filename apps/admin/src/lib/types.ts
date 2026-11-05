@@ -5,7 +5,7 @@
  * in-flight shared packages. Strict TS throughout: no `any`.
  */
 
-export type Role = "PUBLIC" | "REVIEWER" | "OPERATOR" | "ADMIN";
+export type Role = 'PUBLIC' | 'REVIEWER' | 'OPERATOR' | 'ADMIN';
 
 /** Public (non-PII) user shape returned by the auth endpoints. */
 export interface PublicUser {
@@ -103,7 +103,7 @@ export interface SeedResult {
   lastSeededAt: string;
 }
 
-export type QueueKind = "alerts" | "places";
+export type QueueKind = 'alerts' | 'places';
 
 export interface AlertQueueItem {
   alert: {
@@ -141,12 +141,9 @@ export interface PlaceQueueItem {
 }
 
 export type Decision =
-  | "REVIEW_APPROVED"
-  | "REVIEW_REJECTED"
-  | "SHELTER_VERIFIED"
-  | "SHELTER_STALE";
+  'REVIEW_APPROVED' | 'REVIEW_REJECTED' | 'SHELTER_VERIFIED' | 'SHELTER_STALE';
 
-export type TargetKind = "alert" | "place" | "shelter";
+export type TargetKind = 'alert' | 'place' | 'shelter';
 
 export interface DecideInput {
   target: {
@@ -193,7 +190,7 @@ export class ApiError extends Error {
 
   constructor(status: number, message: string, body: string) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.status = status;
     this.body = body;
   }

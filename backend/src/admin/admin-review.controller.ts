@@ -6,10 +6,7 @@ import { RolesGuard } from '../common/rbac/roles.guard';
 import { Roles } from '../common/rbac/roles.decorator';
 import { CurrentUser, AuthUser } from '../common/rbac/current-user.decorator';
 import { AdminReviewService, DecideResult } from './admin-review.service';
-import {
-  AdminReviewDecisionDto,
-  QueryKindDto,
-} from './admin-review.dto';
+import { AdminReviewDecisionDto, QueryKindDto } from './admin-review.dto';
 
 /**
  * Admin review API (SAFETY-POLICY.md 3, Gate E; SECURITY.md 6).

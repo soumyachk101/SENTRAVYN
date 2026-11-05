@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import { AuthPanel } from "@/components/account/AuthPanel";
-import { safety } from "@/content/safety";
+import type { Metadata } from 'next';
+import { AuthPanel } from '@/components/account/AuthPanel';
+import { safety } from '@/content/safety';
 
 export const metadata: Metadata = {
   description:
-    "Sign in to SENTRAVYN: manage your account and your preparedness profile.",
+    'Sign in to SENTRAVYN: manage your account and your preparedness profile.',
 };
 
 /**
@@ -31,8 +31,8 @@ export default function Home() {
       </h1>
       <p className="hero__lede">
         SENTRAVYN helps you access authoritative emergency alerts, understand
-        reviewed protective guidance, find nearby emergency services and
-        prepare your household before an emergency.
+        reviewed protective guidance, find nearby emergency services and prepare
+        your household before an emergency.
       </p>
 
       <ul className="hero__modules" aria-label="Core modules">

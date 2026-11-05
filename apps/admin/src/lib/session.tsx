@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -8,9 +8,9 @@ import {
   useMemo,
   useState,
   type ReactNode,
-} from "react";
-import { authApi, clearSession, readSession, writeSession } from "./api";
-import { type PublicUser, type Role } from "./types";
+} from 'react';
+import { authApi, clearSession, readSession, writeSession } from './api';
+import { type PublicUser, type Role } from './types';
 
 /**
  * Client-side session state for the admin console.
@@ -28,10 +28,7 @@ const ROLE_RANK: Record<Role, number> = {
   ADMIN: 3,
 };
 
-export function roleAtLeast(
-  role: Role | undefined,
-  required: Role,
-): boolean {
+export function roleAtLeast(role: Role | undefined, required: Role): boolean {
   if (role === undefined) return false;
   return ROLE_RANK[role] >= ROLE_RANK[required];
 }
@@ -126,7 +123,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 export function useSession(): SessionState {
   const ctx = useContext(SessionContext);
   if (ctx === null) {
-    throw new Error("useSession must be used inside <SessionProvider>");
+    throw new Error('useSession must be used inside <SessionProvider>');
   }
   return ctx;
 }

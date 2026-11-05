@@ -21,7 +21,12 @@
  * the installed 5.12.0 typings and runtime before coding.
  */
 import { XMLParser, XMLValidator, ValidationError } from 'fast-xml-parser';
-import type { CapMsgType, NormalizedAlert, ParseResult, ProviderAdapter } from '../types';
+import type {
+  CapMsgType,
+  NormalizedAlert,
+  ParseResult,
+  ProviderAdapter,
+} from '../types';
 
 /**
  * Phase 3 shared-seam re-exports (ADR-007): adapter and ingest modules take
@@ -31,7 +36,8 @@ import type { CapMsgType, NormalizedAlert, ParseResult, ProviderAdapter } from '
 export type { NormalizedAlert, ParseResult, ProviderAdapter };
 
 /** Structural shape of fast-xml-parser's JSON output (v5 types it as `any`). */
-type XmlValue = string | number | boolean | XmlValue[] | { [key: string]: XmlValue };
+type XmlValue =
+  string | number | boolean | XmlValue[] | { [key: string]: XmlValue };
 
 /** The four msgType values the OASIS CAP 1.2 schema permits. */
 const CAP_MSG_TYPES: readonly string[] = ['alert', 'update', 'cancel', 'test'];
@@ -44,7 +50,11 @@ export class CapParseError extends Error {
   code: 'MALFORMED_XML' | 'MISSING_ROOT' | 'MISSING_ID';
   rawSnippet: string;
 
-  constructor(code: CapParseError['code'], rawSnippet: string, message: string) {
+  constructor(
+    code: CapParseError['code'],
+    rawSnippet: string,
+    message: string,
+  ) {
     super(message);
     this.name = 'CapParseError';
     this.code = code;
@@ -125,14 +135,22 @@ function trimOrNull(v: XmlValue | undefined): string | null {
 export function parseCapDocument(raw: string): CapAlert {
   const snippet = raw.slice(0, 120); // bounded rawSnippet for errors
   if (raw.trim() === '') {
-    throw new CapParseError('MALFORMED_XML', snippet, 'CAP input is empty or whitespace');
+    throw new CapParseError(
+      'MALFORMED_XML',
+      snippet,
+      'CAP input is empty or whitespace',
+    );
   }
 
   // Strict pre-validation catches truncated/unbalanced documents that the
   // lenient parser would silently accept.
   const v: true | ValidationError = XMLValidator.validate(raw);
   if (v !== true) {
-    throw new CapParseError('MALFORMED_XML', snippet, `Malformed XML: ${v.err.msg}`);
+    throw new CapParseError(
+      'MALFORMED_XML',
+      snippet,
+      `Malformed XML: ${v.err.msg}`,
+    );
   }
 
   const parser = new XMLParser({
@@ -155,7 +173,11 @@ export function parseCapDocument(raw: string): CapAlert {
 
   const root = asXml(doc);
   if (root === null || typeof root !== 'object' || Array.isArray(root)) {
-    throw new CapParseError('MISSING_ROOT', snippet, 'Missing CAP root element');
+    throw new CapParseError(
+      'MISSING_ROOT',
+      snippet,
+      'Missing CAP root element',
+    );
   }
   const rootObj = root as Record<string, XmlValue>;
 
@@ -169,7 +191,9 @@ export function parseCapDocument(raw: string): CapAlert {
   if (capChild !== undefined) {
     // Container form: <cap> may hold several <alert>.
     const capObj =
-      capChild !== null && typeof capChild === 'object' && !Array.isArray(capChild)
+      capChild !== null &&
+      typeof capChild === 'object' &&
+      !Array.isArray(capChild)
         ? (capChild as Record<string, XmlValue>)
         : undefined;
     const capAlerts = capObj?.alert;
@@ -212,7 +236,11 @@ export function parseCapDocument(raw: string): CapAlert {
     if (typeof head === 'object' && head !== null && !Array.isArray(head)) {
       info = head as Record<string, XmlValue>;
     }
-  } else if (typeof infoVal === 'object' && infoVal !== null && !Array.isArray(infoVal)) {
+  } else if (
+    typeof infoVal === 'object' &&
+    infoVal !== null &&
+    !Array.isArray(infoVal)
+  ) {
     info = infoVal as Record<string, XmlValue>;
   }
 
@@ -284,7 +312,10 @@ export interface CapValidationResult {
  * (EXPIRED_AT_VALIDATION_TIME) — a past expiry is quarantinable, not a parse
  * error. `valid` is true when no reasons are present.
  */
-export function validateCapAlert(alert: CapAlert, now?: Date): CapValidationResult {
+export function validateCapAlert(
+  alert: CapAlert,
+  now?: Date,
+): CapValidationResult {
   const reasons: string[] = [];
   const t = now ?? new Date();
 
@@ -308,10 +339,18 @@ export function validateCapAlert(alert: CapAlert, now?: Date): CapValidationResu
   }
 
   // issued > effective > expires chain, ignoring nulls (and bad-format nulls).
-  if (ms.issuedAt !== null && ms.effectiveAt !== null && ms.issuedAt > ms.effectiveAt) {
+  if (
+    ms.issuedAt !== null &&
+    ms.effectiveAt !== null &&
+    ms.issuedAt > ms.effectiveAt
+  ) {
     reasons.push('TIME_ORDER_VIOLATION:issuedAt');
   }
-  if (ms.effectiveAt !== null && ms.expiresAt !== null && ms.effectiveAt > ms.expiresAt) {
+  if (
+    ms.effectiveAt !== null &&
+    ms.expiresAt !== null &&
+    ms.effectiveAt > ms.expiresAt
+  ) {
     reasons.push('TIME_ORDER_VIOLATION:effectiveAt');
   }
 

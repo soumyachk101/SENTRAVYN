@@ -1,0 +1,49 @@
+# Lockfiles
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Build output / generated / caches
+dist/
+out/
+.next/
+.turbo/
+.expo/
+coverage/
+node_modules/
+
+# Next.js generated type reference
+next-env.d.ts
+
+# Prisma: generated client + applied SQL migrations are DB state; never reformat
+backend/prisma/migrations/
+
+# tsconfig files are JSONC and may carry comments; Prettier would strip them
+**/tsconfig*.json
+
+# Binary / font assets
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.otf
+*.mp4
+*.mp3
+
+# Hand-written docs and SQL keep their own formatting (out of Prettier scope)
+*.md
+*.sql
+
+# Env files (gitignored); Prettier must not touch any that exist locally
+.env
+.env.*
+
+# YAML (CI workflow + workspace build-allowlists) stay hand-managed;
+# Prettier reflowing them is not worth the diff noise
+*.yml
+*.yaml

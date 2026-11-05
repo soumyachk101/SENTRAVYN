@@ -1,25 +1,21 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import "./globals.css";
-import Background from "@/components/Background";
-import { CinematicFooter } from "@/components/CinematicFooter";
-import { Header } from "@/components/Header";
-import { SessionProvider } from "@/lib/session";
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import './globals.css';
+import Background from '@/components/Background';
+import { CinematicFooter } from '@/components/CinematicFooter';
+import { Header } from '@/components/Header';
+import { SessionProvider } from '@/lib/session';
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sentravyn.example"),
-  title: "SENTRAVYN — Administration",
+  metadataBase: new URL('https://sentravyn.example'),
+  title: 'SENTRAVYN — Administration',
   description:
-    "Restricted administration console for SENTRAVYN: source configuration, " +
-    "alert review, place verification, guide approval and audit history.",
+    'Restricted administration console for SENTRAVYN: source configuration, ' +
+    'alert review, place verification, guide approval and audit history.',
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode,
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>

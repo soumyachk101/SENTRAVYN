@@ -107,7 +107,10 @@ export class ProvidersService {
   }
 
   /** Create or update a provider by stable key. */
-  async upsert(actorUserId: string, dto: ProviderUpsertDto): Promise<ProviderView> {
+  async upsert(
+    actorUserId: string,
+    dto: ProviderUpsertDto,
+  ): Promise<ProviderView> {
     const provider = await this.prisma.dataProvider.upsert({
       where: { key: dto.key },
       create: {

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useState } from "react";
-import { authApi } from "@/lib/api";
-import { useSession } from "@/lib/session";
+import { useCallback, useEffect, useState } from 'react';
+import { authApi } from '@/lib/api';
+import { useSession } from '@/lib/session';
 import {
   type MfaSetupResult,
   type MfaStatusView,
   type SessionView,
-} from "@/lib/types";
+} from '@/lib/types';
 import {
   Badge,
   describeError,
@@ -18,7 +18,7 @@ import {
   formatDateTime,
   LoadingPanel,
   SigninRequiredPanel,
-} from "@/lib/ui";
+} from '@/lib/ui';
 
 /**
  * Account security surface (SECURITY.md section 2). Any signed-in user can
@@ -38,10 +38,10 @@ export default function SecurityPage() {
   const [status, setStatus] = useState<MfaStatusView | null>(null);
   const [sessions, setSessions] = useState<SessionView[]>([]);
   const [state, setState] = useState<
-    | { status: "loading" }
-    | { status: "error"; error: string }
-    | { status: "ready" }
-  >({ status: "loading" });
+    | { status: 'loading' }
+    | { status: 'error'; error: string }
+    | { status: 'ready' }
+  >({ status: 'loading' });
 
   // Enrolment flow (shown once): seed/URI + recovery codes from setup().
   const [enrollment, setEnrollment] = useState<MfaSetupResult | null>(null);
@@ -49,7 +49,7 @@ export default function SecurityPage() {
   const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
 
   // Verify / disable second-factor inputs.
-  const [confirmCode, setConfirmCode] = useState("");
+  const [confirmCode, setConfirmCode] = useState('');
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [successNote, setSuccessNote] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function SecurityPage() {
   const signedIn = session.user !== null;
 
   const load = useCallback(async () => {
-    setState({ status: "loading" });
+    setState({ status: 'loading' });
     setSuccessNote(null);
     try {
       const [mfa, activeSessions] = await Promise.all([
@@ -70,9 +70,9 @@ export default function SecurityPage() {
       ]);
       setStatus(mfa);
       setSessions(activeSessions);
-      setState({ status: "ready" });
+      setState({ status: 'ready' });
     } catch (err) {
-      setState({ status: "error", error: describeError(err) });
+      setState({ status: 'error', error: describeError(err) });
     }
   }, []);
 
@@ -103,7 +103,9 @@ export default function SecurityPage() {
   async function confirmEnrollment() {
     const code = confirmCode.trim().toUpperCase();
     if (!CODE_RE.test(code)) {
-      setConfirmError("Enter a 6-digit TOTP code or one of the recovery codes.");
+      setConfirmError(
+        'Enter a 6-digit TOTP code or one of the recovery codes.',
+      );
       return;
     }
     setConfirmBusy(true);
@@ -111,7 +113,7 @@ export default function SecurityPage() {
     try {
       const result = await authApi.mfaVerify(code);
       setEnrollment(null);
-      setConfirmCode("");
+      setConfirmCode('');
       setSuccessNote(
         `MFA enabled. ${result.recoveryCodesRemaining} recovery code(s) remain.`,
       );
@@ -126,15 +128,15 @@ export default function SecurityPage() {
   async function disableMfa() {
     const code = confirmCode.trim().toUpperCase();
     if (!CODE_RE.test(code)) {
-      setConfirmError("Enter a valid code to disable MFA.");
+      setConfirmError('Enter a valid code to disable MFA.');
       return;
     }
     setConfirmBusy(true);
     setConfirmError(null);
     try {
       await authApi.mfaDisable(code);
-      setConfirmCode("");
-      setSuccessNote("MFA disabled for this account.");
+      setConfirmCode('');
+      setSuccessNote('MFA disabled for this account.');
       await load();
     } catch (err) {
       setConfirmError(describeError(err));
@@ -183,7 +185,7 @@ export default function SecurityPage() {
   }
 
   const isPrivileged =
-    session.user?.role === "OPERATOR" || session.user?.role === "ADMIN";
+    session.user?.role === 'OPERATOR' || session.user?.role === 'ADMIN';
 
   return (
     <section>
@@ -191,15 +193,15 @@ export default function SecurityPage() {
       <h1>Account security</h1>
       <p className="sub">
         Multi-factor authentication (TOTP + recovery codes) and active session
-        management.{" "}
+        management.{' '}
         {isPrivileged
-          ? "Your role requires MFA; keep it enabled."
-          : "MFA is optional for your role."}
+          ? 'Your role requires MFA; keep it enabled.'
+          : 'MFA is optional for your role.'}
       </p>
 
-      {state.status === "error" ? (
+      {state.status === 'error' ? (
         <ErrorPanel message={state.error} onRetry={load} />
-      ) : state.status === "loading" ? (
+      ) : state.status === 'loading' ? (
         <LoadingPanel label="Loading security state" />
       ) : (
         <>
@@ -217,7 +219,7 @@ export default function SecurityPage() {
             ) : status.mfaEnabled ? (
               <>
                 <p>
-                  <Badge tone="ok">MFA enabled</Badge>{" "}
+                  <Badge tone="ok">MFA enabled</Badge>{' '}
                   {status.recoveryCodesRemaining} recovery code(s) remaining.
                 </p>
                 <Field
@@ -230,7 +232,7 @@ export default function SecurityPage() {
                     type="text"
                     inputMode="text"
                     autoComplete="one-time-code"
-                    className={confirmError ? "input input--error" : "input"}
+                    className={confirmError ? 'input input--error' : 'input'}
                     value={confirmCode}
                     onChange={(e) => setConfirmCode(e.target.value)}
                     aria-invalid={Boolean(confirmError)}
@@ -247,7 +249,7 @@ export default function SecurityPage() {
                     disabled={confirmBusy}
                     onClick={disableMfa}
                   >
-                    {confirmBusy ? "Disabling…" : "Disable MFA"}
+                    {confirmBusy ? 'Disabling…' : 'Disable MFA'}
                   </button>
                 </div>
               </>
@@ -290,7 +292,7 @@ export default function SecurityPage() {
                     inputMode="numeric"
                     autoComplete="one-time-code"
                     placeholder="123456"
-                    className={confirmError ? "input input--error" : "input"}
+                    className={confirmError ? 'input input--error' : 'input'}
                     value={confirmCode}
                     onChange={(e) => setConfirmCode(e.target.value)}
                     aria-invalid={Boolean(confirmError)}
@@ -303,14 +305,14 @@ export default function SecurityPage() {
                     disabled={confirmBusy}
                     onClick={confirmEnrollment}
                   >
-                    {confirmBusy ? "Verifying…" : "Confirm code"}
+                    {confirmBusy ? 'Verifying…' : 'Confirm code'}
                   </button>
                   <button
                     type="button"
                     className="btn btn--ghost"
                     onClick={() => {
                       setEnrollment(null);
-                      setConfirmCode("");
+                      setConfirmCode('');
                       setConfirmError(null);
                     }}
                   >
@@ -321,8 +323,8 @@ export default function SecurityPage() {
             ) : (
               <>
                 <p>
-                  <Badge tone="muted">MFA not set up</Badge> Enrol TOTP via
-                  an authenticator app.
+                  <Badge tone="muted">MFA not set up</Badge> Enrol TOTP via an
+                  authenticator app.
                 </p>
                 {enrollmentError ? (
                   <p className="form-error" role="alert">
@@ -336,7 +338,7 @@ export default function SecurityPage() {
                     disabled={enrolling}
                     onClick={startEnrollment}
                   >
-                    {enrolling ? "Preparing…" : "Set up MFA"}
+                    {enrolling ? 'Preparing…' : 'Set up MFA'}
                   </button>
                 </div>
               </>
@@ -376,7 +378,10 @@ export default function SecurityPage() {
                         </td>
                         <td>
                           {s.userAgent ? (
-                            <code className="mono mono--wrap" title={s.userAgent}>
+                            <code
+                              className="mono mono--wrap"
+                              title={s.userAgent}
+                            >
                               {s.userAgent.length > 48
                                 ? `${s.userAgent.slice(0, 48)}…`
                                 : s.userAgent}
@@ -423,7 +428,7 @@ export default function SecurityPage() {
                 disabled={revokeAllBusy}
                 onClick={revokeAll}
               >
-                {revokeAllBusy ? "Revoking…" : "Revoke all sessions"}
+                {revokeAllBusy ? 'Revoking…' : 'Revoke all sessions'}
               </button>
             </div>
           </div>

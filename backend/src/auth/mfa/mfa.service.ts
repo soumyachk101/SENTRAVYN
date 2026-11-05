@@ -124,7 +124,13 @@ export class MfaService {
       where: { id: userId },
       data: { mfaSecret: secret, mfaRecoveryCodes: codeHashes },
     });
-    await this.writeAudit(userId, AUDIT_ACTIONS.MFA_SETUP, 'user', userId, 'totp+recovery-codes');
+    await this.writeAudit(
+      userId,
+      AUDIT_ACTIONS.MFA_SETUP,
+      'user',
+      userId,
+      'totp+recovery-codes',
+    );
     return { secret, uri, recoveryCodes: codes, mfaEnabled: false };
   }
 
@@ -168,11 +174,19 @@ export class MfaService {
     if (!user.mfaSecret || !user.mfaEnabled) {
       // Enabled-but-missing-secret is the corrupt case: fail closed, never
       // fall back to password-only for a privileged account.
-      this.logger.warn(`MFA verification failed closed for user ${subjectId} (no valid MFA secret)`);
+      this.logger.warn(
+        `MFA verification failed closed for user ${subjectId} (no valid MFA secret)`,
+      );
       throw new UnauthorizedException('MFA is misconfigured for this account');
     }
     await this.verifyCode(subjectId, code, user); // throws on wrong code / corrupt seed
-    await this.writeAudit(subjectId, AUDIT_ACTIONS.MFA_VERIFIED, 'user', subjectId, 'login');
+    await this.writeAudit(
+      subjectId,
+      AUDIT_ACTIONS.MFA_VERIFIED,
+      'user',
+      subjectId,
+      'login',
+    );
     return { id: user.id, role: user.role, email: user.email };
   }
 
@@ -189,7 +203,9 @@ export class MfaService {
     if (!user.mfaSecret) {
       // Enabled but corrupt: the user is locked out of disabling until an
       // administrator resets the secret out-of-band. Fail closed + audit.
-      this.logger.warn(`MFA disable failed closed for user ${userId} (corrupt secret)`);
+      this.logger.warn(
+        `MFA disable failed closed for user ${userId} (corrupt secret)`,
+      );
       throw new UnauthorizedException('MFA is misconfigured for this account');
     }
     await this.verifyCode(userId, code, user);
@@ -197,7 +213,13 @@ export class MfaService {
       where: { id: userId },
       data: { mfaSecret: null, mfaRecoveryCodes: [], mfaEnabled: false },
     });
-    await this.writeAudit(userId, AUDIT_ACTIONS.MFA_DISABLED, 'user', userId, 'user-initiated');
+    await this.writeAudit(
+      userId,
+      AUDIT_ACTIONS.MFA_DISABLED,
+      'user',
+      userId,
+      'user-initiated',
+    );
   }
 
   /** Reports MFA state without ever returning the seed or the codes. */
@@ -227,13 +249,22 @@ export class MfaService {
    * signature (AUTH_JWT_SECRET) binds it; a distinct `purpose` claim keeps it
    * from being mistaken for a normal access token.
    */
-  async issuePendingToken(user: { id: string; role: Role; email: string }): Promise<string> {
+  async issuePendingToken(user: {
+    id: string;
+    role: Role;
+    email: string;
+  }): Promise<string> {
     const secret = this.config.get<string>('AUTH_JWT_SECRET');
     if (!secret) {
       throw new Error('AUTH_JWT_SECRET is not configured');
     }
     return this.jwt.sign(
-      { sub: user.id, role: user.role, email: user.email, purpose: 'sentravyn-mfa' },
+      {
+        sub: user.id,
+        role: user.role,
+        email: user.email,
+        purpose: 'sentravyn-mfa',
+      },
       { secret, expiresIn: MFA_TEMP_TOKEN_TTL_SECONDS },
     );
   }
@@ -251,7 +282,10 @@ export class MfaService {
     } catch {
       throw new UnauthorizedException('Invalid or expired MFA pending token');
     }
-    if (payload?.purpose !== 'sentravyn-mfa' || typeof payload.sub !== 'string') {
+    if (
+      payload?.purpose !== 'sentravyn-mfa' ||
+      typeof payload.sub !== 'string'
+    ) {
       throw new UnauthorizedException('Invalid MFA pending token');
     }
     return payload.sub;
@@ -297,7 +331,9 @@ export class MfaService {
         if (error instanceof Error && /Token must be/.test(error.message)) {
           return this.consumeRecoveryCode(userId, normalized, user);
         }
-        this.logger.warn(`TOTP verification error for user ${userId}: ${String(error)}`);
+        this.logger.warn(
+          `TOTP verification error for user ${userId}: ${String(error)}`,
+        );
         throw new UnauthorizedException('Invalid MFA code');
       }
     }

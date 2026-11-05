@@ -1,43 +1,45 @@
-"use client";
+'use client';
 
-import Link from "next/link";
+import Link from 'next/link';
 import {
   useCallback,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
-} from "react";
+} from 'react';
 import {
   FOOTER_FRAMES,
   FOOTER_MESSAGE,
   FOOTER_SUPPORTING_COPY,
   FOOTER_FRAME_INTERVAL_MS,
-} from "./footer-frames";
+} from './footer-frames';
 
 // Env-gate: the public-product links point at the public web app and render
 // only when NEXT_PUBLIC_WEB_BASE_URL is defined; otherwise they are omitted
 // entirely (no dead hrefs). Agreed public product paths: / (home), /safety
 // (guides), /data-sources, /about, /privacy, /security, /terms.
 const WEB_BASE_URL =
-  typeof window !== "undefined" ? process.env.NEXT_PUBLIC_WEB_BASE_URL : undefined;
+  typeof window !== 'undefined'
+    ? process.env.NEXT_PUBLIC_WEB_BASE_URL
+    : undefined;
 
 const PUBLIC_NAV = [
   {
-    title: "Public product",
+    title: 'Public product',
     items: [
-      { label: "Emergency resources", path: "/" },
-      { label: "Safety guides", path: "/safety" },
-      { label: "Data sources", path: "/data-sources" },
-      { label: "About SENTRAVYN", path: "/about" },
+      { label: 'Emergency resources', path: '/' },
+      { label: 'Safety guides', path: '/safety' },
+      { label: 'Data sources', path: '/data-sources' },
+      { label: 'About SENTRAVYN', path: '/about' },
     ],
   },
   {
-    title: "Trust and legal",
+    title: 'Trust and legal',
     items: [
-      { label: "Privacy", path: "/privacy" },
-      { label: "Security", path: "/security" },
-      { label: "Terms", path: "/terms" },
+      { label: 'Privacy', path: '/privacy' },
+      { label: 'Security', path: '/security' },
+      { label: 'Terms', path: '/terms' },
     ],
   },
 ];
@@ -67,11 +69,11 @@ function useReducedMotion(): boolean {
   // an effect. SSR-safe server snapshot (assumes motion is allowed).
   return useSyncExternalStore(
     (onStoreChange) => {
-      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-      mq.addEventListener("change", onStoreChange);
-      return () => mq.removeEventListener("change", onStoreChange);
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      mq.addEventListener('change', onStoreChange);
+      return () => mq.removeEventListener('change', onStoreChange);
     },
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     () => false,
   );
 }
@@ -96,7 +98,7 @@ export function CinematicFooter() {
   // Stop when the footer scrolls out of view / tab hidden (DESIGN.md 4).
   useEffect(() => {
     const el = stageRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -126,8 +128,8 @@ export function CinematicFooter() {
     <footer className="cinematic-footer">
       <div className="footwork">
         <p className="footwork__label">
-          An artistic visualisation. Not a real event, prediction or
-          scientific simulation.
+          An artistic visualisation. Not a real event, prediction or scientific
+          simulation.
         </p>
 
         <div className="footwork__stage" ref={stageRef}>
@@ -151,8 +153,12 @@ export function CinematicFooter() {
             </button>
           ) : (
             <>
-              <button type="button" onClick={togglePlay} aria-pressed={!playing}>
-                {playing ? "Pause" : "Play"}
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-pressed={!playing}
+              >
+                {playing ? 'Pause' : 'Play'}
               </button>
               <button type="button" onClick={replay}>
                 Replay
@@ -165,10 +171,18 @@ export function CinematicFooter() {
           <div className="footwork__group">
             <h3>Admin workspace</h3>
             <ul>
-              <li><Link href="/review">Review queue</Link></li>
-              <li><Link href="/providers">Data providers</Link></li>
-              <li><Link href="/audit">Audit log</Link></li>
-              <li><Link href="/login">Sign in</Link></li>
+              <li>
+                <Link href="/review">Review queue</Link>
+              </li>
+              <li>
+                <Link href="/providers">Data providers</Link>
+              </li>
+              <li>
+                <Link href="/audit">Audit log</Link>
+              </li>
+              <li>
+                <Link href="/login">Sign in</Link>
+              </li>
             </ul>
           </div>
           {WEB_BASE_URL &&

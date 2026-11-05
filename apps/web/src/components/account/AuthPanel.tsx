@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
+import { useEffect, useRef, useState } from 'react';
+import type { FormEvent } from 'react';
 import {
   ApiError,
   PublicUser,
@@ -12,12 +12,12 @@ import {
   logout,
   refreshStoredSession,
   register,
-} from "@/lib/api";
+} from '@/lib/api';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 12;
 
-type Tab = "login" | "register";
+type Tab = 'login' | 'register';
 
 interface FieldErrors {
   email?: string;
@@ -33,26 +33,29 @@ interface Attempt {
 
 function roleLabel(role: string): string {
   switch (role.toUpperCase()) {
-    case "PUBLIC":
-      return "Public";
-    case "ADMIN":
-      return "Admin";
-    case "OPERATOR":
-      return "Operator";
-    case "VERIFIER":
-      return "Verifier";
+    case 'PUBLIC':
+      return 'Public';
+    case 'ADMIN':
+      return 'Admin';
+    case 'OPERATOR':
+      return 'Operator';
+    case 'VERIFIER':
+      return 'Verifier';
     default:
       return role;
   }
 }
 
-function validateFields(emailValue: string, passwordValue: string): FieldErrors {
+function validateFields(
+  emailValue: string,
+  passwordValue: string,
+): FieldErrors {
   const errors: FieldErrors = {};
   const value = emailValue.trim();
-  if (value === "") {
-    errors.email = "Email is required.";
+  if (value === '') {
+    errors.email = 'Email is required.';
   } else if (!EMAIL_PATTERN.test(value)) {
-    errors.email = "Enter a valid email address.";
+    errors.email = 'Enter a valid email address.';
   }
   if (passwordValue.length < MIN_PASSWORD_LENGTH) {
     errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
@@ -88,15 +91,16 @@ export function AuthPanel() {
   const [signOutNote, setSignOutNote] = useState<string | null>(null);
   const [restoreNote, setRestoreNote] = useState<string | null>(null);
 
-  const [tab, setTab] = useState<Tab>("login");
-  const [email, setEmail] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [password, setPassword] = useState("");
+  const [tab, setTab] = useState<Tab>('login');
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<
-    { tone: "ok" | "neutral"; text: string } | null
-  >(null);
+  const [notice, setNotice] = useState<{
+    tone: 'ok' | 'neutral';
+    text: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [hasRetry, setHasRetry] = useState(false);
   const retryAttemptRef = useRef<Attempt | null>(null);
@@ -124,9 +128,9 @@ export function AuthPanel() {
       if (cancelled) return;
       if (refreshed === null) {
         setRestoreNote(
-          "Your session could not be restored. If you are offline, your " +
-            "sign-in may still be active on the server; sign in again to " +
-            "restore it.",
+          'Your session could not be restored. If you are offline, your ' +
+            'sign-in may still be active on the server; sign in again to ' +
+            'restore it.',
         );
         setBooting(false);
         return;
@@ -152,7 +156,7 @@ export function AuthPanel() {
     retryAttemptRef.current = null;
     setHasRetry(false);
     try {
-      if (attempt.tab === "login") {
+      if (attempt.tab === 'login') {
         const result = await login({
           email: attempt.email.trim(),
           password: attempt.password,
@@ -165,18 +169,21 @@ export function AuthPanel() {
         await register({
           email: attempt.email.trim(),
           displayName:
-            attempt.displayName.trim() === ""
+            attempt.displayName.trim() === ''
               ? undefined
               : attempt.displayName.trim(),
           password: attempt.password,
         });
-        setTab("login");
-        setNotice({ tone: "ok", text: "Account created. Sign in to continue." });
+        setTab('login');
+        setNotice({
+          tone: 'ok',
+          text: 'Account created. Sign in to continue.',
+        });
       }
     } catch (error) {
       if (error instanceof ApiError && error.status === 0) {
         setFormError(
-          "Could not reach the SENTRAVYN API. Check your connection and try again.",
+          'Could not reach the SENTRAVYN API. Check your connection and try again.',
         );
         retryAttemptRef.current = attempt;
         setHasRetry(true);
@@ -185,7 +192,7 @@ export function AuthPanel() {
         // show the API's own message verbatim.
         setFormError(error.message);
       } else {
-        setFormError("Something unexpected happened. Please try again.");
+        setFormError('Something unexpected happened. Please try again.');
       }
     } finally {
       setBusy(false);
@@ -198,7 +205,7 @@ export function AuthPanel() {
     setFieldErrors(errors);
     setNotice(null);
     if (Object.keys(errors).length > 0) return;
-    void runAttempt({ tab: "login", email, displayName, password });
+    void runAttempt({ tab: 'login', email, displayName, password });
   }
 
   function handleRegisterSubmit(event: FormEvent<HTMLFormElement>): void {
@@ -207,7 +214,7 @@ export function AuthPanel() {
     setFieldErrors(errors);
     setNotice(null);
     if (Object.keys(errors).length > 0) return;
-    void runAttempt({ tab: "register", email, displayName, password });
+    void runAttempt({ tab: 'register', email, displayName, password });
   }
 
   function handleRetry(): void {
@@ -224,7 +231,7 @@ export function AuthPanel() {
     setSignOutNote(
       revoked
         ? null
-        : "You are signed out on this device. The server could not be reached, so the session may remain active until the refresh token expires.",
+        : 'You are signed out on this device. The server could not be reached, so the session may remain active until the refresh token expires.',
     );
   }
 
@@ -264,7 +271,7 @@ export function AuthPanel() {
             onClick={() => void handleLogout()}
             disabled={signingOut}
           >
-            {signingOut ? "Signing out..." : "Sign out"}
+            {signingOut ? 'Signing out...' : 'Sign out'}
           </button>
         </div>
       </div>
@@ -278,17 +285,17 @@ export function AuthPanel() {
         role="tablist"
         aria-label="Account"
         onKeyDown={(event) => {
-          if (event.key === "ArrowLeft") selectTab("login");
-          if (event.key === "ArrowRight") selectTab("register");
+          if (event.key === 'ArrowLeft') selectTab('login');
+          if (event.key === 'ArrowRight') selectTab('register');
         }}
       >
         <button
           type="button"
           role="tab"
           id="account-tab-login"
-          aria-selected={tab === "login"}
+          aria-selected={tab === 'login'}
           aria-controls="account-panel-login"
-          onClick={() => selectTab("login")}
+          onClick={() => selectTab('login')}
         >
           Sign in
         </button>
@@ -296,9 +303,9 @@ export function AuthPanel() {
           type="button"
           role="tab"
           id="account-tab-register"
-          aria-selected={tab === "register"}
+          aria-selected={tab === 'register'}
           aria-controls="account-panel-register"
-          onClick={() => selectTab("register")}
+          onClick={() => selectTab('register')}
         >
           Create account
         </button>
@@ -322,7 +329,7 @@ export function AuthPanel() {
         </p>
       )}
 
-      {tab === "login" ? (
+      {tab === 'login' ? (
         <form
           id="account-panel-login"
           role="tabpanel"
@@ -341,7 +348,9 @@ export function AuthPanel() {
               onChange={(event) => setEmail(event.target.value)}
               aria-invalid={fieldErrors.email !== undefined}
               aria-describedby={
-                fieldErrors.email !== undefined ? "account-email-login-error" : undefined
+                fieldErrors.email !== undefined
+                  ? 'account-email-login-error'
+                  : undefined
               }
             />
             {fieldErrors.email !== undefined && (
@@ -364,7 +373,7 @@ export function AuthPanel() {
               aria-invalid={fieldErrors.password !== undefined}
               aria-describedby={
                 fieldErrors.password !== undefined
-                  ? "account-password-login-error"
+                  ? 'account-password-login-error'
                   : undefined
               }
             />
@@ -387,7 +396,7 @@ export function AuthPanel() {
           )}
           <div className="hero__account-actions">
             <button type="submit" className="hero__account-btn" disabled={busy}>
-              {busy ? "Signing in..." : "Sign in"}
+              {busy ? 'Signing in...' : 'Sign in'}
             </button>
             {hasRetry && (
               <button
@@ -421,7 +430,7 @@ export function AuthPanel() {
               aria-invalid={fieldErrors.email !== undefined}
               aria-describedby={
                 fieldErrors.email !== undefined
-                  ? "account-email-register-error"
+                  ? 'account-email-register-error'
                   : undefined
               }
             />
@@ -461,7 +470,7 @@ export function AuthPanel() {
               aria-invalid={fieldErrors.password !== undefined}
               aria-describedby={
                 fieldErrors.password !== undefined
-                  ? "account-password-register-error"
+                  ? 'account-password-register-error'
                   : undefined
               }
             />
@@ -484,7 +493,7 @@ export function AuthPanel() {
           )}
           <div className="hero__account-actions">
             <button type="submit" className="hero__account-btn" disabled={busy}>
-              {busy ? "Creating account..." : "Create account"}
+              {busy ? 'Creating account...' : 'Create account'}
             </button>
             {hasRetry && (
               <button

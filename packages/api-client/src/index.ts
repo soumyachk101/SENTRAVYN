@@ -38,10 +38,7 @@ export {
   type AuditListParams,
   type AuditClient,
 } from './audit';
-export {
-  createReviewClient,
-  type ReviewClient,
-} from './review';
+export { createReviewClient, type ReviewClient } from './review';
 export {
   createRequester,
   type Requester,

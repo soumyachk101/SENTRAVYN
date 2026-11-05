@@ -19,9 +19,9 @@
   --alert-red: #a13a34;
   --ok-green: #4e7d5a;
 
-  --font-display: "Geist", "Inter", system-ui, -apple-system, sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --space-xxs: 0.25rem;
   --space-xs: 0.5rem;
@@ -98,18 +98,22 @@ body {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(120% 90% at 80% -10%,
+    radial-gradient(
+      120% 90% at 80% -10%,
       color-mix(in srgb, var(--accent-calm) 14%, transparent),
-      transparent 60%),
-    radial-gradient(90% 70% at 0% 110%,
+      transparent 60%
+    ),
+    radial-gradient(
+      90% 70% at 0% 110%,
       color-mix(in srgb, var(--ink-700) 40%, transparent),
-      transparent 55%),
+      transparent 55%
+    ),
     var(--ink-900);
 }
 
 /* Subtle topographic / cartographic motif, restrained by design. */
 .sentravyn-bg::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background-image: repeating-radial-gradient(
@@ -121,12 +125,17 @@ body {
   );
   opacity: 0.55;
   mask-image: linear-gradient(180deg, black 0%, black 55%, transparent 95%);
-  -webkit-mask-image: linear-gradient(180deg, black 0%, black 55%, transparent 95%);
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    black 0%,
+    black 55%,
+    transparent 95%
+  );
 }
 
 /* Fine grain layer for depth. Low opacity so it never hurts legibility. */
 .sentravyn-bg::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
@@ -305,7 +314,7 @@ body {
   margin-bottom: var(--space-md);
 }
 
-.hero__account-tabs [role="tab"] {
+.hero__account-tabs [role='tab'] {
   flex: 1 1 0;
   font-family: var(--font-mono);
   font-size: 0.8125rem;
@@ -317,13 +326,13 @@ body {
   cursor: pointer;
 }
 
-.hero__account-tabs [role="tab"][aria-selected="true"] {
+.hero__account-tabs [role='tab'][aria-selected='true'] {
   color: var(--paper-50);
   background: var(--ink-700);
   border-color: color-mix(in srgb, var(--accent-calm) 60%, transparent);
 }
 
-.hero__account-tabs [role="tab"]:focus-visible {
+.hero__account-tabs [role='tab']:focus-visible {
   outline: 2px solid var(--accent-calm);
   outline-offset: 2px;
 }
@@ -559,7 +568,7 @@ body {
 }
 
 .footwork__group .planned::after {
-  content: " (planned)";
+  content: ' (planned)';
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--accent-calm);

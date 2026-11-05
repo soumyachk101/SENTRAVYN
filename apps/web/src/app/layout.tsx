@@ -1,34 +1,30 @@
-import type { Metadata, Viewport } from "next";
-import type { ReactNode } from "react";
-import Background from "@/components/Background";
-import { CinematicFooter } from "@/components/CinematicFooter";
-import "./globals.css";
+import type { Metadata, Viewport } from 'next';
+import type { ReactNode } from 'react';
+import Background from '@/components/Background';
+import { CinematicFooter } from '@/components/CinematicFooter';
+import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sentravyn.example"),
+  metadataBase: new URL('https://sentravyn.example'),
   title: {
-    default: "SENTRAVYN — Global Emergency Intelligence & Public Safety",
-    template: "%s — SENTRAVYN",
+    default: 'SENTRAVYN — Global Emergency Intelligence & Public Safety',
+    template: '%s — SENTRAVYN',
   },
   description:
-    "SENTRAVYN helps people access authoritative emergency alerts, understand " +
-    "reviewed protective guidance, discover nearby emergency services and " +
-    "prepare households. An information and preparedness platform, not an " +
-    "operational emergency service.",
-  manifest: "/manifest.webmanifest",
-  applicationName: "SENTRAVYN",
+    'SENTRAVYN helps people access authoritative emergency alerts, understand ' +
+    'reviewed protective guidance, discover nearby emergency services and ' +
+    'prepare households. An information and preparedness platform, not an ' +
+    'operational emergency service.',
+  manifest: '/manifest.webmanifest',
+  applicationName: 'SENTRAVYN',
 };
 
 export const viewport: Viewport = {
-  themeColor: "#101418",
-  colorScheme: "dark",
+  themeColor: '#101418',
+  colorScheme: 'dark',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>

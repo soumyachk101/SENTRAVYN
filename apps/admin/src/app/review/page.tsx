@@ -1,12 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { reviewApi, isPlaceQueue } from "@/lib/api";
-import { useRequireRole } from "@/lib/session";
-import {
-  type AlertQueueItem,
-  type PlaceQueueItem,
-} from "@/lib/types";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { reviewApi, isPlaceQueue } from '@/lib/api';
+import { useRequireRole } from '@/lib/session';
+import { type AlertQueueItem, type PlaceQueueItem } from '@/lib/types';
 import {
   Badge,
   describeError,
@@ -19,7 +16,7 @@ import {
   Meta,
   SigninRequiredPanel,
   TruncatedHash,
-} from "@/lib/ui";
+} from '@/lib/ui';
 
 /**
  * Review queue (DESIGN.md 6: operational clarity, source provenance,
@@ -32,15 +29,15 @@ import {
  * - REVIEWER+ only; lower roles see the `insufficient role` empty state.
  */
 export default function ReviewPage() {
-  const { signedIn, loading, allowed, role } = useRequireRole("REVIEWER");
-  const [tab, setTab] = useState<"alerts" | "places">("alerts");
+  const { signedIn, loading, allowed, role } = useRequireRole('REVIEWER');
+  const [tab, setTab] = useState<'alerts' | 'places'>('alerts');
 
   const [items, setItems] = useState<AlertQueueItem[] | PlaceQueueItem[]>([]);
   const [state, setState] = useState<
-    | { status: "loading" }
-    | { status: "error"; error: string }
-    | { status: "ready" }
-  >({ status: "loading" });
+    | { status: 'loading' }
+    | { status: 'error'; error: string }
+    | { status: 'ready' }
+  >({ status: 'loading' });
 
   // Guards against a late response from a previous tab overwriting the
   // current one: fetchQueue claims the tab it fetched for, and results are
@@ -53,21 +50,21 @@ export default function ReviewPage() {
       const data = await reviewApi.queue(tab);
       if (activeTabRef.current !== tab) return;
       setItems(data);
-      setState({ status: "ready" });
+      setState({ status: 'ready' });
     } catch (err: unknown) {
       if (activeTabRef.current !== tab) return;
       setItems([]);
-      setState({ status: "error", error: describeError(err) });
+      setState({ status: 'error', error: describeError(err) });
     }
   }, [tab]);
 
   function retry() {
-    setState({ status: "loading" });
+    setState({ status: 'loading' });
     void fetchQueue();
   }
 
-  function switchTab(next: "alerts" | "places") {
-    setState({ status: "loading" });
+  function switchTab(next: 'alerts' | 'places') {
+    setState({ status: 'loading' });
     setTab(next);
   }
 
@@ -106,26 +103,26 @@ export default function ReviewPage() {
             <button
               type="button"
               role="tab"
-              aria-selected={tab === "alerts"}
-              className={tab === "alerts" ? "tab tab--active" : "tab"}
-              onClick={() => switchTab("alerts")}
+              aria-selected={tab === 'alerts'}
+              className={tab === 'alerts' ? 'tab tab--active' : 'tab'}
+              onClick={() => switchTab('alerts')}
             >
               Alerts
             </button>
             <button
               type="button"
               role="tab"
-              aria-selected={tab === "places"}
-              className={tab === "places" ? "tab tab--active" : "tab"}
-              onClick={() => switchTab("places")}
+              aria-selected={tab === 'places'}
+              className={tab === 'places' ? 'tab tab--active' : 'tab'}
+              onClick={() => switchTab('places')}
             >
               Places
             </button>
           </div>
 
-          {state.status === "loading" ? (
+          {state.status === 'loading' ? (
             <LoadingPanel label={`Loading ${tab} queue`} />
-          ) : state.status === "error" ? (
+          ) : state.status === 'error' ? (
             <ErrorPanel message={state.error} onRetry={retry} />
           ) : items.length === 0 ? (
             <EmptyPanel
@@ -135,7 +132,11 @@ export default function ReviewPage() {
           ) : isPlaceQueue(items) ? (
             <div className="list">
               {items.map((item) => (
-                <PlaceCard key={item.shelter.id} item={item} onDecided={retry} />
+                <PlaceCard
+                  key={item.shelter.id}
+                  item={item}
+                  onDecided={retry}
+                />
               ))}
             </div>
           ) : (
@@ -168,14 +169,14 @@ function AlertCard({
       </div>
 
       <div className="card__meta">
-        <Meta k="Issuer">{item.alert.issuer ?? "n/a"}</Meta>
+        <Meta k="Issuer">{item.alert.issuer ?? 'n/a'}</Meta>
         <Meta k="Issued">{formatDateTime(item.alert.issuedAt)}</Meta>
         <Meta k="Received">{formatDateTime(item.alert.createdAt)}</Meta>
         <Meta k="Provider key">
           {item.providerKey ? (
             <code className="mono">{item.providerKey}</code>
           ) : (
-            "n/a"
+            'n/a'
           )}
         </Meta>
         {item.alert.externalRef ? (
@@ -199,19 +200,17 @@ function AlertCard({
                   {item.provenance.sourceUrl}
                 </a>
               ) : (
-                "n/a"
+                'n/a'
               )}
             </Meta>
             <Meta k="Payload hash">
               {item.provenance.payloadHash ? (
                 <TruncatedHash hash={item.provenance.payloadHash} />
               ) : (
-                "n/a"
+                'n/a'
               )}
             </Meta>
-            <Meta k="Fetched">
-              {formatDateTime(item.provenance.fetchedAt)}
-            </Meta>
+            <Meta k="Fetched">{formatDateTime(item.provenance.fetchedAt)}</Meta>
           </div>
         ) : (
           <p className="card__note">No source record attached to this alert.</p>
@@ -245,7 +244,7 @@ function PlaceCard({
         <Meta k="Place kind">{item.place.kind}</Meta>
         <Meta k="Place verification">{item.place.verification}</Meta>
         <Meta k="Inspecting authority">
-          {item.shelter.inspectAuthority ?? "n/a"}
+          {item.shelter.inspectAuthority ?? 'n/a'}
         </Meta>
         <Meta k="Inspection date">
           {formatDateTime(item.shelter.inspectionDate)}
@@ -268,11 +267,11 @@ function PlaceCard({
 
 /* ------------------------------------------------------------------ */
 
-const ALERT_DECISIONS = ["REVIEW_APPROVED", "REVIEW_REJECTED"] as const;
+const ALERT_DECISIONS = ['REVIEW_APPROVED', 'REVIEW_REJECTED'] as const;
 const SHELTER_DECISIONS = [
-  "SHELTER_VERIFIED",
-  "SHELTER_STALE",
-  "REVIEW_REJECTED",
+  'SHELTER_VERIFIED',
+  'SHELTER_STALE',
+  'REVIEW_REJECTED',
 ] as const;
 
 function DecidePanel({
@@ -280,22 +279,22 @@ function DecidePanel({
   targetId,
   onDecided,
 }: {
-  targetKind: "alert" | "shelter";
+  targetKind: 'alert' | 'shelter';
   targetId: string;
   onDecided: () => void;
 }) {
-  const isShelter = targetKind === "shelter";
+  const isShelter = targetKind === 'shelter';
   const decisions = isShelter ? SHELTER_DECISIONS : ALERT_DECISIONS;
 
   const [decision, setDecision] = useState<string>(decisions[0]);
-  const [rationale, setRationale] = useState("");
-  const [authority, setAuthority] = useState("");
-  const [date, setDate] = useState("");
+  const [rationale, setRationale] = useState('');
+  const [authority, setAuthority] = useState('');
+  const [date, setDate] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const requiresEvidence = isShelter && decision === "SHELTER_VERIFIED";
+  const requiresEvidence = isShelter && decision === 'SHELTER_VERIFIED';
 
   async function submit() {
     setBusy(true);
@@ -305,10 +304,10 @@ function DecidePanel({
       const res = await reviewApi.decide({
         target: { kind: targetKind, id: targetId },
         decision: decision as
-          | "REVIEW_APPROVED"
-          | "REVIEW_REJECTED"
-          | "SHELTER_VERIFIED"
-          | "SHELTER_STALE",
+          | 'REVIEW_APPROVED'
+          | 'REVIEW_REJECTED'
+          | 'SHELTER_VERIFIED'
+          | 'SHELTER_STALE',
         rationale: rationale || undefined,
         authority: requiresEvidence ? authority || undefined : undefined,
         verificationDate: requiresEvidence ? date || undefined : undefined,
@@ -316,9 +315,9 @@ function DecidePanel({
       setSuccess(
         `Decision recorded (${res.decision}, audit action ${res.auditAction}).`,
       );
-      setRationale("");
-      setAuthority("");
-      setDate("");
+      setRationale('');
+      setAuthority('');
+      setDate('');
       onDecided();
     } catch (err: unknown) {
       // 400s (e.g. the Gate E shelter evidence policy) surface verbatim.
@@ -329,7 +328,7 @@ function DecidePanel({
   }
 
   const canSubmit =
-    !busy && (!requiresEvidence || (authority.trim() !== "" && date !== ""));
+    !busy && (!requiresEvidence || (authority.trim() !== '' && date !== ''));
 
   return (
     <div className="decide">
@@ -365,7 +364,7 @@ function DecidePanel({
           <>
             <label className="field">
               <span className="field__label">
-                Verifying authority{" "}
+                Verifying authority{' '}
                 <span className="field__req">(required)</span>
               </span>
               <input
@@ -378,8 +377,7 @@ function DecidePanel({
             </label>
             <label className="field">
               <span className="field__label">
-                Verification date{" "}
-                <span className="field__req">(required)</span>
+                Verification date <span className="field__req">(required)</span>
               </span>
               <input
                 className="input"
@@ -416,7 +414,7 @@ function DecidePanel({
               <span className="spinner" aria-hidden="true" /> Recording…
             </>
           ) : (
-            "Record decision"
+            'Record decision'
           )}
         </button>
       </div>

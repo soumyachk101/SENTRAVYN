@@ -43,8 +43,7 @@ export class RolesGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const handler = context.getHandler();
     const allowed = Reflect.getMetadata(ROLES_METADATA_KEY, handler) as
-      | Role[]
-      | undefined;
+      Role[] | undefined;
     if (!allowed || allowed.length === 0) {
       return true;
     }

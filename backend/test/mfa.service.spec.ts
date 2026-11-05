@@ -43,17 +43,28 @@ function createPrismaMock(): MockPrisma {
 
 function createService(
   prisma: MockPrisma,
-  opts: { jwtSecret?: string | null; jwtVerifyAsync?: jest.Mock; jwtSign?: jest.Mock } = {},
+  opts: {
+    jwtSecret?: string | null;
+    jwtVerifyAsync?: jest.Mock;
+    jwtSign?: jest.Mock;
+  } = {},
 ): MfaService {
   const config = {
     get: (key: string) =>
-      key === 'AUTH_JWT_SECRET' ? (opts.jwtSecret === undefined ? JWT_SECRET : opts.jwtSecret) : undefined,
+      key === 'AUTH_JWT_SECRET'
+        ? opts.jwtSecret === undefined
+          ? JWT_SECRET
+          : opts.jwtSecret
+        : undefined,
   } as unknown as ConfigService;
   const jwt: JwtService = {
     sign: jest.fn().mockReturnValue('pending-token'),
-    verifyAsync: jest
-      .fn()
-      .mockResolvedValue({ sub: 'user-1', role: 'ADMIN', email: 'a@e.com', purpose: 'sentravyn-mfa' }),
+    verifyAsync: jest.fn().mockResolvedValue({
+      sub: 'user-1',
+      role: 'ADMIN',
+      email: 'a@e.com',
+      purpose: 'sentravyn-mfa',
+    }),
     ...({
       sign: opts.jwtSign,
       verifyAsync: opts.jwtVerifyAsync,
@@ -79,7 +90,10 @@ const VALID_SEED = 'BASE32SEEDBASE32SEEDBASE32SEED';
 /** A TOTP code that the mock reports as valid. */
 const VALID_TOTP = '123456';
 
-function mockPrismaWithUser(prisma: MockPrisma, row: ReturnType<typeof userRow>) {
+function mockPrismaWithUser(
+  prisma: MockPrisma,
+  row: ReturnType<typeof userRow>,
+) {
   prisma.user.findUnique.mockResolvedValue(row);
   prisma.user.update.mockResolvedValue({} as never);
   prisma.auditEvent.create.mockResolvedValue({} as never);
@@ -92,7 +106,12 @@ describe('MfaService', () => {
       `otpauth://totp/SENTRAVYN:user-1?secret=${VALID_SEED}&issuer=SENTRAVYN`,
     );
     // Default: the presented code matches the TOTP seed.
-    mockOtp.verify.mockResolvedValue({ valid: true, delta: 0, epoch: 0, timeStep: 0 } as never);
+    mockOtp.verify.mockResolvedValue({
+      valid: true,
+      delta: 0,
+      epoch: 0,
+      timeStep: 0,
+    } as never);
   });
 
   it('setup issues a seed + 8 recovery codes, stores only hashed codes, and leaves MFA off', async () => {
@@ -127,10 +146,15 @@ describe('MfaService', () => {
 
   it('setup is a no-op error when MFA is already enabled', async () => {
     const prisma = createPrismaMock();
-    mockPrismaWithUser(prisma, userRow({ mfaEnabled: true, mfaSecret: VALID_SEED }));
+    mockPrismaWithUser(
+      prisma,
+      userRow({ mfaEnabled: true, mfaSecret: VALID_SEED }),
+    );
     const service = createService(prisma);
 
-    await expect(service.setup('user-1')).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.setup('user-1')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
@@ -138,9 +162,17 @@ describe('MfaService', () => {
     const prisma = createPrismaMock();
     mockPrismaWithUser(
       prisma,
-      userRow({ mfaSecret: VALID_SEED, mfaRecoveryCodes: new Array(8).fill(sha256Hex('x')) }),
+      userRow({
+        mfaSecret: VALID_SEED,
+        mfaRecoveryCodes: new Array(8).fill(sha256Hex('x')),
+      }),
     );
-    mockOtp.verify.mockResolvedValue({ valid: true, delta: 0, epoch: 0, timeStep: 0 } as never);
+    mockOtp.verify.mockResolvedValue({
+      valid: true,
+      delta: 0,
+      epoch: 0,
+      timeStep: 0,
+    } as never);
     const service = createService(prisma);
 
     const result = await service.verifyMfa('user-1', VALID_TOTP);
@@ -166,9 +198,17 @@ describe('MfaService', () => {
     const prisma = createPrismaMock();
     const code = 'ABCDEFGH-IJKLMN-234567';
     const codes = ['other', sha256Hex(code), 'z'].filter(Boolean) as string[];
-    mockPrismaWithUser(prisma, userRow({ mfaSecret: VALID_SEED, mfaRecoveryCodes: codes }));
+    mockPrismaWithUser(
+      prisma,
+      userRow({ mfaSecret: VALID_SEED, mfaRecoveryCodes: codes }),
+    );
     // TOTP fails, recovery code matches.
-    mockOtp.verify.mockResolvedValue({ valid: false, delta: 0, epoch: 0, timeStep: 0 } as never);
+    mockOtp.verify.mockResolvedValue({
+      valid: false,
+      delta: 0,
+      epoch: 0,
+      timeStep: 0,
+    } as never);
     const service = createService(prisma);
 
     const result = await service.verifyMfa('user-1', code.toUpperCase());
@@ -176,7 +216,8 @@ describe('MfaService', () => {
     expect(result.mfaEnabled).toBe(true);
     expect(result.recoveryCodesRemaining).toBe(codes.length - 1);
     // The consumed code's hash is removed from the stored set.
-    const codeHash = prisma.user.update.mock.calls[0][0].data.mfaRecoveryCodes as string[];
+    const codeHash = prisma.user.update.mock.calls[0][0].data
+      .mfaRecoveryCodes as string[];
     expect(codeHash).not.toContain(sha256Hex(code));
     expect(codeHash).toHaveLength(codes.length - 1);
     expect(prisma.auditEvent.create).toHaveBeenCalledWith(
@@ -190,12 +231,22 @@ describe('MfaService', () => {
     const prisma = createPrismaMock();
     mockPrismaWithUser(
       prisma,
-      userRow({ mfaSecret: VALID_SEED, mfaRecoveryCodes: [sha256Hex('unused')] }),
+      userRow({
+        mfaSecret: VALID_SEED,
+        mfaRecoveryCodes: [sha256Hex('unused')],
+      }),
     );
-    mockOtp.verify.mockResolvedValue({ valid: false, delta: 0, epoch: 0, timeStep: 0 } as never);
+    mockOtp.verify.mockResolvedValue({
+      valid: false,
+      delta: 0,
+      epoch: 0,
+      timeStep: 0,
+    } as never);
     const service = createService(prisma);
 
-    await expect(service.verifyMfa('user-1', 'WRONG-WRONG')).rejects.toThrow('Invalid MFA code');
+    await expect(service.verifyMfa('user-1', 'WRONG-WRONG')).rejects.toThrow(
+      'Invalid MFA code',
+    );
   });
 
   it('verifyMfa fails closed when the seed is corrupt (non-base32)', async () => {
@@ -210,10 +261,14 @@ describe('MfaService', () => {
     );
     const service = createService(prisma);
 
-    await expect(service.verifyMfa('user-1', VALID_TOTP)).rejects.toThrow('Invalid MFA code');
+    await expect(service.verifyMfa('user-1', VALID_TOTP)).rejects.toThrow(
+      'Invalid MFA code',
+    );
     // The account is NOT enabled on a corrupt seed.
     expect(prisma.user.update).not.toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ mfaEnabled: true }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ mfaEnabled: true }),
+      }),
     );
   });
 
@@ -221,8 +276,8 @@ describe('MfaService', () => {
     const prisma = createPrismaMock();
     mockPrismaWithUser(prisma, userRow());
     const service = createService(prisma);
-    await expect(service.verifyMfa('user-1', VALID_TOTP)).rejects.toThrow(
-      'MFA is not set up for this account',
+    await expect(service.verifyMfa('user-1', VALID_TOTP)).rejects.toBeInstanceOf(
+      UnauthorizedException,
     );
   });
 
@@ -232,7 +287,12 @@ describe('MfaService', () => {
       prisma,
       userRow({ role: 'ADMIN', mfaSecret: VALID_SEED, mfaEnabled: true }),
     );
-    mockOtp.verify.mockResolvedValue({ valid: true, delta: 0, epoch: 0, timeStep: 0 } as never);
+    mockOtp.verify.mockResolvedValue({
+      valid: true,
+      delta: 0,
+      epoch: 0,
+      timeStep: 0,
+    } as never);
     const service = createService(prisma, {
       jwtVerifyAsync: jest.fn().mockResolvedValue({
         sub: 'user-1',
@@ -243,7 +303,11 @@ describe('MfaService', () => {
     });
 
     const subject = await service.verifyPending('pending-token', VALID_TOTP);
-    expect(subject).toEqual({ id: 'user-1', role: 'ADMIN', email: 'alice@example.com' });
+    expect(subject).toEqual({
+      id: 'user-1',
+      role: 'ADMIN',
+      email: 'alice@example.com',
+    });
     expect(prisma.auditEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ action: AUDIT_ACTIONS.MFA_VERIFIED }),
@@ -254,7 +318,10 @@ describe('MfaService', () => {
   it('verifyPending fails closed when MFA is enabled but the seed is missing/corrupt', async () => {
     const prisma = createPrismaMock();
     // enabled=true but mfaSecret=null: the corrupt/degraded case.
-    mockPrismaWithUser(prisma, userRow({ role: 'ADMIN', mfaEnabled: true, mfaSecret: null }));
+    mockPrismaWithUser(
+      prisma,
+      userRow({ role: 'ADMIN', mfaEnabled: true, mfaSecret: null }),
+    );
     const service = createService(prisma, {
       jwtVerifyAsync: jest.fn().mockResolvedValue({
         sub: 'user-1',
@@ -263,9 +330,9 @@ describe('MfaService', () => {
         purpose: 'sentravyn-mfa',
       }),
     });
-    await expect(service.verifyPending('pending-token', VALID_TOTP)).rejects.toThrow(
-      'MFA is misconfigured for this account',
-    );
+    await expect(
+      service.verifyPending('pending-token', VALID_TOTP),
+    ).rejects.toThrow('MFA is misconfigured for this account');
   });
 
   it('verifyPending rejects an invalid or wrong-purpose pending token', async () => {
@@ -280,18 +347,27 @@ describe('MfaService', () => {
         .fn()
         .mockResolvedValue({ sub: 'user-1', role: 'ADMIN', email: 'a@e.com' }),
     });
-    await expect(service.verifyPending('normal-token', VALID_TOTP)).rejects.toThrow(
-      'Invalid MFA pending token',
-    );
+    await expect(
+      service.verifyPending('normal-token', VALID_TOTP),
+    ).rejects.toThrow('Invalid MFA pending token');
   });
 
   it('disableMfa requires a valid second factor and clears the account', async () => {
     const prisma = createPrismaMock();
     mockPrismaWithUser(
       prisma,
-      userRow({ mfaSecret: VALID_SEED, mfaEnabled: true, mfaRecoveryCodes: [sha256Hex('x')] }),
+      userRow({
+        mfaSecret: VALID_SEED,
+        mfaEnabled: true,
+        mfaRecoveryCodes: [sha256Hex('x')],
+      }),
     );
-    mockOtp.verify.mockResolvedValue({ valid: true, delta: 0, epoch: 0, timeStep: 0 } as never);
+    mockOtp.verify.mockResolvedValue({
+      valid: true,
+      delta: 0,
+      epoch: 0,
+      timeStep: 0,
+    } as never);
     const service = createService(prisma);
 
     await service.disableMfa('user-1', VALID_TOTP);
@@ -311,9 +387,9 @@ describe('MfaService', () => {
     const prisma = createPrismaMock();
     mockPrismaWithUser(prisma, userRow());
     const service = createService(prisma);
-    await expect(service.disableMfa('user-1', VALID_TOTP)).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      service.disableMfa('user-1', VALID_TOTP),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('disableMfa fails closed when enabled but the seed is corrupt', async () => {
@@ -329,7 +405,11 @@ describe('MfaService', () => {
     const prisma = createPrismaMock();
     mockPrismaWithUser(
       prisma,
-      userRow({ mfaSecret: VALID_SEED, mfaEnabled: true, mfaRecoveryCodes: new Array(5).fill('h') }),
+      userRow({
+        mfaSecret: VALID_SEED,
+        mfaEnabled: true,
+        mfaRecoveryCodes: new Array(5).fill('h'),
+      }),
     );
     const service = createService(prisma);
     const status = await service.status('user-1');
@@ -347,7 +427,9 @@ describe('MfaService', () => {
   it('requiresMfaStep is true only for a privileged, enrolled account', () => {
     const s = createService(createPrismaMock());
     expect(s.requiresMfaStep({ role: 'ADMIN', mfaEnabled: true })).toBe(true);
-    expect(s.requiresMfaStep({ role: 'OPERATOR', mfaEnabled: true })).toBe(true);
+    expect(s.requiresMfaStep({ role: 'OPERATOR', mfaEnabled: true })).toBe(
+      true,
+    );
     expect(s.requiresMfaStep({ role: 'PUBLIC', mfaEnabled: true })).toBe(false);
     expect(s.requiresMfaStep({ role: 'ADMIN', mfaEnabled: false })).toBe(false);
   });
@@ -356,7 +438,11 @@ describe('MfaService', () => {
     const prisma = createPrismaMock();
     const service = createService(prisma, { jwtSecret: null });
     await expect(
-      service.issuePendingToken({ id: 'user-1', role: 'ADMIN', email: 'a@e.com' }),
+      service.issuePendingToken({
+        id: 'user-1',
+        role: 'ADMIN',
+        email: 'a@e.com',
+      }),
     ).rejects.toThrow('AUTH_JWT_SECRET is not configured');
   });
 });
