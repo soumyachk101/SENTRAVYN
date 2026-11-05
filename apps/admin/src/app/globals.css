@@ -966,3 +966,35 @@ textarea.input {
     border-top-color: var(--slate-500);
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Safety-guide workflow (Phase 5): state grouping + action buttons.   */
+/* ------------------------------------------------------------------ */
+
+.guide-state {
+  margin-top: var(--space-xl);
+}
+
+.guide-state__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--slate-300);
+  margin: 0 0 var(--space-md);
+}
+
+.guide-state__count {
+  font-size: 0.75rem;
+  color: var(--slate-500);
+}
+
+.guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+}

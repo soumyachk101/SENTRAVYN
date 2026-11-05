@@ -200,9 +200,11 @@ export interface SeedResult {
 
 /**
  * One row of the admin audit trail (GET /admin/audit, SECURITY.md 6).
- * Actions come from a closed canonical set: ALERT_PUBLISHED, ALERT_UPDATED,
- * ALERT_CANCELLED, SHELTER_VERIFIED, SHELTER_REJECTED, PROVIDER_CHANGED,
- * USER_ROLE_CHANGED, SESSION_REVOKED.
+ * Actions come from a closed canonical set (backend AUDIT_ACTIONS):
+ * ALERT_PUBLISHED, ALERT_UPDATED, ALERT_CANCELLED, SHELTER_VERIFIED,
+ * SHELTER_REJECTED, PROVIDER_CHANGED, USER_ROLE_CHANGED, SESSION_REVOKED,
+ * SESSION_REFRESHED, GUIDE_REVIEWED, GUIDE_APPROVED, GUIDE_PUBLISHED,
+ * GUIDE_RETIRED, GUIDE_UPDATED.
  */
 export interface AuditEventView {
   id: string;
@@ -595,3 +597,173 @@ export interface HouseholdPlanInput {
   petConsiderations?: string;
 }
 
+// Phase 5: reviewed safety-guides workflow.
+// SAFETY-POLICY.md 5, 8, 10; PRODUCT-SPEC.md 5; backend/src/guides.
+// Every guide view carries a computed freshness label (fresh/stale/unknown)
+// and the approval state verbatim, so surfaces can never present a stale or
+// unpublished guide as current (SAFETY-POLICY.md 8, 2).
+// ---------------------------------------------------------------------------
+
+/** Closed set of guide approval states; mirrors the Prisma enum. */
+export const GUIDE_APPROVAL_STATES = [
+  'DRAFT',
+  'IN_REVIEW',
+  'APPROVED',
+  'PUBLISHED',
+  'RETIRED',
+] as const;
+export type GuideApprovalState = (typeof GUIDE_APPROVAL_STATES)[number];
+
+/**
+ * The closed hazard categories a guide applies to (PRODUCT-SPEC.md 4).
+ * Guidance is hazard-specific and independently reviewed; it is never reused
+ * across types (SAFETY-POLICY.md 5).
+ */
+export const HAZARD_TYPES = [
+  'NUCLEAR',
+  'RADIOLOGICAL',
+  'CONFLICT',
+  'MISSILE',
+  'EARTHQUAKE',
+  'TSUNAMI',
+  'FLOOD',
+  'CYCLONE',
+  'SEVERE_WEATHER',
+  'WILDFIRE',
+  'INDUSTRIAL',
+  'CHEMICAL',
+  'PUBLIC_HEALTH',
+  'INFRASTRUCTURE',
+  'UTILITY',
+] as const;
+export type HazardType = (typeof HAZARD_TYPES)[number];
+
+/** Freshness label the API computes for every guide view (SAFETY-POLICY 8). */
+export type GuideFreshnessState = 'fresh' | 'stale' | 'unknown';
+
+/** One guide revision (version history; ADR-009 summary, cited). */
+export interface GuideRevisionView {
+  revision: number;
+  body: string;
+  /** ISO 8601. */
+  createdAt: string;
+}
+
+/**
+ * A safety guide as the public and admin surfaces see it. The body is the
+ * current (version) revision's text; `references` are the authoritative
+ * source links that must accompany any summary (SAFETY-POLICY.md 6, 10).
+ *
+ * The `summariesOnly` flag is a rendering contract, not a stored column:
+ * every consumer MUST surface a "summaries only, not official instructions"
+ * label next to the body. SENTRAVYN is not a substitute for official
+ * emergency instructions (SAFETY-POLICY.md 1).
+ */
+export interface GuideView {
+  id: string;
+  hazardType: string;
+  jurisdiction: string | null;
+  language: string;
+  author: string | null;
+  /** Named responsible reviewer (SAFETY-POLICY.md 10). */
+  reviewer: string | null;
+  /** The verifying authority on record. */
+  authority: string | null;
+  approval: GuideApprovalState;
+  /** Current version; a new revision write bumps this. */
+  version: number;
+  /** ISO 8601; null when the guide has never been reviewed. */
+  lastReviewedAt: string | null;
+  /** Authoritative source references (non-empty for published guides). */
+  references: string[];
+  /** Body of the current revision; null if none was written. */
+  body: string | null;
+  /** Computed freshness label (SAFETY-POLICY.md 8). */
+  freshness: GuideFreshnessState;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Guide detail: the view plus the full revision history, ascending. */
+export interface GuideDetail extends GuideView {
+  revisions: GuideRevisionView[];
+}
+
+/** Query params for GET /guides (public) and GET /admin/guides (admin). */
+export interface GuideListParams {
+  page?: number;
+  pageSize?: number;
+  /** Hazard category filter. */
+  hazardType?: string;
+  /** APPROVED/PUBLISHED only on the public surface; any state on the admin. */
+  approval?: GuideApprovalState;
+  /** BCP-47 style code ('en', 'de'). */
+  language?: string;
+  /**
+   * Stale flag: true = only guides whose lastReviewedAt is at or beyond the
+   * review window; false = only guides within the window. A null review date
+   * matches neither (it is 'unknown', not 'stale').
+   */
+  stale?: boolean;
+}
+
+export interface PaginatedGuideView {
+  items: GuideView[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+}
+
+/** Body for POST /guides (admin; creates a DRAFT at version 1). */
+export interface CreateGuideInput {
+  hazardType: string;
+  /** Non-empty; a placeholder guide must say so explicitly in the body. */
+  body: string;
+  jurisdiction?: string;
+  language?: string;
+  author?: string;
+  reviewer?: string;
+  authority?: string;
+  /** Authoritative source references; publication requires at least one. */
+  references?: string[];
+}
+
+/** Body for PATCH /guides/:id (admin; writes a new revision + version bump). */
+export interface UpdateGuideInput {
+  body?: string;
+  jurisdiction?: string;
+  language?: string;
+  author?: string;
+  reviewer?: string;
+  authority?: string;
+  references?: string[];
+}
+
+/** Body for POST /guides/:id/review. */
+export interface ReviewGuideInput {
+  reviewer?: string;
+  authority?: string;
+  /** ISO 8601; defaults to now. */
+  reviewedAt?: string;
+}
+
+/** Body for POST /guides/:id/approve. */
+export interface ApproveGuideInput {
+  rationale?: string;
+  reviewedAt?: string;
+}
+
+/** Body for POST /guides/:id/publish. */
+export interface PublishGuideInput {
+  rationale?: string;
+  reviewedAt?: string;
+}
+
+/** Body for POST /guides/:id/retire. */
+export interface RetireGuideInput {
+  rationale?: string;
+  /** ISO 8601; defaults to now. */
+  retiredAt?: string;
+}
