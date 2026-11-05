@@ -602,8 +602,13 @@ export function PlaceDetailSheet({
             />
           </div>
         </div>
-        <button type="button" className="map-panel__sheet-close" onClick={onClose} aria-label="Close">
-          ✕
+        <button
+          type="button"
+          className="map-panel__sheet-close"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          Close
         </button>
       </div>
 
