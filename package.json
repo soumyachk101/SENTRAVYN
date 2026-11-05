@@ -12,6 +12,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "format": "prettier --config .prettierrc.json --ignore-path .prettierignore --write .",
+    "format:check": "prettier --config .prettierrc.json --ignore-path .prettierignore --check .",
     "dev": "turbo run dev --parallel",
     "dev:web": "pnpm --filter @sentravyn/web dev",
     "dev:admin": "pnpm --filter @sentravyn/admin dev",
@@ -22,6 +24,7 @@
     "db:migrate": "pnpm --filter @sentravyn/backend prisma:migrate:dev"
   },
   "devDependencies": {
+    "prettier": "3.9.10",
     "turbo": "2.11.10"
   }
 }

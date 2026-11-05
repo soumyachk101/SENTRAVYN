@@ -1,0 +1,27 @@
+# SENTRAVYN staging Terraform — example variable values (NO secrets).
+#
+# Copy to terraform.tfvars for local validate (not required — the variables
+# all have defaults so `terraform validate` needs no tfvars file). Fill the
+# deploy-owned values when you actually deploy; keep every secret out of
+# version control (SECURITY.md 4).
+
+# --- region / environment (already defaulted in variables.tf)
+aws_region = "us-east-1"
+# environment = "staging"
+
+# --- CI / OIDC metadata (public; not secrets)
+github_repository = "SENTRAVYN/sentravyn"
+oidc_branch       = "main"
+ci_workflow_name  = "deploy-staging"
+deploy_role_name  = "sentravyn-staging-terraform-deploy"
+
+# --- container image (built by the Docker pipeline; placeholder default exists)
+# container_image = "<account>.dkr.ecr.<region>.amazonaws.com/sentravyn/api:staging"
+# service_desired_count = 1
+
+# --- ACM (leave empty until a real, owned domain exists; do NOT invent one)
+acm_domain = ""
+
+# ---------------------------------------------------------------------------
+# No S3 keys, no DB password, no OIDC token, no KMS key material goes in this
+# file. Those live in a secrets manager and are referenced at deploy time.

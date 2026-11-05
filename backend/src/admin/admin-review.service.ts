@@ -9,10 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
 import { evaluateShelterPolicy } from '../shelters/shelter-policy';
 import { PublishService } from '../notifications/publish.service';
-import type {
-  AdminReviewDecisionDto,
-  QueueKind,
-} from './admin-review.dto';
+import type { AdminReviewDecisionDto, QueueKind } from './admin-review.dto';
 
 /**
  * Admin review service (SAFETY-POLICY.md 3, Gate E; SECURITY.md 6).
@@ -38,10 +35,7 @@ import type {
  */
 
 export type DecisionOutcome =
-  | 'REVIEW_APPROVED'
-  | 'REVIEW_REJECTED'
-  | 'SHELTER_VERIFIED'
-  | 'SHELTER_STALE';
+  'REVIEW_APPROVED' | 'REVIEW_REJECTED' | 'SHELTER_VERIFIED' | 'SHELTER_STALE';
 
 export interface AlertQueueItem {
   alert: {
@@ -87,7 +81,10 @@ export interface DecideResult {
 }
 
 /** Quarantined/received is the review surface: ADR-007 quarantine-by-default. */
-const QUEUE_STATUSES: ('QUARANTINED' | 'RECEIVED')[] = ['QUARANTINED', 'RECEIVED'];
+const QUEUE_STATUSES: ('QUARANTINED' | 'RECEIVED')[] = [
+  'QUARANTINED',
+  'RECEIVED',
+];
 
 const QUEUE_TAKE = 200;
 
@@ -224,9 +221,7 @@ export class AdminReviewService {
     }
 
     if (!targetFound) {
-      throw new NotFoundException(
-        `${kind} not found for decision: ${id}`,
-      );
+      throw new NotFoundException(`${kind} not found for decision: ${id}`);
     }
 
     if (kind === 'alert' && dto.decision === 'REVIEW_APPROVED') {
@@ -336,7 +331,12 @@ export class AdminReviewService {
         issuedAt: true,
         createdAt: true,
         sourceRecord: {
-          select: { providerId: true, sourceUrl: true, payloadHash: true, fetchedAt: true },
+          select: {
+            providerId: true,
+            sourceUrl: true,
+            payloadHash: true,
+            fetchedAt: true,
+          },
         },
       },
     });
@@ -344,9 +344,11 @@ export class AdminReviewService {
     // One batched lookup for provider keys (Alert has no provider relation;
     // providerId rides on the source record).
     const providerIds = [
-      ...new Set(rows.map((r) => r.sourceRecord?.providerId).filter(
-        (v): v is string => typeof v === 'string',
-      )),
+      ...new Set(
+        rows
+          .map((r) => r.sourceRecord?.providerId)
+          .filter((v): v is string => typeof v === 'string'),
+      ),
     ];
     const providerKeyById = new Map<string, string>();
     if (providerIds.length > 0) {
@@ -398,22 +400,20 @@ export class AdminReviewService {
       },
     });
 
-    return rows.map(
-      (r): PlaceQueueItem => ({
-        place: {
-          id: r.place.id,
-          name: r.place.name,
-          kind: r.place.kind,
-          verification: r.place.verification,
-        },
-        shelter: {
-          id: r.id,
-          verification: r.verification,
-          inspectAuthority: r.inspectAuthority,
-          inspectionDate: r.inspectionDate?.toISOString() ?? null,
-        },
-      }),
-    );
+    return rows.map((r): PlaceQueueItem => ({
+      place: {
+        id: r.place.id,
+        name: r.place.name,
+        kind: r.place.kind,
+        verification: r.place.verification,
+      },
+      shelter: {
+        id: r.id,
+        verification: r.verification,
+        inspectAuthority: r.inspectAuthority,
+        inspectionDate: r.inspectionDate?.toISOString() ?? null,
+      },
+    }));
   }
 }
 

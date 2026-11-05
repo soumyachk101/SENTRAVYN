@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useCallback,
@@ -6,14 +6,14 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-} from "react";
+} from 'react';
 import {
   FOOTER_FRAMES,
   FOOTER_MESSAGE,
   FOOTER_SUPPORTING_COPY,
   FOOTER_FRAME_INTERVAL_MS,
-} from "./footwork-frames";
-import Link from "next/link";
+} from './footwork-frames';
+import Link from 'next/link';
 
 /**
  * Signature cinematic footer (DESIGN.md 4 — mandatory).
@@ -38,11 +38,11 @@ function useReducedMotion(): boolean {
   // an effect. SSR-safe server snapshot (assumes motion is allowed).
   return useSyncExternalStore(
     (onStoreChange) => {
-      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-      mq.addEventListener("change", onStoreChange);
-      return () => mq.removeEventListener("change", onStoreChange);
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      mq.addEventListener('change', onStoreChange);
+      return () => mq.removeEventListener('change', onStoreChange);
     },
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     () => false,
   );
 }
@@ -70,7 +70,7 @@ export function CinematicFooter() {
   // current frame and does not advance.
   useEffect(() => {
     const el = stageRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
+    if (!el || typeof IntersectionObserver === 'undefined') {
       if (!el) return;
       setVisible(false);
       return;
@@ -114,8 +114,8 @@ export function CinematicFooter() {
     <footer className="cinematic-footer">
       <div className="footwork">
         <p className="footwork__label">
-          An artistic visualisation. Not a real event, prediction or
-          scientific simulation.
+          An artistic visualisation. Not a real event, prediction or scientific
+          simulation.
         </p>
 
         <div className="footwork__stage" ref={stageRef}>
@@ -136,8 +136,12 @@ export function CinematicFooter() {
             </button>
           ) : (
             <>
-              <button type="button" onClick={togglePlay} aria-pressed={!playing}>
-                {playing ? "Pause" : "Play"}
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-pressed={!playing}
+              >
+                {playing ? 'Pause' : 'Play'}
               </button>
               <button type="button" onClick={replay}>
                 Replay

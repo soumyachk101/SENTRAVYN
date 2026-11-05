@@ -73,10 +73,7 @@ export {
   type AuditListParams,
   type AuditClient,
 } from './audit';
-export {
-  createReviewClient,
-  type ReviewClient,
-} from './review';
+export { createReviewClient, type ReviewClient } from './review';
 export {
   createGuidesClient,
   type GuidesClient,

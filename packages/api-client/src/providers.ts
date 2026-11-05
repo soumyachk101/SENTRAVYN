@@ -26,16 +26,26 @@ export interface ProvidersClient {
   list(accessToken: string): Promise<ProviderView[]>;
 
   /** POST /providers. Upserts one provider by its stable key. */
-  upsert(input: ProviderUpsertInput, accessToken: string): Promise<ProviderView>;
+  upsert(
+    input: ProviderUpsertInput,
+    accessToken: string,
+  ): Promise<ProviderView>;
 
   /** POST /providers/seed. Idempotent: re-seeds without flipping enabled. */
-  seed(input: ProvidersSeedInput | undefined, accessToken: string): Promise<SeedResult>;
+  seed(
+    input: ProvidersSeedInput | undefined,
+    accessToken: string,
+  ): Promise<SeedResult>;
 
   /**
    * Maps to PATCH /providers/:key/enable and :key/disable (the split-route
    * design keeps intent in the URL and the audit record).
    */
-  setEnabled(key: string, enabled: boolean, accessToken: string): Promise<ProviderView>;
+  setEnabled(
+    key: string,
+    enabled: boolean,
+    accessToken: string,
+  ): Promise<ProviderView>;
 }
 
 export function createProvidersClient(req: Requester): ProvidersClient {
@@ -46,16 +56,33 @@ export function createProvidersClient(req: Requester): ProvidersClient {
 
   return {
     list: (accessToken) =>
-      req.requestAuthed<ProviderView[]>('GET', '/api/v1/providers', accessToken),
+      req.requestAuthed<ProviderView[]>(
+        'GET',
+        '/api/v1/providers',
+        accessToken,
+      ),
     upsert: (input, accessToken) =>
-      req.requestAuthed<ProviderView>('POST', '/api/v1/providers', accessToken, upsertJson(input)),
+      req.requestAuthed<ProviderView>(
+        'POST',
+        '/api/v1/providers',
+        accessToken,
+        upsertJson(input),
+      ),
     seed: (input, accessToken) => {
       const rows = input?.providers;
-      return req.requestAuthed<SeedResult>('POST', '/api/v1/providers/seed', accessToken, {
-        headers: { 'content-type': 'application/json' },
-        // An omitted `providers` array means "seed the documented fixtures".
-        body: rows === undefined ? undefined : JSON.stringify({ providers: rows }),
-      });
+      return req.requestAuthed<SeedResult>(
+        'POST',
+        '/api/v1/providers/seed',
+        accessToken,
+        {
+          headers: { 'content-type': 'application/json' },
+          // An omitted `providers` array means "seed the documented fixtures".
+          body:
+            rows === undefined
+              ? undefined
+              : JSON.stringify({ providers: rows }),
+        },
+      );
     },
     setEnabled: (key, enabled, accessToken) =>
       req.requestAuthed<ProviderView>(

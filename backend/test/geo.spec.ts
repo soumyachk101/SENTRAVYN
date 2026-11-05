@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { GeoService, NearbyQuery, PlaceGeoRow } from '../src/geospatial/geo.service';
+import {
+  GeoService,
+  NearbyQuery,
+  PlaceGeoRow,
+} from '../src/geospatial/geo.service';
 
 /**
  * Phase 4 gate (ROADMAP Phase 4): spatial correctness: PostGIS distance/radius
@@ -48,7 +52,13 @@ describe('GeoService (Phase 4 PostGIS gate)', () => {
     d: { kind: kind.d, lat: 40.72, lng: -74.0 },
     e: { kind: kind.e, lat: 40.705, lng: -74.0 },
   };
-  const ids: Record<keyof typeof fixtures, string> = { a: '', b: '', c: '', d: '', e: '' };
+  const ids: Record<keyof typeof fixtures, string> = {
+    a: '',
+    b: '',
+    c: '',
+    d: '',
+    e: '',
+  };
 
   async function locationSet(placeId: string): Promise<boolean> {
     const rows = await prisma.$queryRaw<{ n: number }[]>`
@@ -71,7 +81,12 @@ describe('GeoService (Phase 4 PostGIS gate)', () => {
       const f = fixtures[key];
       ids[key] = (
         await prisma.place.create({
-          data: { name: `geo-${key}-${runId}`, kind: f.kind, lat: f.lat, lng: f.lng },
+          data: {
+            name: `geo-${key}-${runId}`,
+            kind: f.kind,
+            lat: f.lat,
+            lng: f.lng,
+          },
         })
       ).id;
     }
@@ -83,7 +98,9 @@ describe('GeoService (Phase 4 PostGIS gate)', () => {
 
   afterAll(async () => {
     if (!dbConfigured) return;
-    await prisma.place.deleteMany({ where: { id: { in: Object.values(ids) } } });
+    await prisma.place.deleteMany({
+      where: { id: { in: Object.values(ids) } },
+    });
     await moduleRef.close();
   });
 
@@ -102,8 +119,14 @@ describe('GeoService (Phase 4 PostGIS gate)', () => {
       return;
     }
     // Wide radius so a, b and d all rank in; c has no coordinates and must not.
-    const results = await service.nearby({ ...centre, radiusMeters: 2500, limit: 200 });
-    const byName = new Map(results.map((r): [string, PlaceGeoRow] => [r.name, r]));
+    const results = await service.nearby({
+      ...centre,
+      radiusMeters: 2500,
+      limit: 200,
+    });
+    const byName = new Map(
+      results.map((r): [string, PlaceGeoRow] => [r.name, r]),
+    );
 
     const ia = results.findIndex((r: PlaceGeoRow) => r.id === ids.a);
     const ib = results.findIndex((r: PlaceGeoRow) => r.id === ids.b);
@@ -127,12 +150,18 @@ describe('GeoService (Phase 4 PostGIS gate)', () => {
 
   it('nearby: places without a location are excluded (unknown never ranks as near)', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; null-location exclusion not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; null-location exclusion not run',
+      );
       return;
     }
     // c has no coordinates, so it has no PostGIS location: it must not appear.
     expect(await locationSet(ids.c)).toBe(false);
-    const results = await service.nearby({ ...centre, radiusMeters: 2500, limit: 200 });
+    const results = await service.nearby({
+      ...centre,
+      radiusMeters: 2500,
+      limit: 200,
+    });
     expect(results.some((r: PlaceGeoRow) => r.id === ids.c)).toBe(false);
   });
 
@@ -160,13 +189,19 @@ describe('GeoService (Phase 4 PostGIS gate)', () => {
     }
     // radiusMeters: 1 clamps up to the 100 m floor; the ~445 m fixture a is
     // outside even the clamped radius, so it is absent from the result.
-    const clamped = await service.nearby({ ...centre, radiusMeters: 1, limit: 200 });
+    const clamped = await service.nearby({
+      ...centre,
+      radiusMeters: 1,
+      limit: 200,
+    });
     expect(clamped.some((r: PlaceGeoRow) => r.id === ids.a)).toBe(false);
   });
 
   it('updatePlaceLocation: keeps lat/lng and the geography column in sync', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; updatePlaceLocation not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; updatePlaceLocation not run',
+      );
       return;
     }
     const updated = await service.updatePlaceLocation(ids.c, 40.702, -74.0);
@@ -178,22 +213,34 @@ describe('GeoService (Phase 4 PostGIS gate)', () => {
 
     // The derived geography column moved with it: c now ranks as near.
     expect(await locationSet(ids.c)).toBe(true);
-    const near = await service.nearby({ ...centre, radiusMeters: 300, limit: 200 });
+    const near = await service.nearby({
+      ...centre,
+      radiusMeters: 300,
+      limit: 200,
+    });
     expect(near.some((r: PlaceGeoRow) => r.id === ids.c)).toBe(true);
   });
 
   it('updatePlaceLocation: returns false for an unknown place id', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; unknown-id update not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; unknown-id update not run',
+      );
       return;
     }
-    const updated = await service.updatePlaceLocation(`missing-${runId}`, 40.7, -74.0);
+    const updated = await service.updatePlaceLocation(
+      `missing-${runId}`,
+      40.7,
+      -74.0,
+    );
     expect(updated).toBe(false);
   });
 
   it('backfillLocations: idempotent - a re-run leaves populated rows unchanged', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; backfill idempotency not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; backfill idempotency not run',
+      );
       return;
     }
     // e was populated by the beforeAll backfill; it stays set.

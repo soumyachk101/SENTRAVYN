@@ -33,14 +33,30 @@ export class GdacsAdapter implements ProviderAdapter {
     try {
       payload = JSON.parse(rawPayload);
     } catch {
-      result.rejected.push(this.rejected('unknown', 'MALFORMED_JSON', rawPayload, fetchedAtIso, 'payload is not valid JSON'));
+      result.rejected.push(
+        this.rejected(
+          'unknown',
+          'MALFORMED_JSON',
+          rawPayload,
+          fetchedAtIso,
+          'payload is not valid JSON',
+        ),
+      );
       return result;
     }
 
     // A GDACS feed is a JSON array of event objects; anything else (an object,
     // a string, ...) is one rejection for the whole fetch, not per-element.
     if (!Array.isArray(payload)) {
-      result.rejected.push(this.rejected('unknown', 'MALFORMED_JSON', rawPayload, fetchedAtIso, 'payload is not a JSON array'));
+      result.rejected.push(
+        this.rejected(
+          'unknown',
+          'MALFORMED_JSON',
+          rawPayload,
+          fetchedAtIso,
+          'payload is not a JSON array',
+        ),
+      );
       return result;
     }
 
@@ -49,7 +65,15 @@ export class GdacsAdapter implements ProviderAdapter {
       const eventid = event.eventid;
 
       if (eventid === undefined || eventid === null || eventid === '') {
-        result.rejected.push(this.rejected('unknown', 'MISSING_EVENTID', rawPayload, fetchedAtIso, 'element has no eventid'));
+        result.rejected.push(
+          this.rejected(
+            'unknown',
+            'MISSING_EVENTID',
+            rawPayload,
+            fetchedAtIso,
+            'element has no eventid',
+          ),
+        );
         continue;
       }
       // The provider-native identifier must be a string or a number, preserved
@@ -63,7 +87,15 @@ export class GdacsAdapter implements ProviderAdapter {
       const sourceId = String(eventid);
 
       if (typeof event.title !== 'string' || event.title.length === 0) {
-        result.rejected.push(this.rejected(sourceId, 'MISSING_TITLE', rawPayload, fetchedAtIso, 'element has no usable title'));
+        result.rejected.push(
+          this.rejected(
+            sourceId,
+            'MISSING_TITLE',
+            rawPayload,
+            fetchedAtIso,
+            'element has no usable title',
+          ),
+        );
         continue;
       }
 
@@ -73,7 +105,15 @@ export class GdacsAdapter implements ProviderAdapter {
         // quarantined: there is no canonical event we could even store
         // (ADR-007 quarantine is for records that normalised but failed
         // validation — only the CAP parser has that category this phase).
-        result.rejected.push(this.rejected(sourceId, 'BAD_TIME', rawPayload, fetchedAtIso, 'datetime is not parseable ISO 8601'));
+        result.rejected.push(
+          this.rejected(
+            sourceId,
+            'BAD_TIME',
+            rawPayload,
+            fetchedAtIso,
+            'datetime is not parseable ISO 8601',
+          ),
+        );
         continue;
       }
 

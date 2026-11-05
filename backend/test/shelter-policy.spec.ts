@@ -56,20 +56,21 @@ describe('shelter verification policy (SAFETY-POLICY.md 3, Gate E)', () => {
   });
 
   it('treats an expired verification as EXPIRED, never verified', () => {
-    const r = evaluateShelterPolicy(input({ expiresAt: '2026-11-01T00:00:00Z' }));
+    const r = evaluateShelterPolicy(
+      input({ expiresAt: '2026-11-01T00:00:00Z' }),
+    );
     expect(r.canDisplayAsVerified).toBe(false);
     expect(r.displayState).toBe('EXPIRED');
   });
 
-  it(
-    'labels a verification older than the revalidation window as STALE, not live',
-    () => {
-      // 2026-10-01 is 34 days before now, beyond the 30-day default window.
-      const r = evaluateShelterPolicy(input({ verificationDate: '2026-10-01T00:00:00Z' }));
-      expect(r.canDisplayAsVerified).toBe(false);
-      expect(r.displayState).toBe('STALE');
-    },
-  );
+  it('labels a verification older than the revalidation window as STALE, not live', () => {
+    // 2026-10-01 is 34 days before now, beyond the 30-day default window.
+    const r = evaluateShelterPolicy(
+      input({ verificationDate: '2026-10-01T00:00:00Z' }),
+    );
+    expect(r.canDisplayAsVerified).toBe(false);
+    expect(r.displayState).toBe('STALE');
+  });
 
   it('a fresh verification within the window is verified even though the date is in the past', () => {
     // 3 days old: within the 30-day window. A past date is not by itself unsafe.

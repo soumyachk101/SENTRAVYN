@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { providersApi } from "@/lib/api";
-import { roleAtLeast, useSession } from "@/lib/session";
-import { type ProviderView } from "@/lib/types";
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { providersApi } from '@/lib/api';
+import { roleAtLeast, useSession } from '@/lib/session';
+import { type ProviderView } from '@/lib/types';
 import {
   Badge,
   describeError,
@@ -14,7 +14,7 @@ import {
   formatDateTime,
   LoadingPanel,
   SigninRequiredPanel,
-} from "@/lib/ui";
+} from '@/lib/ui';
 
 /**
  * Data-provider registry (docs/DATA-SOURCES.md 2, SECURITY.md 6).
@@ -27,14 +27,14 @@ import {
  */
 export default function ProvidersPage() {
   const { user, loading } = useSession();
-  const isAdmin = roleAtLeast(user?.role, "ADMIN");
+  const isAdmin = roleAtLeast(user?.role, 'ADMIN');
 
   const [rows, setRows] = useState<ProviderView[]>([]);
   const [state, setState] = useState<
-    | { status: "loading" }
-    | { status: "error"; error: string }
-    | { status: "ready" }
-  >({ status: "loading" });
+    | { status: 'loading' }
+    | { status: 'error'; error: string }
+    | { status: 'ready' }
+  >({ status: 'loading' });
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
@@ -44,17 +44,17 @@ export default function ProvidersPage() {
       .list()
       .then((data) => {
         setRows(data);
-        setState({ status: "ready" });
+        setState({ status: 'ready' });
       })
       .catch((err: unknown) => {
         setRows([]);
-        setState({ status: "error", error: describeError(err) });
+        setState({ status: 'error', error: describeError(err) });
       });
   }, []);
 
   const load = useCallback(() => {
     if (!user) return;
-    setState({ status: "loading" });
+    setState({ status: 'loading' });
     void fetchProviders();
   }, [user, fetchProviders]);
 
@@ -69,9 +69,9 @@ export default function ProvidersPage() {
 
   async function onSeed() {
     const confirmed = window.confirm(
-      "Seed the default fixture providers (gdacs, usgs, copernicus-emdat)? " +
-        "Seeded providers are disabled by default; re-seeding refreshes " +
-        "metadata and never flips an enabled provider off.",
+      'Seed the default fixture providers (gdacs, usgs, copernicus-emdat)? ' +
+        'Seeded providers are disabled by default; re-seeding refreshes ' +
+        'metadata and never flips an enabled provider off.',
     );
     if (!confirmed) return;
     setMessage(null);
@@ -79,7 +79,7 @@ export default function ProvidersPage() {
       const res = await providersApi.seed();
       setMessage({
         ok: true,
-        text: `Seeded: ${res.seededKeys.join(", ")} at ${formatDateTime(res.lastSeededAt)}.`,
+        text: `Seeded: ${res.seededKeys.join(', ')} at ${formatDateTime(res.lastSeededAt)}.`,
       });
       load();
     } catch (err: unknown) {
@@ -91,12 +91,10 @@ export default function ProvidersPage() {
     setMessage(null);
     try {
       const updated = await providersApi.setEnabled(row.key, enabled);
-      setRows((prev) =>
-        prev.map((r) => (r.key === updated.key ? updated : r)),
-      );
+      setRows((prev) => prev.map((r) => (r.key === updated.key ? updated : r)));
       setMessage({
         ok: true,
-        text: `${updated.key} is now ${updated.enabled ? "enabled" : "disabled"}.`,
+        text: `${updated.key} is now ${updated.enabled ? 'enabled' : 'disabled'}.`,
       });
     } catch (err: unknown) {
       setMessage({ ok: false, text: describeError(err) });
@@ -109,8 +107,8 @@ export default function ProvidersPage() {
       <h1>Data providers</h1>
       <p className="sub">
         Registry of external data sources. Listing a provider here is not a
-        claim that its data is open, reliable or currently available;
-        production enablement is a controlled, audited step.
+        claim that its data is open, reliable or currently available; production
+        enablement is a controlled, audited step.
       </p>
 
       {loading ? (
@@ -133,105 +131,109 @@ export default function ProvidersPage() {
 
           {message ? (
             <p
-              className={message.ok ? "form-success-text" : "form-error"}
-              role={message.ok ? "status" : "alert"}
+              className={message.ok ? 'form-success-text' : 'form-error'}
+              role={message.ok ? 'status' : 'alert'}
             >
               {message.text}
             </p>
           ) : null}
 
-          {state.status === "loading" ? (
+          {state.status === 'loading' ? (
             <LoadingPanel label="Loading provider registry" />
-          ) : state.status === "error" ? (
+          ) : state.status === 'error' ? (
             <ErrorPanel message={state.error} onRetry={load} />
           ) : rows.length === 0 ? (
             <EmptyPanel
               title="No providers registered"
               body={
                 isAdmin
-                  ? "Seed the default fixture providers or add a provider below."
-                  : "Ask an administrator to register providers."
+                  ? 'Seed the default fixture providers or add a provider below.'
+                  : 'Ask an administrator to register providers.'
               }
             />
           ) : (
             <>
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th scope="col">Key</th>
-                    <th scope="col">Name / category</th>
-                    <th scope="col">Docs</th>
-                    <th scope="col">License / attribution</th>
-                    <th scope="col">Freshness</th>
-                    <th scope="col">Last seeded</th>
-                    <th scope="col">State</th>
-                    {isAdmin ? <th scope="col">Actions</th> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.key}>
-                      <td>
-                        <code className="mono">{row.key}</code>
-                      </td>
-                      <td>
-                        <div>{row.name}</div>
-                        <div className="cell-sub">{row.category}</div>
-                      </td>
-                      <td>
-                        {row.docUrl ? (
-                          <a href={row.docUrl} target="_blank" rel="noreferrer">
-                            Documentation
-                          </a>
-                        ) : (
-                          <span className="cell-muted">n/a</span>
-                        )}
-                      </td>
-                      <td>
-                        <div>{row.license ?? "license not asserted"}</div>
-                        {row.attribution ? (
-                          <div className="cell-sub">{row.attribution}</div>
-                        ) : null}
-                      </td>
-                      <td>
-                        {row.freshnessPolicyHours != null
-                          ? `${row.freshnessPolicyHours} h`
-                          : "unset"}
-                      </td>
-                      <td>{formatDateTime(row.lastSeededAt)}</td>
-                      <td>
-                        <Badge tone={row.enabled ? "ok" : "muted"}>
-                          {row.enabled ? "Enabled" : "Disabled"}
-                        </Badge>
-                      </td>
-                      {isAdmin ? (
-                        <td className="cell-actions">
-                          <button
-                            type="button"
-                            className="btn btn--sm"
-                            disabled={row.enabled}
-                            onClick={() => void onSetEnabled(row, true)}
-                          >
-                            Enable
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn--sm"
-                            disabled={!row.enabled}
-                            onClick={() => void onSetEnabled(row, false)}
-                          >
-                            Disable
-                          </button>
-                        </td>
-                      ) : null}
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Key</th>
+                      <th scope="col">Name / category</th>
+                      <th scope="col">Docs</th>
+                      <th scope="col">License / attribution</th>
+                      <th scope="col">Freshness</th>
+                      <th scope="col">Last seeded</th>
+                      <th scope="col">State</th>
+                      {isAdmin ? <th scope="col">Actions</th> : null}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.key}>
+                        <td>
+                          <code className="mono">{row.key}</code>
+                        </td>
+                        <td>
+                          <div>{row.name}</div>
+                          <div className="cell-sub">{row.category}</div>
+                        </td>
+                        <td>
+                          {row.docUrl ? (
+                            <a
+                              href={row.docUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Documentation
+                            </a>
+                          ) : (
+                            <span className="cell-muted">n/a</span>
+                          )}
+                        </td>
+                        <td>
+                          <div>{row.license ?? 'license not asserted'}</div>
+                          {row.attribution ? (
+                            <div className="cell-sub">{row.attribution}</div>
+                          ) : null}
+                        </td>
+                        <td>
+                          {row.freshnessPolicyHours != null
+                            ? `${row.freshnessPolicyHours} h`
+                            : 'unset'}
+                        </td>
+                        <td>{formatDateTime(row.lastSeededAt)}</td>
+                        <td>
+                          <Badge tone={row.enabled ? 'ok' : 'muted'}>
+                            {row.enabled ? 'Enabled' : 'Disabled'}
+                          </Badge>
+                        </td>
+                        {isAdmin ? (
+                          <td className="cell-actions">
+                            <button
+                              type="button"
+                              className="btn btn--sm"
+                              disabled={row.enabled}
+                              onClick={() => void onSetEnabled(row, true)}
+                            >
+                              Enable
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn--sm"
+                              disabled={!row.enabled}
+                              onClick={() => void onSetEnabled(row, false)}
+                            >
+                              Disable
+                            </button>
+                          </td>
+                        ) : null}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            {isAdmin ? <UpsertForm onSaved={() => load()} /> : null}
+              {isAdmin ? <UpsertForm onSaved={() => load()} /> : null}
             </>
           )}
         </>
@@ -243,14 +245,14 @@ export default function ProvidersPage() {
 /* ------------------------------------------------------------------ */
 
 function UpsertForm({ onSaved }: { onSaved: () => void }) {
-  const [key, setKey] = useState("");
-  const [name, setName] = useState("");
-  const [docUrl, setDocUrl] = useState("");
-  const [category, setCategory] = useState("");
-  const [license, setLicense] = useState("");
-  const [attribution, setAttribution] = useState("");
+  const [key, setKey] = useState('');
+  const [name, setName] = useState('');
+  const [docUrl, setDocUrl] = useState('');
+  const [category, setCategory] = useState('');
+  const [license, setLicense] = useState('');
+  const [attribution, setAttribution] = useState('');
   const [enabled, setEnabled] = useState(false);
-  const [hours, setHours] = useState("");
+  const [hours, setHours] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -259,17 +261,19 @@ function UpsertForm({ onSaved }: { onSaved: () => void }) {
   async function submit(ev: FormEvent) {
     ev.preventDefault();
     if (!KEY_RE.test(key) || key.length < 2 || key.length > 63) {
-      setError("Key must be kebab-case (lowercase letters, digits, hyphens), 2-63 characters.");
+      setError(
+        'Key must be kebab-case (lowercase letters, digits, hyphens), 2-63 characters.',
+      );
       return;
     }
     if (!name.trim()) {
-      setError("Name is required.");
+      setError('Name is required.');
       return;
     }
     try {
       new URL(docUrl);
     } catch {
-      setError("docUrl must be a valid URL.");
+      setError('docUrl must be a valid URL.');
       return;
     }
     setSaving(true);
@@ -285,14 +289,14 @@ function UpsertForm({ onSaved }: { onSaved: () => void }) {
         enabled,
         freshnessPolicyHours: hours ? Number(hours) : undefined,
       });
-      setKey("");
-      setName("");
-      setDocUrl("");
-      setCategory("");
-      setLicense("");
-      setAttribution("");
+      setKey('');
+      setName('');
+      setDocUrl('');
+      setCategory('');
+      setLicense('');
+      setAttribution('');
       setEnabled(false);
-      setHours("");
+      setHours('');
       onSaved();
     } catch (err: unknown) {
       // API 400/403/409 messages shown verbatim.
@@ -361,7 +365,11 @@ function UpsertForm({ onSaved }: { onSaved: () => void }) {
             onChange={(e) => setAttribution(e.target.value)}
           />
         </Field>
-        <Field label="Freshness policy (hours)" htmlFor="p-hours" error={undefined}>
+        <Field
+          label="Freshness policy (hours)"
+          htmlFor="p-hours"
+          error={undefined}
+        >
           <input
             id="p-hours"
             className="input"
@@ -388,23 +396,19 @@ function UpsertForm({ onSaved }: { onSaved: () => void }) {
       ) : null}
 
       <div className="form-actions">
-        <button
-          type="submit"
-          className="btn btn--primary"
-          disabled={saving}
-        >
+        <button type="submit" className="btn btn--primary" disabled={saving}>
           {saving ? (
             <>
               <span className="spinner" aria-hidden="true" /> Saving…
             </>
           ) : (
-            "Save provider"
+            'Save provider'
           )}
         </button>
       </div>
       <p className="field__hint">
-        The same key upserts the provider. Provider credentials are never
-        stored in the registry (SECURITY.md).
+        The same key upserts the provider. Provider credentials are never stored
+        in the registry (SECURITY.md).
       </p>
     </form>
   );

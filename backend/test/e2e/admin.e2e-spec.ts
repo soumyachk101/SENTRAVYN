@@ -105,7 +105,9 @@ describe('SENTRAVYN admin API (e2e)', () => {
 
     it('enforces the role model on provider routes', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; providers RBAC e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; providers RBAC e2e not run',
+        );
         return;
       }
       // Any authenticated role may list.
@@ -141,7 +143,9 @@ describe('SENTRAVYN admin API (e2e)', () => {
 
     it('seeds the Phase 2 fixture providers idempotently', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; provider seed e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; provider seed e2e not run',
+        );
         return;
       }
       const seededKeys = ['gdacs', 'usgs', 'copernicus-emdat'];
@@ -170,9 +174,9 @@ describe('SENTRAVYN admin API (e2e)', () => {
         .expect(200);
       // AuditService.list returns the raw event array (no envelope).
       expect(Array.isArray(res.body)).toBe(true);
-      const providerEvent = (res.body as { action: string; entity: string }[]).find(
-        (item) => item.action === 'PROVIDER_CHANGED',
-      );
+      const providerEvent = (
+        res.body as { action: string; entity: string }[]
+      ).find((item) => item.action === 'PROVIDER_CHANGED');
       expect(providerEvent).toBeDefined();
       // Optional chaining keeps the assertion meaningful: if the event is
       // missing the expectation fails on undefined, and toBeDefined() above
@@ -182,7 +186,9 @@ describe('SENTRAVYN admin API (e2e)', () => {
 
     it('serves the alerts review queue to an authenticated admin', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; review queue e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; review queue e2e not run',
+        );
         return;
       }
       const res = await request(app.getHttpServer())
@@ -194,7 +200,9 @@ describe('SENTRAVYN admin API (e2e)', () => {
 
     it('verifies a shelter only with an authority and a date (Gate E)', async () => {
       if (!dbConfigured) {
-        console.log('SKIP: DATABASE_URL not configured; shelter decision e2e not run');
+        console.log(
+          'SKIP: DATABASE_URL not configured; shelter decision e2e not run',
+        );
         return;
       }
       // Seed an unverified place + shelter directly so the queue lists it.
@@ -222,7 +230,9 @@ describe('SENTRAVYN admin API (e2e)', () => {
       // With a verifying authority and an ISO date the decision succeeds.
       // The date is run-time-relative so it is always inside the shelter
       // policy's 30-day revalidation window.
-      const verificationDate = new Date(Date.now() - 3 * 86_400_000).toISOString();
+      const verificationDate = new Date(
+        Date.now() - 3 * 86_400_000,
+      ).toISOString();
       const decided = await request(app.getHttpServer())
         .post('/api/v1/admin/review/decide')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -242,7 +252,9 @@ describe('SENTRAVYN admin API (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
       expect(
-        queue.body.some((item: { shelter: { id: string } }) => item.shelter.id === shelter.id),
+        queue.body.some(
+          (item: { shelter: { id: string } }) => item.shelter.id === shelter.id,
+        ),
       ).toBe(false);
     });
   });

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import type { ReactNode } from "react";
-import { ApiError, type Role } from "./types";
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { ApiError, type Role } from './types';
 
 /**
  * Shared state components for the admin console.
@@ -16,10 +16,10 @@ import { ApiError, type Role } from "./types";
 export function describeError(err: unknown): string {
   if (err instanceof ApiError) return err.message;
   if (err instanceof Error) return err.message;
-  return "An unexpected error occurred.";
+  return 'An unexpected error occurred.';
 }
 
-export function LoadingPanel({ label = "Loading" }: { label?: string }) {
+export function LoadingPanel({ label = 'Loading' }: { label?: string }) {
   return (
     <div className="state-panel" role="status" aria-live="polite">
       <span className="spinner" aria-hidden="true" />
@@ -28,13 +28,7 @@ export function LoadingPanel({ label = "Loading" }: { label?: string }) {
   );
 }
 
-export function EmptyPanel({
-  title,
-  body,
-}: {
-  title: string;
-  body?: string;
-}) {
+export function EmptyPanel({ title, body }: { title: string; body?: string }) {
   return (
     <div className="state-panel state-panel--empty">
       <p className="state-panel__title">{title}</p>
@@ -46,7 +40,7 @@ export function EmptyPanel({
 export function ErrorPanel({
   message,
   onRetry,
-  retryLabel = "Retry",
+  retryLabel = 'Retry',
 }: {
   message: string;
   onRetry?: () => void;
@@ -60,7 +54,7 @@ export function ErrorPanel({
       aria-live="assertive"
     >
       <p className="state-panel__title">
-        {unreachable ? "API unreachable" : "Request failed"}
+        {unreachable ? 'API unreachable' : 'Request failed'}
       </p>
       <p className="state-panel__body">{message}</p>
       {onRetry ? (
@@ -89,7 +83,7 @@ export function InsufficientRolePanel({
       <p className="state-panel__title">Insufficient role</p>
       <p className="state-panel__body">
         This view requires the {required} role.
-        {role ? ` Your current role is ${role}.` : ""} The API enforces this
+        {role ? ` Your current role is ${role}.` : ''} The API enforces this
         restriction; sign in with an authorised account to continue.
       </p>
     </div>
@@ -121,10 +115,10 @@ export function Eyebrow({ children }: { children: ReactNode }) {
 }
 
 export function Badge({
-  tone = "neutral",
+  tone = 'neutral',
   children,
 }: {
-  tone?: "neutral" | "ok" | "warn" | "muted";
+  tone?: 'neutral' | 'ok' | 'warn' | 'muted';
   children: ReactNode;
 }) {
   return <span className={`badge badge--${tone}`}>{children}</span>;
@@ -147,11 +141,7 @@ export function Meta({ k, children }: { k: string; children: ReactNode }) {
 export function TruncatedHash({ hash }: { hash: string }) {
   const short = hash.slice(0, 12);
   return (
-    <code
-      className="mono"
-      title={hash}
-      aria-label={`Payload hash ${hash}`}
-    >
+    <code className="mono" title={hash} aria-label={`Payload hash ${hash}`}>
       {short}…
     </code>
   );
@@ -167,19 +157,19 @@ export function TruncatedHash({ hash }: { hash: string }) {
  * invalid value renders as "n/a", never a fabricated time.
  */
 export function formatDateTime(iso: string | null): string {
-  if (!iso) return "n/a";
+  if (!iso) return 'n/a';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "n/a";
+  if (Number.isNaN(d.getTime())) return 'n/a';
   return (
-    d.toLocaleString("en-GB", {
-      timeZone: "UTC",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }) + " UTC"
+    d.toLocaleString('en-GB', {
+      timeZone: 'UTC',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    }) + ' UTC'
   );
 }
 
@@ -207,7 +197,7 @@ export function Field({
         {label}
         {required ? (
           <span className="field__req" aria-hidden="true">
-            {" "}
+            {' '}
             (required)
           </span>
         ) : null}

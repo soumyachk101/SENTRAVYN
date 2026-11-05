@@ -29,8 +29,8 @@ export const metadata: Metadata = {
   metadataBase: METADATA_BASE,
   title: "SENTRAVYN — Administration",
   description:
-    "Restricted administration console for SENTRAVYN: source configuration, " +
-    "alert review, place verification, guide approval and audit history.",
+    'Restricted administration console for SENTRAVYN: source configuration, ' +
+    'alert review, place verification, guide approval and audit history.',
   robots: { index: false, follow: false },
 };
 

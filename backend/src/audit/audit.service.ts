@@ -54,6 +54,16 @@ export const AUDIT_ACTIONS = {
    * revision), new revision (version bump), or a RETIRED -> DRAFT reopen.
    */
   GUIDE_UPDATED: 'GUIDE_UPDATED',
+  /** Credential-compromise path: every active session for a user is revoked. */
+  SESSION_REVOKED_ALL: 'SESSION_REVOKED_ALL',
+  /** MFA: a TOTP seed + 8 single-use recovery codes were issued to an account. */
+  MFA_SETUP: 'MFA_SETUP',
+  /** MFA: enrolment confirmed (valid TOTP/recovery code); privileged login now gated. */
+  MFA_ENABLED: 'MFA_ENABLED',
+  /** MFA: a valid second factor was accepted during the privileged login step 2. */
+  MFA_VERIFIED: 'MFA_VERIFIED',
+  /** MFA: an account's MFA was disabled (user-initiated, requires a valid code). */
+  MFA_DISABLED: 'MFA_DISABLED',
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[keyof typeof AUDIT_ACTIONS];

@@ -1,4 +1,7 @@
-import { payloadHash, upsertRawRecord } from '../src/common/provenance/provenance';
+import {
+  payloadHash,
+  upsertRawRecord,
+} from '../src/common/provenance/provenance';
 import type { PrismaService } from '../src/prisma/prisma.service';
 
 type MockPrisma = {
@@ -67,7 +70,9 @@ describe('provenance upsertRawRecord (ADR-007)', () => {
       row({ payloadHash: payloadHash('stale-body') }),
     );
     prisma.rawSourceRecord.create.mockImplementation(({ data }) =>
-      Promise.resolve(row({ payloadHash: data.payloadHash, rawPayload: data.rawPayload })),
+      Promise.resolve(
+        row({ payloadHash: data.payloadHash, rawPayload: data.rawPayload }),
+      ),
     );
 
     const result = await upsertRawRecord(
@@ -77,9 +82,9 @@ describe('provenance upsertRawRecord (ADR-007)', () => {
 
     expect(result.created).toBe(true);
     expect(prisma.rawSourceRecord.create).toHaveBeenCalledTimes(1);
-    expect(prisma.rawSourceRecord.create.mock.calls[0][0].data.payloadHash).toBe(
-      payloadHash(input.rawPayload),
-    );
+    expect(
+      prisma.rawSourceRecord.create.mock.calls[0][0].data.payloadHash,
+    ).toBe(payloadHash(input.rawPayload));
     // The new record is the one returned, not the stale row.
     expect(result.record.payloadHash).toBe(payloadHash(input.rawPayload));
   });

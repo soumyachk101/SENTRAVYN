@@ -86,6 +86,12 @@ jobs:
       - name: Lint (all workspaces)
         run: pnpm lint
 
+      # Format gate (Gate D "Format"): Prettier over the whole tree. The
+      # footer-frames ASCII art is stored in .ts string arrays, which Prettier
+      # leaves content-wise intact; this step fails the build on drift.
+      - name: Format check (Prettier)
+        run: pnpm format:check
+
       - name: Typecheck (all workspaces)
         run: pnpm typecheck
 
@@ -104,10 +110,17 @@ jobs:
 
       # Secret scan: never let a credential slip into the repo (SECURITY.md 4).
       # Scans all git-tracked content (node_modules is gitignored, so excluded).
+      #
+      # Pinned: the action ref is a specific commit (v3 = Node 24 runtime —
+      # GitHub removes Node 20 from runners 2026-09-16, so v2 would stop
+      # working; this repo's timeline is post-cutover). The gitleaks binary
+      # is pinned to GITLEAKS_VERSION=8.24.3 instead of the runtime-unpinned
+      # "very latest" install, so the exact signed release is deterministic.
       - name: Secret scan (gitleaks)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
         env:
-          GITLEAKS_INSTALL_VERYLATEST: "true"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: "8.24.3"
 
       # AUTH_JWT_SECRET: no repository secret required. The e2e specs fall
       # back to an in-process test secret when AUTH_JWT_SECRET is unset.

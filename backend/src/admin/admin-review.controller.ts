@@ -1,14 +1,12 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/rbac/roles.guard';
 import { Roles } from '../common/rbac/roles.decorator';
 import { CurrentUser, AuthUser } from '../common/rbac/current-user.decorator';
 import { AdminReviewService, DecideResult } from './admin-review.service';
-import {
-  AdminReviewDecisionDto,
-  QueryKindDto,
-} from './admin-review.dto';
+import { AdminReviewDecisionDto, QueryKindDto } from './admin-review.dto';
 
 /**
  * Admin review API (SAFETY-POLICY.md 3, Gate E; SECURITY.md 6).
@@ -25,6 +23,7 @@ import {
 @ApiTags('admin-review')
 @Controller('admin/review')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@SkipThrottle({ auth: true })
 export class AdminReviewController {
   constructor(private readonly review: AdminReviewService) {}
 

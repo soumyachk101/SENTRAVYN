@@ -28,7 +28,10 @@ test('a consented, unexpired share is active', () => {
 
 test('precise location is not collected without explicit consent', () => {
   assert.equal(
-    canCollectPreciseLocation(share({ consented: false, precision: 'precise' }), now),
+    canCollectPreciseLocation(
+      share({ consented: false, precision: 'precise' }),
+      now,
+    ),
     false,
   );
 });
@@ -44,7 +47,10 @@ test('precise location is not collected after expiry', () => {
 });
 
 test('approximate precision never permits precise collection', () => {
-  assert.equal(canCollectPreciseLocation(share({ precision: 'approximate' }), now), false);
+  assert.equal(
+    canCollectPreciseLocation(share({ precision: 'approximate' }), now),
+    false,
+  );
 });
 
 test('revocation stops the share immediately', () => {

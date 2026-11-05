@@ -5,7 +5,7 @@
  * in-flight shared packages. Strict TS throughout: no `any`.
  */
 
-export type Role = "PUBLIC" | "REVIEWER" | "OPERATOR" | "ADMIN";
+export type Role = 'PUBLIC' | 'REVIEWER' | 'OPERATOR' | 'ADMIN';
 
 /** Public (non-PII) user shape returned by the auth endpoints. */
 export interface PublicUser {
@@ -20,6 +20,56 @@ export interface AuthTokenPair {
   /** 64-hex opaque token; treated as a secret, never displayed. */
   refreshToken: string;
   user: PublicUser;
+}
+
+/**
+ * Returned by POST /auth/login instead of a token pair when the account is a
+ * privileged role (OPERATOR/ADMIN) with MFA enrolled: a short-lived pending
+ * token (5 minutes) plus the number of single-use recovery codes left.
+ * POST /auth/mfa/complete exchanges it plus a TOTP/recovery code for a full
+ * token pair (SECURITY.md section 2).
+ */
+export interface MfaPendingLogin {
+  mfaPending: true;
+  mfaTempToken: string;
+  recoveryCodesRemaining: number;
+}
+
+export type LoginResponse = AuthTokenPair | MfaPendingLogin;
+
+export function isMfaPending(
+  response: LoginResponse,
+): response is MfaPendingLogin {
+  return (response as MfaPendingLogin).mfaPending === true;
+}
+
+export interface MfaSetupResult {
+  /** Base32 TOTP seed, shown once. */
+  secret: string;
+  /** otpauth:// URI for authenticator apps. */
+  uri: string;
+  /** 8 single-use recovery codes, shown once; only their hashes persist. */
+  recoveryCodes: string[];
+  mfaEnabled: false;
+}
+
+export interface MfaStatusView {
+  mfaEnabled: boolean;
+  recoveryCodesRemaining: number;
+}
+
+export interface MfaVerifyResult {
+  mfaEnabled: true;
+  recoveryCodesRemaining: number;
+}
+
+/** Session metadata (GET /auth/sessions); never carries token material. */
+export interface SessionView {
+  id: string;
+  userAgent: string | null;
+  ip: string | null;
+  createdAt: string;
+  expiresAt: string;
 }
 
 /** Provider registry view (GET /providers; no credential material). */
@@ -53,7 +103,7 @@ export interface SeedResult {
   lastSeededAt: string;
 }
 
-export type QueueKind = "alerts" | "places";
+export type QueueKind = 'alerts' | 'places';
 
 export interface AlertQueueItem {
   alert: {
@@ -91,12 +141,9 @@ export interface PlaceQueueItem {
 }
 
 export type Decision =
-  | "REVIEW_APPROVED"
-  | "REVIEW_REJECTED"
-  | "SHELTER_VERIFIED"
-  | "SHELTER_STALE";
+  'REVIEW_APPROVED' | 'REVIEW_REJECTED' | 'SHELTER_VERIFIED' | 'SHELTER_STALE';
 
-export type TargetKind = "alert" | "place" | "shelter";
+export type TargetKind = 'alert' | 'place' | 'shelter';
 
 export interface DecideInput {
   target: {
@@ -143,7 +190,7 @@ export class ApiError extends Error {
 
   constructor(status: number, message: string, body: string) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.status = status;
     this.body = body;
   }

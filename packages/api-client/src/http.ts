@@ -63,7 +63,9 @@ export function createRequester(options: SentravynRequestOptions): Requester {
       return JSON.parse(text) as T;
     }
 
-    const isJson = res.headers.get('content-type')?.includes('application/json');
+    const isJson = res.headers
+      .get('content-type')
+      ?.includes('application/json');
     const body: unknown = isJson
       ? (JSON.parse(await res.text()) as unknown)
       : await res.text();

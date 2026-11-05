@@ -27,21 +27,21 @@ const METADATA_BASE = new URL(
 export const metadata: Metadata = {
   metadataBase: METADATA_BASE,
   title: {
-    default: "SENTRAVYN — Global Emergency Intelligence & Public Safety",
-    template: "%s — SENTRAVYN",
+    default: 'SENTRAVYN — Global Emergency Intelligence & Public Safety',
+    template: '%s — SENTRAVYN',
   },
   description:
-    "SENTRAVYN helps people access authoritative emergency alerts, understand " +
-    "reviewed protective guidance, discover nearby emergency services and " +
-    "prepare households. An information and preparedness platform, not an " +
-    "operational emergency service.",
-  manifest: "/manifest.webmanifest",
-  applicationName: "SENTRAVYN",
+    'SENTRAVYN helps people access authoritative emergency alerts, understand ' +
+    'reviewed protective guidance, discover nearby emergency services and ' +
+    'prepare households. An information and preparedness platform, not an ' +
+    'operational emergency service.',
+  manifest: '/manifest.webmanifest',
+  applicationName: 'SENTRAVYN',
 };
 
 export const viewport: Viewport = {
-  themeColor: "#101418",
-  colorScheme: "dark",
+  themeColor: '#101418',
+  colorScheme: 'dark',
 };
 
 export default function RootLayout({

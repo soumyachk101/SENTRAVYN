@@ -322,7 +322,9 @@ ${infoLineage}${infoCancel}  </info>
 
   it('ingests a GDACS batch and records validated alerts with full provenance', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; gdacs ingest e2e not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; gdacs ingest e2e not run',
+      );
       return;
     }
     const payload = JSON.stringify([
@@ -401,7 +403,9 @@ ${infoLineage}${infoCancel}  </info>
 
   it('replays the same fetch reference and payload without creating anything new', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; gdacs replay e2e not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; gdacs replay e2e not run',
+      );
       return;
     }
     const payload = JSON.stringify([
@@ -452,7 +456,9 @@ ${infoLineage}${infoCancel}  </info>
 
   it('advances a CAP alert through update and cancel with a revision each', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; cap lifecycle e2e not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; cap lifecycle e2e not run',
+      );
       return;
     }
     const alertXml = capDocument({
@@ -535,7 +541,9 @@ ${infoLineage}${infoCancel}  </info>
 
   it('quarantines a CAP test message and lists it in the review queue with provenance', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; cap quarantine e2e not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; cap quarantine e2e not run',
+      );
       return;
     }
     const testXml = capDocument({
@@ -578,7 +586,9 @@ ${infoLineage}${infoCancel}  </info>
 
   it('publishes a quarantined alert through the admin review decision and audits it', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; review publish e2e not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; review publish e2e not run',
+      );
       return;
     }
     const decided = await request(app.getHttpServer())
@@ -609,7 +619,8 @@ ${infoLineage}${infoCancel}  </info>
       entityId: string | null;
     }[];
     const published = events.find(
-      (e) => e.action === 'ALERT_PUBLISHED' && e.entityId === quarantinedAlertId,
+      (e) =>
+        e.action === 'ALERT_PUBLISHED' && e.entityId === quarantinedAlertId,
     );
     expect(published).toBeDefined();
     expect(published?.entity).toBe('alert');
@@ -617,7 +628,9 @@ ${infoLineage}${infoCancel}  </info>
 
   it('serves the ingested alert with its identity and lists it', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; alert read-back e2e not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; alert read-back e2e not run',
+      );
       return;
     }
     const res = await request(app.getHttpServer())
@@ -662,7 +675,9 @@ ${infoLineage}${infoCancel}  </info>
 
   it('lets a REVIEWER approve an alert and refuses a PUBLIC user', async () => {
     if (!dbConfigured) {
-      console.log('SKIP: DATABASE_URL not configured; reviewer role e2e not run');
+      console.log(
+        'SKIP: DATABASE_URL not configured; reviewer role e2e not run',
+      );
       return;
     }
     // A dedicated quarantined target, so this case does not depend on the

@@ -148,4 +148,5 @@ export interface IngestOutcome {
 }
 
 /** Lifecycle action an ingest step can take for a given externalRef. */
-export type IngestAction = 'create' | 'update' | 'cancel' | 'quarantine' | 'duplicate';
+export type IngestAction =
+  'create' | 'update' | 'cancel' | 'quarantine' | 'duplicate';

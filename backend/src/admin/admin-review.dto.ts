@@ -46,7 +46,12 @@ export class AdminReviewDecisionDto {
   @Type(() => AdminReviewTargetDto)
   target: AdminReviewTargetDto;
 
-  @IsIn(['REVIEW_APPROVED', 'REVIEW_REJECTED', 'SHELTER_VERIFIED', 'SHELTER_STALE'])
+  @IsIn([
+    'REVIEW_APPROVED',
+    'REVIEW_REJECTED',
+    'SHELTER_VERIFIED',
+    'SHELTER_STALE',
+  ])
   decision: DecisionOutcome;
 
   @IsOptional()

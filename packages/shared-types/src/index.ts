@@ -20,11 +20,20 @@ export const INFORMATION_CLASSES = [
 export type InformationClass = (typeof INFORMATION_CLASSES)[number];
 
 /** Freshness state of a record (SAFETY-POLICY.md 8). */
-export const FRESHNESS_STATES = ['fresh', 'stale', 'expired', 'unknown'] as const;
+export const FRESHNESS_STATES = [
+  'fresh',
+  'stale',
+  'expired',
+  'unknown',
+] as const;
 export type FreshnessState = (typeof FRESHNESS_STATES)[number];
 
 /** Verification state of a place (PRODUCT-SPEC.md 6). */
-export const PLACE_VERIFICATION_STATES = ['UNVERIFIED', 'REVIEWED', 'VERIFIED'] as const;
+export const PLACE_VERIFICATION_STATES = [
+  'UNVERIFIED',
+  'REVIEWED',
+  'VERIFIED',
+] as const;
 export type PlaceVerification = (typeof PLACE_VERIFICATION_STATES)[number];
 
 /** Verification state of a shelter. A shelter may only be VERIFIED when the
@@ -227,10 +236,7 @@ export type ReviewTargetKind = 'alert' | 'place' | 'shelter';
 
 /** Closed set of review decision outcomes (SAFETY-POLICY.md 3). */
 export type ReviewDecision =
-  | 'REVIEW_APPROVED'
-  | 'REVIEW_REJECTED'
-  | 'SHELTER_VERIFIED'
-  | 'SHELTER_STALE';
+  'REVIEW_APPROVED' | 'REVIEW_REJECTED' | 'SHELTER_VERIFIED' | 'SHELTER_STALE';
 
 /**
  * Body for POST /admin/review/decide.

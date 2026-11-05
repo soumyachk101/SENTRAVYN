@@ -155,7 +155,8 @@ export class AlertsService {
       where.status = { in: [...PUBLIC_ALERT_STATUSES] };
     }
     if (query.verification) {
-      where.verification = query.verification as Prisma.AlertWhereInput['verification'];
+      where.verification =
+        query.verification as Prisma.AlertWhereInput['verification'];
     }
 
     const [total, items] = await this.prisma.$transaction([
@@ -240,7 +241,10 @@ export class AlertsService {
 
     const policyHours =
       provider?.freshnessPolicyHours ?? DEFAULT_FRESHNESS_POLICY_HOURS;
-    const response = toAlertResponse(base as unknown as AlertRecord, policyHours);
+    const response = toAlertResponse(
+      base as unknown as AlertRecord,
+      policyHours,
+    );
 
     const provenance: AlertProvenanceView | null = sourceRecord
       ? {

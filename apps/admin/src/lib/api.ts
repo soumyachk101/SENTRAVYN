@@ -3,6 +3,10 @@ import {
   type AuditEvent,
   type AuditQuery,
   type AuthTokenPair,
+  type LoginResponse,
+  type MfaSetupResult,
+  type MfaStatusView,
+  type MfaVerifyResult,
   type DecideInput,
   type DecideResult,
   type GuideApproveInput,
@@ -21,7 +25,8 @@ import {
   type PublicUser,
   type QueueKind,
   type SeedResult,
-} from "./types";
+  type SessionView,
+} from './types';
 
 /**
  * Minimal typed fetch client for the SENTRAVYN admin API (Phase 2).
@@ -37,11 +42,10 @@ import {
  */
 
 const BASE_URL =
-  (typeof process !== "undefined" &&
-    process.env.NEXT_PUBLIC_API_BASE_URL) ||
-  "http://localhost:4000/api/v1";
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL) ||
+  'http://localhost:4000/api/v1';
 
-const SESSION_KEY = "sentravyn-admin-session";
+const SESSION_KEY = 'sentravyn-admin-session';
 
 export interface Session {
   accessToken: string;
@@ -51,17 +55,17 @@ export interface Session {
 
 /** Reads the persisted session. SSR-safe (returns null on the server). */
 export function readSession(): Session | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (
       parsed &&
-      typeof parsed === "object" &&
-      "accessToken" in parsed &&
-      "refreshToken" in parsed &&
-      "user" in parsed
+      typeof parsed === 'object' &&
+      'accessToken' in parsed &&
+      'refreshToken' in parsed &&
+      'user' in parsed
     ) {
       const s = parsed as {
         accessToken: unknown;
@@ -69,16 +73,16 @@ export function readSession(): Session | null {
         user: unknown;
       };
       if (
-        typeof s.accessToken === "string" &&
-        typeof s.refreshToken === "string" &&
+        typeof s.accessToken === 'string' &&
+        typeof s.refreshToken === 'string' &&
         s.user &&
-        typeof s.user === "object"
+        typeof s.user === 'object'
       ) {
         const user = s.user as Partial<PublicUser>;
         if (
-          typeof user.id === "string" &&
-          typeof user.email === "string" &&
-          typeof user.role === "string"
+          typeof user.id === 'string' &&
+          typeof user.email === 'string' &&
+          typeof user.role === 'string'
         ) {
           return {
             accessToken: s.accessToken,
@@ -86,11 +90,9 @@ export function readSession(): Session | null {
             user: {
               id: user.id,
               email: user.email,
-              role: user.role as PublicUser["role"],
+              role: user.role as PublicUser['role'],
               displayName:
-                typeof user.displayName === "string"
-                  ? user.displayName
-                  : null,
+                typeof user.displayName === 'string' ? user.displayName : null,
             },
           };
         }
@@ -103,12 +105,12 @@ export function readSession(): Session | null {
 }
 
 export function writeSession(session: Session): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
 export function clearSession(): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') return;
   window.localStorage.removeItem(SESSION_KEY);
 }
 
@@ -118,20 +120,20 @@ interface RequestOptions {
 }
 
 async function parseError(res: Response): Promise<ApiError> {
-  let body = "";
+  let body = '';
   try {
-    body = (await res.text()) || "";
+    body = (await res.text()) || '';
   } catch {
-    body = "";
+    body = '';
   }
   // NestJS error bodies: { message: ... } or a bare string. Prefer the
   // server message when present; fall back to the raw body otherwise.
   let message = body;
   try {
     const json: unknown = JSON.parse(body);
-    if (json && typeof json === "object" && "message" in json) {
+    if (json && typeof json === 'object' && 'message' in json) {
       const m = (json as { message: unknown }).message;
-      message = Array.isArray(m) ? m.join("; ") : String(m);
+      message = Array.isArray(m) ? m.join('; ') : String(m);
     }
   } catch {
     // Not JSON; keep the raw body.
@@ -140,12 +142,12 @@ async function parseError(res: Response): Promise<ApiError> {
 }
 
 async function rawRequest(
-  method: "GET" | "POST" | "PATCH",
+  method: 'GET' | 'POST' | 'PATCH',
   path: string,
   init: { body?: unknown; token?: string | null } = {},
 ): Promise<Response> {
   const headers: Record<string, string> = {};
-  if (init.body !== undefined) headers["Content-Type"] = "application/json";
+  if (init.body !== undefined) headers['Content-Type'] = 'application/json';
   if (init.token) headers.Authorization = `Bearer ${init.token}`;
 
   let res: Response;
@@ -157,7 +159,7 @@ async function rawRequest(
     });
   } catch {
     // Network failure (offline, unreachable, CORS) — not an API error.
-    throw new ApiError(0, "The API is unreachable. Check your connection.", "");
+    throw new ApiError(0, 'The API is unreachable. Check your connection.', '');
   }
   return res;
 }
@@ -166,8 +168,8 @@ function refreshFromStoredRefreshToken(
   refreshToken: string,
 ): Promise<AuthTokenPair> {
   return request<AuthTokenPair>(
-    "POST",
-    "/auth/refresh",
+    'POST',
+    '/auth/refresh',
     { refreshToken },
     { noRetry: true },
   );
@@ -213,7 +215,7 @@ function dedupedRefresh(refreshToken: string): Promise<AuthTokenPair | null> {
  * The retried request is never retried again.
  */
 async function request<T>(
-  method: "GET" | "POST" | "PATCH",
+  method: 'GET' | 'POST' | 'PATCH',
   path: string,
   body?: unknown,
   opts: RequestOptions = {},
@@ -250,7 +252,7 @@ async function request<T>(
   // Some NestJS endpoints may return an empty body; only parse when there
   // is something to parse.
   const text = await res.text();
-  if (text === "") return undefined as T;
+  if (text === '') return undefined as T;
   return JSON.parse(text) as T;
 }
 
@@ -277,20 +279,105 @@ export const authApi = {
    * the caller is directed to the sign-in tab after registration.
    */
   register(input: RegisterInput): Promise<PublicUser> {
-    return request<PublicUser>("POST", "/auth/register", input, {
+    return request<PublicUser>('POST', '/auth/register', input, {
       noRetry: true,
     });
   },
 
-  login(input: LoginInput): Promise<AuthTokenPair> {
-    return request<AuthTokenPair>("POST", "/auth/login", input, {
+  login(input: LoginInput): Promise<LoginResponse> {
+    return request<LoginResponse>('POST', '/auth/login', input, {
       noRetry: true,
     });
+  },
+
+  /**
+   * Privileged login step 2 (SECURITY.md section 2): exchange the pending MFA
+   * token returned by login() for a full token pair once a valid TOTP or
+   * single-use recovery code is presented.
+   */
+  completeMfa(input: {
+    mfaTempToken: string;
+    code: string;
+  }): Promise<AuthTokenPair> {
+    return request<AuthTokenPair>('POST', '/auth/mfa/complete', input, {
+      noRetry: true,
+    });
+  },
+
+  /** Report MFA state (enabled + remaining recovery codes, never the seed). */
+  mfaStatus(): Promise<MfaStatusView> {
+    return request<MfaStatusView>('GET', '/auth/mfa/status');
+  },
+
+  /** Begin TOTP enrolment: returns a one-time seed, URI and 8 recovery codes. */
+  mfaSetup(): Promise<MfaSetupResult> {
+    return request<MfaSetupResult>('POST', '/auth/mfa/setup', undefined, {
+      noRetry: true,
+    });
+  },
+
+  /** Confirm a valid TOTP/recovery code, enabling MFA on the account. */
+  mfaVerify(code: string): Promise<MfaVerifyResult> {
+    return request<MfaVerifyResult>(
+      'POST',
+      '/auth/mfa/verify',
+      { code },
+      {
+        noRetry: true,
+      },
+    );
+  },
+
+  /** Disable MFA after proving a valid second factor. */
+  mfaDisable(code: string): Promise<void> {
+    return request<void>(
+      'POST',
+      '/auth/mfa/disable',
+      { code },
+      {
+        noRetry: true,
+      },
+    );
+  },
+
+  /** List the caller's active sessions (metadata only; no token material). */
+  sessions(): Promise<SessionView[]> {
+    return request<SessionView[]>('GET', '/auth/sessions');
+  },
+
+  /**
+   * Credential-compromise path (SECURITY.md section 2): revoke every active
+   * session for the caller. Returns the number of sessions revoked.
+   */
+  revokeAllSessions(): Promise<{ revoked: number }> {
+    return request<{ revoked: number }>(
+      'POST',
+      '/auth/sessions/revoke-all',
+      undefined,
+      {
+        noRetry: true,
+      },
+    );
+  },
+
+  /**
+   * Revoke a single one of the caller's sessions by id. Idempotent: a
+   * foreign or already-revoked id is a no-op on the server.
+   */
+  revokeSession(sessionId: string): Promise<void> {
+    return request<void>(
+      'POST',
+      `/auth/sessions/${sessionId}/revoke`,
+      undefined,
+      {
+        noRetry: true,
+      },
+    );
   },
 
   /** Revalidates the current session and returns the fresh user. */
   me(): Promise<PublicUser> {
-    return request<PublicUser>("GET", "/auth/me");
+    return request<PublicUser>('GET', '/auth/me');
   },
 
   logout(): Promise<void> {
@@ -302,8 +389,8 @@ export const authApi = {
     // noRetry: an expired access token must not trigger a refresh that the
     // caller is about to invalidate anyway. The local session ends either way.
     return request<void>(
-      "POST",
-      "/auth/logout",
+      'POST',
+      '/auth/logout',
       { refreshToken: session.refreshToken },
       { noRetry: true },
     ).catch(() => {
@@ -319,24 +406,26 @@ export const authApi = {
 
 export const providersApi = {
   list(): Promise<ProviderView[]> {
-    return request<ProviderView[]>("GET", "/providers");
+    return request<ProviderView[]>('GET', '/providers');
   },
 
   upsert(input: ProviderUpsertInput): Promise<ProviderView> {
-    return request<ProviderView>("POST", "/providers", input);
+    return request<ProviderView>('POST', '/providers', input);
   },
 
   seed(providers?: ProviderUpsertInput[]): Promise<SeedResult> {
     return request<SeedResult>(
-      "POST",
-      "/providers/seed",
+      'POST',
+      '/providers/seed',
       providers ? { providers } : undefined,
     );
   },
 
   setEnabled(key: string, enabled: boolean): Promise<ProviderView> {
-    const path = enabled ? `/providers/${key}/enable` : `/providers/${key}/disable`;
-    return request<ProviderView>("PATCH", path);
+    const path = enabled
+      ? `/providers/${key}/enable`
+      : `/providers/${key}/disable`;
+    return request<ProviderView>('PATCH', path);
   },
 };
 
@@ -347,20 +436,20 @@ export const providersApi = {
 export const reviewApi = {
   queue(kind: QueueKind): Promise<AlertQueueItem[] | PlaceQueueItem[]> {
     return request<AlertQueueItem[] | PlaceQueueItem[]>(
-      "GET",
+      'GET',
       `/admin/review/queue?kind=${encodeURIComponent(kind)}`,
     );
   },
 
   decide(input: DecideInput): Promise<DecideResult> {
-    return request<DecideResult>("POST", "/admin/review/decide", input);
+    return request<DecideResult>('POST', '/admin/review/decide', input);
   },
 };
 
 export function isPlaceQueue(
   items: AlertQueueItem[] | PlaceQueueItem[],
 ): items is PlaceQueueItem[] {
-  return items.length > 0 && "place" in items[0];
+  return items.length > 0 && 'place' in items[0];
 }
 
 /* ------------------------------------------------------------------ */
@@ -371,16 +460,13 @@ export const auditApi = {
   list(query: AuditQuery = {}): Promise<AuditEvent[]> {
     const params = new URLSearchParams();
     if (query.limit !== undefined) {
-      params.set("limit", String(query.limit));
+      params.set('limit', String(query.limit));
     }
     if (query.entity) {
-      params.set("entity", query.entity);
+      params.set('entity', query.entity);
     }
     const qs = params.toString();
-    return request<AuditEvent[]>(
-      "GET",
-      `/admin/audit${qs ? `?${qs}` : ""}`,
-    );
+    return request<AuditEvent[]>('GET', `/admin/audit${qs ? `?${qs}` : ''}`);
   },
 };
 

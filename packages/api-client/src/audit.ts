@@ -28,7 +28,8 @@ export function createAuditClient(req: Requester): AuditClient {
       if (params.limit !== undefined) query.set('limit', String(params.limit));
       if (params.entity !== undefined) query.set('entity', params.entity);
       const qs = query.toString();
-      const path = qs !== '' ? `/api/v1/admin/audit?${qs}` : '/api/v1/admin/audit';
+      const path =
+        qs !== '' ? `/api/v1/admin/audit?${qs}` : '/api/v1/admin/audit';
       return req.requestAuthed<AuditEventView[]>('GET', path, accessToken);
     },
   };

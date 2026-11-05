@@ -119,6 +119,17 @@ model User {
   // Phase 2 credential (bcryptjs hash; docs/ROADMAP.md Phase 2). Nullable so
   // seeded and reviewer users can exist without a password.
   passwordHash String?
+  // Phase 9 MFA (docs/SECURITY.md section 2: MFA required for privileged
+  // administrators). mfaSecret is the base32 TOTP seed (RFC 6238) — the value
+  // an authenticator app uses. It is reproducible secret material, so it is
+  // stored plainly in a dedicated sensitive column and is not one-way hashed
+  // (a hash cannot regenerate TOTP codes). It is never returned by any API
+  // shape. mfaRecoveryCodes holds the sha256 hex of each of the 8 single-use
+  // recovery codes, so a DB leak exposes no usable code. See
+  // backend/src/auth/mfa/mfa.service.ts.
+  mfaSecret          String?
+  mfaEnabled         Boolean  @default(false)
+  mfaRecoveryCodes   String[] @default([])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

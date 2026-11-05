@@ -2,11 +2,7 @@ import 'reflect-metadata';
 import { readFileSync } from 'node:fs';
 import * as path from 'node:path';
 import { ForbiddenException, ExecutionContext } from '@nestjs/common';
-import {
-  Roles,
-  ROLE_VALUES,
-  Role,
-} from '../src/common/rbac/roles.decorator';
+import { Roles, ROLE_VALUES, Role } from '../src/common/rbac/roles.decorator';
 import { RolesGuard, expandRoles } from '../src/common/rbac/roles.guard';
 
 describe('RBAC (expandRoles + RolesGuard)', () => {
@@ -140,15 +136,10 @@ describe('RBAC (expandRoles + RolesGuard)', () => {
   });
 
   describe('Role union stays in sync with the Prisma Role enum', () => {
-    const schemaPath = path.resolve(
-      __dirname,
-      '../prisma/schema.prisma',
-    );
+    const schemaPath = path.resolve(__dirname, '../prisma/schema.prisma');
     const schema = readFileSync(schemaPath, 'utf8');
     const match = schema.match(/enum\s+Role\s*\{([^}]*)\}/);
-    const prismaRoleValues = match
-      ? match[1].split(/\s+/).filter(Boolean)
-      : [];
+    const prismaRoleValues = match ? match[1].split(/\s+/).filter(Boolean) : [];
 
     it('reads exactly the documented Prisma Role values', () => {
       expect(prismaRoleValues).toEqual([

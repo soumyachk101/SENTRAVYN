@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties } from 'react';
 
 /**
  * Custom background system (DESIGN.md 3: original, purposeful, layered).
@@ -14,7 +14,7 @@ export default function Background() {
     <div
       aria-hidden="true"
       className="sentravyn-bg"
-      style={{ "--sentravyn-topo-opacity": "0.4" } as CSSProperties}
+      style={{ '--sentravyn-topo-opacity': '0.4' } as CSSProperties}
     />
   );
 }

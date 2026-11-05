@@ -10,6 +10,7 @@ import { AuditModule } from './audit/audit.module';
 import { ProvidersModule } from './providers/providers.module';
 import { AdminReviewModule } from './admin/admin-review.module';
 import { IngestModule } from './integrations/ingest.module';
+import { ThrottlingModule } from './common/throttling/throttling.module';
 import { GeoModule } from './geospatial/geo.module';
 import { PlacesModule } from './places/places.module';
 import { FamilySafetyModule } from './family-safety/family-safety.module';
@@ -48,6 +49,9 @@ import { NotificationModule } from './notifications/notification.module';
     // module: every alert publication path (admin-review, ingest) fans
     // out through PublishService without importing this module by name.
     NotificationModule,
+    // Phase 9: global rate limiting (SECURITY.md 3) — APP_GUARD ThrottlerGuard,
+    // Redis-backed storage (degrades to no-op when REDIS_URL is unset).
+    ThrottlingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -4,7 +4,12 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
 import { upsertRawRecord } from '../common/provenance/provenance';
-import type { IngestOutcome, IngestOptions, NormalizedAlert, ProviderKey } from './types';
+import type {
+  IngestOutcome,
+  IngestOptions,
+  NormalizedAlert,
+  ProviderKey,
+} from './types';
 import { ProviderAdapterRegistry } from './adapters/registry';
 import { PublishService } from '../notifications/publish.service';
 
@@ -89,7 +94,8 @@ export class IngestService {
     // Fetch-scoped source id: a replay of the same fetch is idempotent
     // (ADR-007) because the raw-record upsert dedups on
     // (providerId, sourceId, payloadHash).
-    const fetchRef = options?.fetchRef ?? `${providerKey}-${fetchedAt.toISOString()}`;
+    const fetchRef =
+      options?.fetchRef ?? `${providerKey}-${fetchedAt.toISOString()}`;
 
     // Exactly ONE immutable raw record per ingest() call: every event,
     // quarantined item and rejected item of this parse result shares the
@@ -139,7 +145,12 @@ export class IngestService {
           data: this.alertData(event, rawRecordId, 'QUARANTINED'),
         });
         await this.prisma.alertRevision.create({
-          data: { alertId: alert.id, revision: 1, status: 'QUARANTINED', body: event.body },
+          data: {
+            alertId: alert.id,
+            revision: 1,
+            status: 'QUARANTINED',
+            body: event.body,
+          },
         });
         quarantined += 1;
         quarantinedIds.push(rawRecordId);
@@ -160,7 +171,12 @@ export class IngestService {
           data: this.alertData(event, rawRecordId, 'QUARANTINED'),
         });
         await this.prisma.alertRevision.create({
-          data: { alertId: alert.id, revision: 1, status: 'QUARANTINED', body: event.body },
+          data: {
+            alertId: alert.id,
+            revision: 1,
+            status: 'QUARANTINED',
+            body: event.body,
+          },
         });
         quarantined += 1;
         quarantinedIds.push(rawRecordId);
@@ -199,7 +215,10 @@ export class IngestService {
             AUDIT_ACTIONS.ALERT_CANCELLED,
             'alert',
             existing.id,
-            JSON.stringify({ action: 'cancelled', externalRef: event.externalRef }),
+            JSON.stringify({
+              action: 'cancelled',
+              externalRef: event.externalRef,
+            }),
           );
         } else {
           // A cancel with no target alert can never legitimately publish:
@@ -209,7 +228,12 @@ export class IngestService {
             data: this.alertData(event, rawRecordId, 'QUARANTINED'),
           });
           await this.prisma.alertRevision.create({
-            data: { alertId: alert.id, revision: 1, status: 'QUARANTINED', body: event.body },
+            data: {
+              alertId: alert.id,
+              revision: 1,
+              status: 'QUARANTINED',
+              body: event.body,
+            },
           });
           quarantined += 1;
           quarantinedIds.push(rawRecordId);
@@ -234,7 +258,12 @@ export class IngestService {
           data: this.alertData(event, rawRecordId, 'VALIDATED'),
         });
         await this.prisma.alertRevision.create({
-          data: { alertId: alert.id, revision: 1, status: 'VALIDATED', body: event.body },
+          data: {
+            alertId: alert.id,
+            revision: 1,
+            status: 'VALIDATED',
+            body: event.body,
+          },
         });
         created += 1;
         alertIds.push(alert.id);

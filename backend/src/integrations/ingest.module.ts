@@ -31,7 +31,10 @@ import { IngestService } from './ingest.service';
     CapAdapter,
     {
       provide: PROVIDER_ADAPTERS,
-      useFactory: (gdacs: GdacsAdapter, cap: CapAdapter): ProviderAdapter[] => [gdacs, cap],
+      useFactory: (gdacs: GdacsAdapter, cap: CapAdapter): ProviderAdapter[] => [
+        gdacs,
+        cap,
+      ],
       inject: [GdacsAdapter, CapAdapter],
     },
     ProviderAdapterRegistry,

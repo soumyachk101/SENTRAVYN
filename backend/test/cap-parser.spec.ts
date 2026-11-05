@@ -45,7 +45,9 @@ describe('parseCapDocument (CAP 1.2, DATA-SOURCES.md 4)', () => {
   it('parses msgType test and treats test as a first-class message type', () => {
     const alert = parseCapDocument(fixture('test-message.xml'));
     expect(alert.msgType).toBe('test');
-    expect(validateCapAlert(alert, new Date('2026-09-01T09:00:00Z')).valid).toBe(true);
+    expect(
+      validateCapAlert(alert, new Date('2026-09-01T09:00:00Z')).valid,
+    ).toBe(true);
   });
 
   it('parses a cancel: references the cancelled alert and omits times', () => {
@@ -59,7 +61,10 @@ describe('parseCapDocument (CAP 1.2, DATA-SOURCES.md 4)', () => {
   it('dedupes <inProg> references while preserving document order', () => {
     const alert = parseCapDocument(fixture('update.xml'));
     expect(alert.msgType).toBe('update');
-    expect(alert.references).toEqual(['urn:oid:1.1.2.3-456', 'urn:oid:1.1.2.3-455']);
+    expect(alert.references).toEqual([
+      'urn:oid:1.1.2.3-456',
+      'urn:oid:1.1.2.3-455',
+    ]);
   });
 
   it('parses to headline "" and body null when only an empty <description> exists', () => {

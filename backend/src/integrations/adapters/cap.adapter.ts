@@ -41,12 +41,24 @@ export class CapAdapter implements ProviderAdapter {
     } catch (error) {
       if (error instanceof CapParseError) {
         result.rejected.push(
-          this.rejected('unknown', error.code, rawPayload, fetchedAtIso, error.message),
+          this.rejected(
+            'unknown',
+            error.code,
+            rawPayload,
+            fetchedAtIso,
+            error.message,
+          ),
         );
       } else {
         // Any non-CAPParseError is a parser bug, not untrusted-data shape.
         result.rejected.push(
-          this.rejected('unknown', 'MALFORMED_XML', rawPayload, fetchedAtIso, `unexpected parser error: ${String(error)}`),
+          this.rejected(
+            'unknown',
+            'MALFORMED_XML',
+            rawPayload,
+            fetchedAtIso,
+            `unexpected parser error: ${String(error)}`,
+          ),
         );
       }
       return result;
@@ -76,7 +88,11 @@ export class CapAdapter implements ProviderAdapter {
     return result;
   }
 
-  private normalized(alert: CapAlert, rawPayload: string, fetchedAtIso: string): NormalizedAlert {
+  private normalized(
+    alert: CapAlert,
+    rawPayload: string,
+    fetchedAtIso: string,
+  ): NormalizedAlert {
     return {
       providerKey: this.key,
       sourceId: alert.id,

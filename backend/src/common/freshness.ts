@@ -56,7 +56,8 @@ export function evaluateFreshness(input: FreshnessInput): FreshnessResult {
     };
   }
 
-  const state: FreshnessState = ageMinutes > policyHours * 60 ? 'stale' : 'fresh';
+  const state: FreshnessState =
+    ageMinutes > policyHours * 60 ? 'stale' : 'fresh';
   return {
     state,
     ageMinutes,

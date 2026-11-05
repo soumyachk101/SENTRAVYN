@@ -7,7 +7,9 @@ import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('SENTRAVYN-API');
-  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn'],
+  });
 
   // Security: strict DTO validation at the API boundary (SECURITY.md 3).
   app.useGlobalPipes(

@@ -10,7 +10,13 @@ const FETCHED_AT = new Date('2026-02-12T08:00:00Z');
  * parser tests agree on the exact bytes. The inline string below mirrors the
  * fixture for a checkout that does not carry the file yet.
  */
-const fixturePath = resolve(__dirname, '..', 'fixtures', 'cap', 'sample-alert.xml');
+const fixturePath = resolve(
+  __dirname,
+  '..',
+  'fixtures',
+  'cap',
+  'sample-alert.xml',
+);
 const INLINE_CAP = `<?xml version="1.0" encoding="UTF-8"?>
 <cap version="2.0" xmlns="urn:us:government:fema">
   <alert>
