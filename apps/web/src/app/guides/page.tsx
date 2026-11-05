@@ -22,7 +22,14 @@ export const metadata: Metadata = {
  */
 export default function GuidesIndexPage() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="state-panel" role="status" aria-live="polite">
+          <span className="state-panel__spinner" aria-hidden="true" />
+          <span>Loading guides…</span>
+        </div>
+      }
+    >
       <GuideIndexClient />
     </Suspense>
   );
