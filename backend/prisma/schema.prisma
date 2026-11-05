@@ -271,6 +271,7 @@ model Alert {
 
   revisions  AlertRevision[]
   incidents  Incident[]
+  decisions  AdminReviewDecision[]
 
   @@index([status, publishedAt])
   @@index([externalRef])
@@ -334,6 +335,7 @@ model Place {
 
   evidence   PlaceEvidence[]
   shelters   ShelterProfile[]
+  reviewDecisions AdminReviewDecision[]
 
   @@index([kind, verification])
 }
@@ -363,6 +365,8 @@ model ShelterProfile {
   expiresAt     DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  reviewDecisions AdminReviewDecision[]
 
   @@index([placeId, verification])
 }
@@ -442,9 +446,16 @@ model NotificationAttempt {
 model AdminReviewDecision {
   id        String @id @default(uuid())
   // Exactly one of the entity ids below is set, matching the decision target.
+  // Each is a real foreign key (Gate C: database-level referential integrity)
+  // so a decision row can never point at a target that does not exist. The
+  // review service validates target existence before any write (Gate E); the
+  // FK is the second line of defence.
   alertId   String?
+  alert     Alert? @relation(fields: [alertId], references: [id])
   placeId   String?
+  place     Place? @relation(fields: [placeId], references: [id])
   shelterId String?
+  shelter   ShelterProfile? @relation(fields: [shelterId], references: [id])
   // REVIEW_APPROVED, REVIEW_REJECTED, SHELTER_VERIFIED or SHELTER_STALE.
   decision  String
   rationale String?

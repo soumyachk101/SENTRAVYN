@@ -32,6 +32,7 @@ const KNOWN_ENTITIES = [
   "place",
   "shelter",
   "dataProvider",
+  "guide",
 ] as const;
 
 export default function AuditPage() {

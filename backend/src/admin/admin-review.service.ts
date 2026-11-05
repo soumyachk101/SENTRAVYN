@@ -3,11 +3,12 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
 import { evaluateShelterPolicy } from '../shelters/shelter-policy';
-import type { PublishService } from '../notifications/publish.service';
+import { PublishService } from '../notifications/publish.service';
 import type {
   AdminReviewDecisionDto,
   QueueKind,
@@ -101,7 +102,7 @@ export class AdminReviewService {
     // (unit tests, pre-Phase-6 deployments) keep working; when present,
     // REVIEW_APPROVED enqueues the durable notification fan-out after the
     // alert row is flipped to PUBLISHED.
-    private readonly publish?: PublishService,
+    @Optional() private readonly publish?: PublishService,
   ) {}
 
   /**
@@ -442,17 +443,27 @@ function auditActionForDecision(
   }
 }
 
+/**
+ * The decision target as a Prisma relation connect. The target ids are plain
+ * (non-unique) FK columns, so once the @relation is modelled the Prisma
+ * create input takes `alert`/`place`/`shelter` connect objects, not the bare
+ * scalar (Gate C referential integrity). Exactly one is set, matching the
+ * decision target.
+ */
 function decisionTargetData(
   kind: string,
   id: string,
-): { alertId?: string; placeId?: string; shelterId?: string } {
+):
+  | { alert: { connect: { id: string } } }
+  | { place: { connect: { id: string } } }
+  | { shelter: { connect: { id: string } } } {
   switch (kind) {
     case 'alert':
-      return { alertId: id };
+      return { alert: { connect: { id } } };
     case 'place':
-      return { placeId: id };
+      return { place: { connect: { id } } };
     case 'shelter':
-      return { shelterId: id };
+      return { shelter: { connect: { id } } };
     default:
       throw new BadRequestException(`unknown target kind: ${String(kind)}`);
   }

@@ -7,13 +7,23 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationRepository } from './notification.repository';
-import { NotificationQueueService } from './queue.service';
+import {
+  NotificationQueueService,
+  NOTIFICATION_QUEUE,
+  NOTIFICATION_QUEUE_NAME,
+} from './queue.service';
+import {
+  GatewayService,
+  GATEWAY_OPTIONS,
+} from './gateway/gateway.service';
 import { InjectableNotificationProcessor } from './notification.processor';
-import { PushChannelDelivery } from './push/push-adapters';
+import {
+  PushAdapterRegistry,
+  PushChannelDelivery,
+} from './push/push-adapters';
 import { PublishService } from './publish.service';
 import { SyncService } from './sync.service';
 import { NotificationsController } from './notifications.controller';
-import { GatewayService } from './gateway/gateway.service';
 import { GatewaySocketAuth } from './gateway/gateway.auth';
 
 /**
@@ -72,6 +82,21 @@ class GatewayBootstrap implements OnApplicationBootstrap {
   imports: [PrismaModule, AuditModule, AuthModule],
   controllers: [NotificationsController],
   providers: [
+    {
+      provide: NOTIFICATION_QUEUE_NAME,
+      useValue: NOTIFICATION_QUEUE,
+    },
+    {
+      provide: GATEWAY_OPTIONS,
+      useValue: {},
+    },
+    // The injectable processor depends on the base registry type; the module
+    // builds it as the PushChannelDelivery facade (same class shape, adapter
+    // list built from ConfigService), so alias the token to that provider.
+    {
+      provide: PushAdapterRegistry,
+      useExisting: PushChannelDelivery,
+    },
     NotificationRepository,
     NotificationQueueService,
     InjectableNotificationProcessor,

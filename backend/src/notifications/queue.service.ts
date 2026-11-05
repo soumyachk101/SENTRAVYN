@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   OnModuleDestroy,
+  Inject,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue, type JobsOptions } from 'bullmq';
@@ -56,6 +57,15 @@ export interface EnqueueResult {
 }
 
 /**
+ * DI token for the queue-name override. `queueName` stays a positional
+ * default parameter so tests and the standalone worker can construct the
+ * service by hand; the module registers this token as a provider so Nest
+ * DI resolves constructor index 1 (a plain string paramtype would read as
+ * the unresolvable `String` token).
+ */
+export const NOTIFICATION_QUEUE_NAME = 'NOTIFICATION_QUEUE_NAME';
+
+/**
  * BullMQ producer for notification jobs (Phase 6; ARCHITECTURE.md 6 step 3).
  *
  * Idempotency: every job carries `jobId = dedupKey`, so re-publishing the
@@ -74,6 +84,7 @@ export class NotificationQueueService implements OnModuleDestroy {
    */
   constructor(
     private readonly config: ConfigService,
+    @Inject(NOTIFICATION_QUEUE_NAME)
     private readonly queueName: string = NOTIFICATION_QUEUE,
   ) {}
 

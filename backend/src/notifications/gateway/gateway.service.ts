@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  Inject,
+} from '@nestjs/common';
 import {
   createServer,
   type Server as HttpServer,
@@ -42,6 +47,15 @@ export interface GatewayOptions {
   port?: number;
 }
 
+/**
+ * DI token for the gateway options. The param is an optional plain object
+ * (a runtime `Object` paramtype reads as the unresolvable `Object` token
+ * under Nest DI), so the module registers this string token with a
+ * default value; manual construction (tests) keeps working via the
+ * positional default.
+ */
+export const GATEWAY_OPTIONS = 'GATEWAY_OPTIONS';
+
 @Injectable()
 export class GatewayService implements OnModuleDestroy {
   private readonly logger = new Logger(GatewayService.name);
@@ -54,6 +68,7 @@ export class GatewayService implements OnModuleDestroy {
     private readonly auth: GatewaySocketAuth,
     private readonly sync: SyncService,
     private readonly prisma: PrismaService,
+    @Inject(GATEWAY_OPTIONS)
     private readonly options: GatewayOptions = {},
   ) {}
 

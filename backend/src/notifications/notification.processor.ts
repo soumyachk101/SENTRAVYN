@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { NotificationJobPayload } from './types';
-import type { NotificationRepository } from './notification.repository';
-import type { PushAdapterRegistry } from './push/push-adapters';
+import { NotificationRepository } from './notification.repository';
+import { PushAdapterRegistry } from './push/push-adapters';
 
 /**
  * Outcome of processing one notification job.
