@@ -38,7 +38,7 @@ export class IngestService {
     // Unknown provider: never throw. Register/find the DataProvider row,
     // record a FAILED ProviderFetch, and return a zeroed outcome.
     if (!adapter) {
-      const provider = await this.upsertByKey(providerKey, providerKey);
+      const { provider } = await this.upsertByKey(providerKey, providerKey);
       await this.prisma.providerFetch.create({
         data: {
           providerId: provider.id,
@@ -53,7 +53,29 @@ export class IngestService {
 
     // On-demand ingest registers the provider row if missing; production
     // enablement stays the ADMIN seed/enable path from Phase 2.
-    const provider = await this.upsertByKey(providerKey, adapter.name);
+    const { provider, created: newlyRegistered } = await this.upsertByKey(
+      providerKey,
+      adapter.name,
+    );
+
+    // Controlled production enablement (DATA-SOURCES.md 5.7): a provider row
+    // that already exists and is explicitly DISABLED must not be ingested.
+    // A freshly-registered (on-demand/dev) provider is allowed; an existing
+    // disabled provider is a refusal, not silent ingest. The refusal is
+    // recorded as a FAILED ProviderFetch (fetch/processing status), so the
+    // registry row stays the source of truth for "is this provider live".
+    if (!newlyRegistered && provider.enabled === false) {
+      await this.prisma.providerFetch.create({
+        data: {
+          providerId: provider.id,
+          status: 'FAILED',
+          itemCount: 0,
+          completedAt: now,
+          error: `provider "${providerKey}" is disabled; enable it via the admin registry before ingestion`,
+        },
+      });
+      return this.zeroed(providerKey as ProviderKey);
+    }
 
     const fetchedAt = options?.fetchedAt ?? now;
     const result = adapter.parse(rawPayload, fetchedAt);
@@ -313,12 +335,23 @@ export class IngestService {
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
-  /** Find-or-create the DataProvider row for an on-demand ingest. */
-  private async upsertByKey(key: string, name: string): Promise<DataProvider> {
+  /**
+   * Find-or-create the DataProvider row for an on-demand ingest. Reports
+   * whether the row was just created so the caller can distinguish a fresh
+   * on-demand/dev provider (allowed) from an existing explicitly-disabled
+   * provider (refused — controlled production enablement, DATA-SOURCES.md 5.7).
+   */
+  private async upsertByKey(
+    key: string,
+    name: string,
+  ): Promise<{ provider: DataProvider; created: boolean }> {
     const existing = await this.prisma.dataProvider.findUnique({ where: { key } });
     if (existing) {
-      return existing;
+      return { provider: existing, created: false };
     }
-    return this.prisma.dataProvider.create({ data: { key, name, enabled: false } });
+    const created = await this.prisma.dataProvider.create({
+      data: { key, name, enabled: false },
+    });
+    return { provider: created, created: true };
   }
 }

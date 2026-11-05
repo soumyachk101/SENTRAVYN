@@ -325,6 +325,31 @@ describe('IngestService (Phase 3 pipeline, ADR-005/ADR-007)', () => {
     expect(prisma.rawSourceRecord.create).not.toHaveBeenCalled();
   });
 
+  it('refuses to ingest for an existing explicitly-disabled provider (controlled enablement)', async () => {
+    // An existing registry row with enabled:false is a refusal: no raw record,
+    // no alerts, a FAILED ProviderFetch explaining why (DATA-SOURCES.md 5.7).
+    const { service, prisma } = makeService(
+      makePrisma({ provider: { id: 'provider-1', key: 'gdacs', enabled: false } }),
+    );
+
+    const outcome = await service.ingest('gdacs', gdacsPayload, {
+      fetchRef: 'gdacs-disabled',
+      fetchedAt: FETCHED_AT,
+    });
+
+    expect(outcome).toEqual(zeroed('gdacs'));
+    expect(prisma.rawSourceRecord.create).not.toHaveBeenCalled();
+    expect(prisma.alert.create).not.toHaveBeenCalled();
+    expect(prisma.providerFetch.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'FAILED',
+          error: expect.stringContaining('disabled'),
+        }),
+      }),
+    );
+  });
+
   it('marks a PARTIAL fetch when some records are rejected', async () => {
     const payload = JSON.stringify([
       { eventid: 1, title: 'A', datetime: '2026-02-12T06:00:00Z' },
