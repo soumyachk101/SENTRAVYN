@@ -161,29 +161,40 @@ describe('Socket.IO /alerts gateway (Phase 6, gated on DB)', () => {
       console.log('SKIP: DATABASE_URL not configured; reconnect sync not run');
       return;
     }
-    // Seed two PUBLISHED alerts with distinct revisions.
+    // Seed two PUBLISHED alerts with distinct revisions, SEQUENTIALLY, with
+    // explicit createdAt timestamps: the cursor key (createdAt, alertId,
+    // revision) only orders revisions strictly when their createdAt values
+    // differ, and the alertId is a random UUID (not monotonic). `Promise.all`
+    // seeded both revisions concurrently, so under load their `now()`
+    // commit timestamps could land in the same sub-millisecond window — and
+    // then the composite order fell back to alertId UUID, breaking the
+    // "the second revision is strictly after the cursor" invariant. Explicit
+    // one-second-apart createdAt values remove the clock-resolution
+    // dependency entirely.
     const base = Date.now();
-    const alerts = await Promise.all(
-      [0, 1].map(async (i) => {
-        const externalRef = `gw-sync-${base}-${i}`;
-        const a = await prisma.alert.create({
-          data: {
-            externalRef,
-            status: 'PUBLISHED',
-            headline: `Sync alert ${i}`,
-            issuer: 'Gateway Sync Authority',
-            publishedAt: new Date(base + i * 1000),
-          },
-        });
-        // A slight delay so the composite cursor key (createdAt, alertId,
-        // revision) is strictly increasing across the two seeded rows.
-        await new Promise((r) => setTimeout(r, 5));
-        await prisma.alertRevision.create({
-          data: { alertId: a.id, revision: 1, status: 'PUBLISHED', body: `b${i}` },
-        });
-        return a;
-      }),
-    );
+    const alerts: { id: string }[] = [];
+    for (const i of [0, 1]) {
+      const externalRef = `gw-sync-${base}-${i}`;
+      const a = await prisma.alert.create({
+        data: {
+          externalRef,
+          status: 'PUBLISHED',
+          headline: `Sync alert ${i}`,
+          issuer: 'Gateway Sync Authority',
+          publishedAt: new Date(base + i * 1000),
+        },
+      });
+      await prisma.alertRevision.create({
+        data: {
+          alertId: a.id,
+          revision: 1,
+          status: 'PUBLISHED',
+          body: `b${i}`,
+          createdAt: new Date(base + i * 1000),
+        },
+      });
+      alerts.push(a);
+    }
 
     // Cursor = the first revision (everything up to it is "already seen").
     const firstRev = await prisma.alertRevision.findFirst({
