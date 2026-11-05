@@ -52,15 +52,20 @@ describe('AuditService', () => {
     expect(call.data.detail).toBe('x'.repeat(2000));
   });
 
-  it('AUDIT_ACTIONS contains the 9 canonical keys', () => {
+  it('AUDIT_ACTIONS contains the 14 canonical keys (incl. Phase 9 MFA + session-revoke-all)', () => {
     expect(Object.keys(AUDIT_ACTIONS).sort()).toEqual(
       [
         'ALERT_CANCELLED',
         'ALERT_PUBLISHED',
         'ALERT_UPDATED',
+        'MFA_DISABLED',
+        'MFA_ENABLED',
+        'MFA_SETUP',
+        'MFA_VERIFIED',
         'PROVIDER_CHANGED',
         'SESSION_REFRESHED',
         'SESSION_REVOKED',
+        'SESSION_REVOKED_ALL',
         'SHELTER_REJECTED',
         'SHELTER_VERIFIED',
         'USER_ROLE_CHANGED',

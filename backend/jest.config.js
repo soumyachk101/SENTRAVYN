@@ -5,6 +5,10 @@
  * and require a reachable database. They are run separately via
  * `pnpm test:e2e` (test/jest-e2e.json) and are deliberately EXCLUDED here so
  * the unit suite is fast and infrastructure-free.
+ *
+ * forceExit: the Redis-backed throttler storage opens a lazy ioredis client
+ * whose connection (when REDIS_URL is set) would otherwise hold the Jest
+ * process open after tests complete; forceExit matches the e2e config.
  */
 module.exports = {
   preset: 'ts-jest',
@@ -15,4 +19,5 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }],
   },
+  forceExit: true,
 };

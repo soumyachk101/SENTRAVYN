@@ -2,6 +2,7 @@ import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AuditService, AUDIT_ACTIONS } from './audit.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/rbac/roles.guard';
@@ -35,6 +36,7 @@ export class AuditListQuery {
 @ApiTags('audit')
 @Controller('admin/audit')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@SkipThrottle({ auth: true })
 export class AuditController {
   constructor(private readonly audit: AuditService) {}
 

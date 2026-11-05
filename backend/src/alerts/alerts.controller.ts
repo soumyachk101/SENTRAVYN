@@ -1,9 +1,15 @@
 import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AlertsService, AlertListQuery, AlertDetail } from './alerts.service';
 
+/**
+ * Non-auth surface: governed only by the general `default` rate limit
+ * (throttling.module.ts, SECURITY.md 3).
+ */
 @ApiTags('alerts')
 @Controller('alerts')
+@SkipThrottle({ auth: true })
 export class AlertsController {
   constructor(private readonly alerts: AlertsService) {}
 

@@ -10,6 +10,7 @@ import { AuditModule } from './audit/audit.module';
 import { ProvidersModule } from './providers/providers.module';
 import { AdminReviewModule } from './admin/admin-review.module';
 import { IngestModule } from './integrations/ingest.module';
+import { ThrottlingModule } from './common/throttling/throttling.module';
 
 @Module({
   imports: [
@@ -32,6 +33,9 @@ import { IngestModule } from './integrations/ingest.module';
     AdminReviewModule,
     // Phase 3: provider adapters + ingestion pipeline.
     IngestModule,
+    // Phase 9: global rate limiting (SECURITY.md 3) — APP_GUARD ThrottlerGuard,
+    // Redis-backed storage (degrades to no-op when REDIS_URL is unset).
+    ThrottlingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

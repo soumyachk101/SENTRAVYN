@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
 import { AUDIT_ACTIONS } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MfaService } from './mfa/mfa.service';
 
 /**
  * Precomputed bcrypt hash of a fixed dummy string. Used when an account does
@@ -39,6 +40,11 @@ interface UserRecord {
   passwordHash: string;
 }
 
+/** User row as read for MFA gating (superset of the persisted fields). */
+interface UserRecordWithMfa extends UserRecord {
+  mfaEnabled: boolean;
+}
+
 interface SessionRecord {
   id: string;
   userId: string;
@@ -61,12 +67,41 @@ export interface AuthTokens {
   user: PublicUser;
 }
 
+/**
+ * A privileged login that must complete its MFA step returns no full tokens;
+ * instead a short-lived pending token (valid 5 minutes) plus the required MFA
+ * type. The client posts this plus a TOTP/recovery code to
+ * POST /auth/mfa/complete to exchange it for the real token pair.
+ */
+export interface MfaPendingLogin {
+  mfaPending: true;
+  mfaTempToken: string;
+  /** How many single-use recovery codes remain, so the UI can hint. */
+  recoveryCodesRemaining: number;
+}
+
+/**
+ * Public session view returned by GET /auth/sessions. Deliberately omits
+ * tokenHash: the refresh-token material is a stored sha256 hash and is never
+ * returned by any API surface (SECURITY.md 4).
+ */
+export interface SessionView {
+  id: string;
+  userAgent: string | null;
+  ip: string | null;
+  createdAt: Date;
+  /** Always null in the active-session listing; kept for shape stability. */
+  revokedAt: Date | null;
+  expiresAt: Date;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly jwt: JwtService,
+    private readonly mfa: MfaService,
   ) {}
 
   /**
@@ -95,20 +130,60 @@ export class AuthService {
   }
 
   /**
-   * Validates credentials and issues a token pair.
+   * Validates credentials. For a non-privileged account, or a privileged
+   * account that has NOT enrolled MFA, issues a full token pair. For a
+   * privileged account with MFA enabled, issues only a short-lived pending
+   * MFA token: the caller must complete the second factor before obtaining
+   * real tokens (MFA pending contract, docs/SECURITY.md section 2).
    *
    * The bcrypt compare always runs (against a dummy hash when the account
    * does not exist) so response time does not leak account existence. Error
    * text is deliberately the same for missing account and wrong password
    * (SECURITY.md 2).
    */
-  async login(email: string, password: string): Promise<AuthTokens> {
+  async login(
+    email: string,
+    password: string,
+  ): Promise<AuthTokens | MfaPendingLogin> {
     const normalized = email.toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email: normalized } });
     const hash = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
     const matches = await bcrypt.compare(password, hash);
     if (!user || !matches) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+    // Privileged role + MFA enrolled: gate the second factor before issuing
+    // any usable tokens. Non-privileged and MFA-unenrolled accounts flow
+    // through to the full token pair (recovery of a privileged account that
+    // has never enrolled MFA is possible, matching the "optional" posture).
+    if (this.mfa.requiresMfaStep(user as unknown as UserRecordWithMfa)) {
+      const status = await this.mfa.status(user.id);
+      const mfaTempToken = await this.mfa.issuePendingToken(
+        user as unknown as UserRecordWithMfa,
+      );
+      return {
+        mfaPending: true,
+        mfaTempToken,
+        recoveryCodesRemaining: status.recoveryCodesRemaining,
+      };
+    }
+    return this.issueTokens(user as unknown as UserRecord);
+  }
+
+  /**
+   * Completes the privileged login MFA step: verifies the pending token plus
+   * a valid second factor, then issues the full token pair for that subject.
+   * Fails closed when the pending token is invalid or the account's MFA is
+   * corrupt.
+   */
+  async completeMfaLogin(
+    mfaTempToken: string,
+    code: string,
+  ): Promise<AuthTokens> {
+    const subject = await this.mfa.verifyPending(mfaTempToken, code);
+    const user = await this.prisma.user.findUnique({ where: { id: subject.id } });
+    if (!user) {
+      throw new UnauthorizedException('Invalid MFA request subject');
     }
     return this.issueTokens(user as unknown as UserRecord);
   }
@@ -195,6 +270,84 @@ export class AuthService {
       throw new UnauthorizedException('Invalid access token');
     }
     return toPublicUser(user as unknown as UserRecord);
+  }
+
+  /**
+   * Lists the caller's active sessions (unrevoked, unexpired), most recent
+   * first. Only session metadata is exposed (creation/revocation/expiry,
+   * captured user agent and ip) — the refresh-token hash is never returned
+   * (SECURITY.md 4).
+   */
+  async listSessions(userId: string): Promise<SessionView[]> {
+    const now = new Date();
+    const sessions = await this.prisma.session.findMany({
+      where: {
+        userId,
+        revokedAt: null,
+        expiresAt: { gt: now },
+      },
+      orderBy: { createdAt: 'desc' },
+      // Explicit projection: tokenHash is intentionally NOT selected so the
+      // stored refresh-token material never reaches a response body.
+      select: {
+        id: true,
+        userAgent: true,
+        ip: true,
+        createdAt: true,
+        revokedAt: true,
+        expiresAt: true,
+      },
+    });
+    return sessions as unknown as SessionView[];
+  }
+
+  /**
+   * Revokes a single session by id, owned by the caller. Idempotent: a
+   * missing, foreign, or already-revoked session id is a no-op, not an
+   * error. Audited under SESSION_REVOKED.
+   */
+  async revokeSession(userId: string, sessionId: string): Promise<void> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+    if (!session || session.userId !== userId || session.revokedAt !== null) {
+      return;
+    }
+    await this.prisma.session.update({
+      where: { id: sessionId },
+      data: { revokedAt: new Date() },
+    });
+    await this.writeAudit(
+      userId,
+      AUDIT_ACTIONS.SESSION_REVOKED,
+      'session',
+      sessionId,
+      'revoke-session',
+    );
+  }
+
+  /**
+   * Credential-compromise path (SECURITY.md section 2: "Revoke sessions
+   * after credential compromise"). Marks every active session for the user
+   * revoked in one update, so all previously issued refresh tokens stop
+   * working. The currently-presenting session is not exempt: the caller must
+   * re-authenticate (a fresh session is created on the next login). Audited
+   * under SESSION_REVOKED_ALL with the affected count.
+   */
+  async revokeAllSessions(userId: string, detail?: string): Promise<number> {
+    const now = new Date();
+    const result = await this.prisma.session.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: now },
+    });
+    await this.writeAudit(
+      userId,
+      AUDIT_ACTIONS.SESSION_REVOKED_ALL,
+      'session',
+      userId,
+      detail ?? `revoked ${result.count} active session(s)`,
+    );
+    return result.count;
   }
 
   // ------------------------------------------------------------------ private

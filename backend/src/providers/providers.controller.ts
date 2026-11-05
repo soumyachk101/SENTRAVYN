@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/rbac/roles.guard';
 import { CurrentUser, AuthUser } from '../common/rbac/current-user.decorator';
@@ -21,6 +22,7 @@ import { ProviderUpsertDto, ProvidersSeedDto } from './providers.dto';
 @ApiTags('providers')
 @Controller('providers')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@SkipThrottle({ auth: true })
 export class ProvidersController {
   constructor(private readonly providers: ProvidersService) {}
 

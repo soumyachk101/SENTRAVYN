@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/rbac/roles.guard';
 import { Roles } from '../common/rbac/roles.decorator';
@@ -25,6 +26,7 @@ import {
 @ApiTags('admin-review')
 @Controller('admin/review')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@SkipThrottle({ auth: true })
 export class AdminReviewController {
   constructor(private readonly review: AdminReviewService) {}
 
