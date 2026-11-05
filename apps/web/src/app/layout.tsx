@@ -14,15 +14,24 @@ import {
   plexMonoLatinExt,
 } from '@/lib/fonts';
 import { PwaRegistrar } from '@/components/PwaRegistrar';
+import { JsonLdScript } from '@/components/JsonLdScript';
+import { siteGraph, webBaseUrl } from '@/lib/jsonld';
 import './globals.css';
 
 // The canonical origin for absolute-URL metadata (canonical/OG tags). A real
 // deployment sets NEXT_PUBLIC_WEB_BASE_URL; until then we fall back to the
 // example domain rather than fabricate a production host (CLAUDE.md: never
-// claim a domain without evidence).
-const METADATA_BASE = new URL(
-  process.env.NEXT_PUBLIC_WEB_BASE_URL ?? 'https://sentravyn.example',
-);
+// claim a domain without evidence). Shared with robots/sitemap/JSON-LD via
+// webBaseUrl() so the origin can never drift between them.
+const METADATA_BASE = new URL(webBaseUrl());
+
+// Site-wide Organization + WebSite structured data (the actual publisher,
+// factual only — no logo, ratings or invented credentials). This Next
+// version's Metadata type has no `jsonLd` key, so the recommended pattern is
+// an inline <script type="application/ld+json"> in the layout, rendered
+// below via JsonLdScript. Per-page graphs (the guide TechArticle) render
+// their own script tags where that data exists.
+const SITE_JSONLD = siteGraph(webBaseUrl());
 
 export const metadata: Metadata = {
   metadataBase: METADATA_BASE,
@@ -37,6 +46,18 @@ export const metadata: Metadata = {
     'operational emergency service.',
   manifest: '/manifest.webmanifest',
   applicationName: 'SENTRAVYN',
+  // Open Graph / social-card metadata from real, factual content only (no
+  // invented images, ratings or claims — docs/SEO-AEO-GEO.md). Absolute URLs
+  // resolve against metadataBase.
+  openGraph: {
+    type: 'website',
+    siteName: 'SENTRAVYN',
+    title: 'SENTRAVYN — Global Emergency Intelligence & Public Safety',
+    description:
+      'Authoritative emergency alerts, reviewed protective guidance, nearby ' +
+      'emergency services and household preparedness. An information and ' +
+      'preparedness platform, not an operational emergency service.',
+  },
 };
 
 export const viewport: Viewport = {
@@ -72,6 +93,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className={fontClasses} style={FONT_VARS as CSSProperties}>
         <PwaRegistrar />
         <Background />
+        {/* Organization + WebSite structured data, site-wide. */}
+        <JsonLdScript graph={SITE_JSONLD} />
         <div className="app-shell">
           <a className="skip-link" href="#main">
             Skip to content

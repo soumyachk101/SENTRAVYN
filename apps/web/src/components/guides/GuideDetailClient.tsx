@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { type LocaleStrings } from '@sentravyn/localization';
 import { getGuideDetail } from '@/lib/guides';
@@ -10,6 +10,8 @@ import {
   formatGuideDateTime,
   humanizeHazard,
 } from '@/lib/guide-format';
+import { guideArticleGraph, webBaseUrl } from '@/lib/jsonld';
+import { JsonLdScript } from '@/components/JsonLdScript';
 import {
   GuideErrorPanel,
   GuideLoadingPanel,
@@ -81,8 +83,31 @@ export function GuideDetailClient({ id }: { id: string }) {
   const showStale =
     state.status === 'ready' && state.detail.freshness !== 'fresh';
 
+  // Structured data for this guide — emitted ONLY when the real record has
+  // loaded (state ready), never guessed. Missing author/reviewer/references
+  // are omitted inside the graph, not invented. The `TechArticle` is a
+  // sibling to the visible <article> that the GuideDetailBody renders.
+  const articleGraph = useMemo(() => {
+    if (state.status !== 'ready') return null;
+    const d = state.detail;
+    const headline = d.jurisdiction
+      ? `${humanizeHazard(d.hazardType)} — ${d.jurisdiction}`
+      : humanizeHazard(d.hazardType);
+    return guideArticleGraph({
+      url: `${webBaseUrl()}/guides/${encodeURIComponent(d.id)}`,
+      headline,
+      author: d.author,
+      reviewer: d.reviewer,
+      datePublished: d.createdAt,
+      dateModified: d.updatedAt,
+      language: d.language,
+      references: d.references,
+    });
+  }, [state]);
+
   return (
     <section className="guide-page">
+      <JsonLdScript graph={articleGraph} />
       <p className="guide-page__eyebrow">Safety guide</p>
       <Link href="/guides" className="guide-back">
         All guides
