@@ -156,23 +156,17 @@ export function CinematicFooter() {
             <h3>Preparedness</h3>
             <ul>
               <li>
-                <a href="/alerts" className="planned">
-                  Emergency alerts
-                </a>
+                <Link href="/alerts">Emergency alerts</Link>
               </li>
               {/* /guides is a real page now (Phase 5): live link, no .planned. */}
               <li>
                 <Link href="/guides">Safety guides</Link>
               </li>
               <li>
-                <a href="/map" className="planned">
-                  Emergency map
-                </a>
+                <Link href="/map">Emergency map</Link>
               </li>
               <li>
-                <a href="/prepare" className="planned">
-                  Household preparedness
-                </a>
+                <Link href="/prepare">Household preparedness</Link>
               </li>
             </ul>
           </div>
@@ -180,19 +174,13 @@ export function CinematicFooter() {
             <h3>Trust &amp; sources</h3>
             <ul>
               <li>
-                <a href="/data-sources" className="planned">
-                  Data sources
-                </a>
+                <Link href="/data-sources">Data sources</Link>
               </li>
               <li>
-                <a href="/verification" className="planned">
-                  Place verification
-                </a>
+                <Link href="/verification">Place verification</Link>
               </li>
               <li>
-                <a href="/about" className="planned">
-                  About SENTRAVYN
-                </a>
+                <Link href="/about">About SENTRAVYN</Link>
               </li>
             </ul>
           </div>
@@ -200,24 +188,16 @@ export function CinematicFooter() {
             <h3>Legal &amp; privacy</h3>
             <ul>
               <li>
-                <a href="/privacy" className="planned">
-                  Privacy
-                </a>
+                <Link href="/privacy">Privacy</Link>
               </li>
               <li>
-                <a href="/security" className="planned">
-                  Security
-                </a>
+                <Link href="/security">Security</Link>
               </li>
               <li>
-                <a href="/terms" className="planned">
-                  Terms
-                </a>
+                <Link href="/terms">Terms</Link>
               </li>
               <li>
-                <a href="/contact" className="planned">
-                  Contact
-                </a>
+                <Link href="/contact">Contact</Link>
               </li>
             </ul>
           </div>
