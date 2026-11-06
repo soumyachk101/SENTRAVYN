@@ -1,0 +1,22 @@
+# gitleaks configuration for SENTRAVYN.
+#
+# Pinned in .github/workflows/ci.yml (gitleaks-action, GITLEAKS_VERSION=8.24.3).
+# No `[[rules]]` here: when a config file omits rules, gitleaks applies its
+# full built-in default ruleset (including generic-api-key) and layers this
+# allowlist on top. Since gitleaks v8.13 a custom config no longer
+# auto-merges the built-in ruleset, so `useDefaultConfig = true` below is
+# required to keep the full default rules in force.
+#
+# It is intentionally scoped to ONE value in ONE file — a deterministic TOTP
+# test fixture used by the MFA e2e spec, not a live credential. If a new
+# fixture or a real-looking secret is ever committed, the scan must stay red
+# and the value must be rotated/removed, not allowlisted here.
+
+# Keep gitleaks' full built-in default ruleset in force and layer this
+# allowlist on top (v8.13+ replaces the default config otherwise).
+useDefaultConfig = true
+
+[allowlist]
+description = "Deterministic TOTP shared-secret fixture in the MFA e2e spec (backend/test/e2e/mfa-sessions.e2e-spec.ts). A known test constant so the suite is reproducible; not a credential."
+paths = ['(^|/)backend/test/e2e/mfa-sessions\.e2e-spec\.ts$']
+regexes = ['KRSZG4T7O2Q6YQY3I6BZDQZQ']
