@@ -116,6 +116,12 @@ jobs:
       # working; this repo's timeline is post-cutover). The gitleaks binary
       # is pinned to GITLEAKS_VERSION=8.24.3 instead of the runtime-unpinned
       # "very latest" install, so the exact signed release is deterministic.
+      #
+      # Config: the action runs `detect` at the repo root, where gitleaks
+      # auto-detects .gitleaks.toml (useDefaultConfig=true + a scoped
+      # allowlist for the one deterministic TOTP test fixture in
+      # backend/test/e2e/mfa-sessions.e2e-spec.ts). That allowlist is a
+      # documented exception, not a suppress: real secrets still fail here.
       - name: Secret scan (gitleaks)
         uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
         env:
