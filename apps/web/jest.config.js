@@ -23,6 +23,8 @@ module.exports = {
   },
   transformIgnorePatterns: ['node_modules/(?!maplibre-gl)'],
   moduleNameMapper: {
+    '^maplibre-gl$': '<rootDir>/src/test/stubs/maplibre-gl.ts',
+    '^maplibre-gl/dist/(.*)\\.css$': 'identity-obj-proxy',
     '\\.(css|less|scss)$': 'identity-obj-proxy',
     '^@/(.*)$': '<rootDir>/src/$1',
   },

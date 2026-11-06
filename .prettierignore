@@ -43,6 +43,9 @@ backend/prisma/migrations/
 .env
 .env.*
 
+# Local agent worktrees (gitignored; never present in a CI checkout)
+.claude/
+
 # YAML (CI workflow + workspace build-allowlists) stay hand-managed;
 # Prettier reflowing them is not worth the diff noise
 *.yml
