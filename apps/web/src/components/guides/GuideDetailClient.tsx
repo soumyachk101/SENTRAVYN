@@ -10,7 +10,11 @@ import {
   formatGuideDateTime,
   humanizeHazard,
 } from '@/lib/guide-format';
-import { guideArticleGraph, webBaseUrl } from '@/lib/jsonld';
+import {
+  guideArticleGraph,
+  guideBreadcrumbGraph,
+  webBaseUrl,
+} from '@/lib/jsonld';
 import { JsonLdScript } from '@/components/JsonLdScript';
 import {
   GuideErrorPanel,
@@ -84,9 +88,12 @@ export function GuideDetailClient({ id }: { id: string }) {
     state.status === 'ready' && state.detail.freshness !== 'fresh';
 
   // Structured data for this guide — emitted ONLY when the real record has
-  // loaded (state ready), never guessed. Missing author/reviewer/references
-  // are omitted inside the graph, not invented. The `TechArticle` is a
-  // sibling to the visible <article> that the GuideDetailBody renders.
+  // loaded (state ready), never guessed. Missing author/reviewer/authority/
+  // references/lastReviewedAt are omitted inside the graph, not invented.
+  // The `TechArticle` is a sibling to the visible <article> that the
+  // GuideDetailBody renders; the `BreadcrumbList` mirrors the visible
+  // "All guides" back-link (Home > Safety guides > this guide).
+  const base = useMemo(() => webBaseUrl(), []);
   const articleGraph = useMemo(() => {
     if (state.status !== 'ready') return null;
     const d = state.detail;
@@ -94,20 +101,36 @@ export function GuideDetailClient({ id }: { id: string }) {
       ? `${humanizeHazard(d.hazardType)} — ${d.jurisdiction}`
       : humanizeHazard(d.hazardType);
     return guideArticleGraph({
-      url: `${webBaseUrl()}/guides/${encodeURIComponent(d.id)}`,
+      url: `${base}/guides/${encodeURIComponent(d.id)}`,
       headline,
       author: d.author,
       reviewer: d.reviewer,
+      authority: d.authority,
+      lastReviewedAt: d.lastReviewedAt,
       datePublished: d.createdAt,
       dateModified: d.updatedAt,
       language: d.language,
       references: d.references,
     });
-  }, [state]);
+  }, [state, base]);
+
+  const breadcrumbGraph = useMemo(() => {
+    if (state.status !== 'ready') return null;
+    const d = state.detail;
+    const headline = d.jurisdiction
+      ? `${humanizeHazard(d.hazardType)} — ${d.jurisdiction}`
+      : humanizeHazard(d.hazardType);
+    return guideBreadcrumbGraph(
+      base,
+      `${base}/guides/${encodeURIComponent(d.id)}`,
+      headline,
+    );
+  }, [state, base]);
 
   return (
     <section className="guide-page">
       <JsonLdScript graph={articleGraph} />
+      <JsonLdScript graph={breadcrumbGraph} />
       <p className="guide-page__eyebrow">Safety guide</p>
       <Link href="/guides" className="guide-back">
         All guides

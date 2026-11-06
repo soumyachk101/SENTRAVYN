@@ -9,97 +9,109 @@ citation is claimed anywhere in this document.
 
 ## Scope and method
 
-- Static audit of the route files, layouts, robots, sitemap and structured
-  data in `apps/web`.
+- Static audit of the route files, layout, robots, sitemap, structured data,
+  OG metadata and `llms.txt` in `apps/web`.
 - The admin app (`apps/admin`) is a separate deployable and is **excluded
   from the public sitemap and indexable surface** by design. Its routes
-  (login, review, audit, provider/security configuration, account) are
-  never indexable.
+  (login, review, audit, provider/security configuration, account) are never
+  indexable.
 - Core Web Vitals, crawler runs and webmaster-account actions are
   `NOT RUN` / `NOT CONFIGURED` for the reasons listed at the bottom of each
   section.
 
 ## Page-by-page findings
 
-### `/` (home — `src/app/page.tsx`)
+Coverage legend: "title" = per-route `<title>` (via the layout template
+`%s — SENTRAVYN`); "description" = meta description; "H1" = a semantic
+`<h1>` present in the served HTML; "canonical" = an explicit
+`<link rel="canonical">` tag (the site relies on stable absolute URLs, the
+sitemap and `metadataBase`; no explicit canonical tags are emitted today).
 
-| Item | Status | Evidence / note |
-| --- | --- | --- |
-| Title | PASS | Inherited default + template from `layout.tsx`: `SENTRAVYN — Global Emergency Intelligence & Public Safety` |
-| Meta description | PASS | Present in `layout.tsx` (site-wide), plus `metadata.description` on the page |
-| H1 | PASS | Single H1 in the hero ("Know Where to Go. / Know What to Do. / Stay Prepared.") |
-| Canonical | WARN | No per-page `canonical` tag; absolute URLs derive from `metadataBase` (env-driven, never fabricated). Acceptable but not explicit |
-| robots directives | PASS | Indexable; no `noindex` set |
-| Structured data | PASS (b2-seo) | `Organization` + `WebSite` emitted site-wide via `layout.tsx` `jsonLd` (`@/lib/jsonld` `siteGraph`), so the home page carries it |
-| OG card | PASS (b2-seo) | `openGraph` added to `layout.tsx` metadata (siteName, type, factual title/description) |
-| Empty/error states | PASS | Preparedness static content, no data-driven panel; limitation copy present |
+| Route | Title | Description | H1 | Canonical | Indexable (robots/sitemap) | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| `/` | PASS (default) | PASS (layout + page) | PASS (hero) | WARN (none explicit) | PASS | Organization + WebSite JSON-LD site-wide; OG type/siteName set |
+| `/guides` | PASS | PASS | WARN (client-rendered; pre-hydration HTML is the Suspense loading fallback) | WARN | PASS | H1 exists in the hydrated DOM (`GuideIndexClient`) |
+| `/guides/[id]` | WARN (static `Safety guide`; the record loads client-side, so the per-guide title is not server-rendered) | PASS (page-level) | WARN (client-rendered from the real record) | WARN | PASS (guides fetched from the public API in `sitemap.ts`) | TechArticle + BreadcrumbList JSON-LD emitted when the record loads; `instant = false` (blocking, non-prerendered route under `cacheComponents`) |
+| `/map` | PASS | PASS (states dev-only tiles honestly) | WARN (page uses an `h2` + `aria-label`, no semantic `<h1>`) | WARN | PASS | Map UI; no structured data appropriate — correctly none |
+| `/alerts`, `/prepare`, `/about`, `/contact`, `/data-sources`, `/verification`, `/privacy`, `/terms` | n/a (not in this build) | n/a | n/a | n/a | PASS as constant sitemap entries | Public content pages owned by sibling workstream `b1-web-pages`; `robots.ts`/`sitemap.ts` carry them as constant URL entries (a sitemap entry is a URL, not a guarantee the page already renders) |
+| `apps/admin` (login, guides, review, audit, providers, security, account) | — | — | — | — | EXCLUDED | Disallowed in robots (`/admin/`, `/login`, `/account/`); separate deployable; never indexable (SECURITY.md 5) |
 
-### `/guides` (guide index — `src/app/guides/page.tsx`)
+Excluded by design (never sitemap, never crawlable): `/api/*` (the versioned
+backend API, disallowed in robots), user-specific location and private
+contacts (SECURITY.md 5), transient search-result query pages.
 
-| Item | Status | Evidence / note |
-| --- | --- | --- |
-| Title | PASS | `Safety guides — SENTRAVYN` (template applied) |
-| Meta description | PASS | Page-level `metadata.description` |
-| H1 | PASS (client) | H1 rendered by `GuideIndexClient` (`guide-page__title`); server HTML contains the Suspense fallback, so a JS-disabled crawler sees the loading fallback, not the H1 — known limitation of the client-fetched index |
-| Canonical | WARN | None set explicitly |
-| robots directives | PASS | Indexable; `/guides` allowed in `robots.ts` |
-| Structured data | PASS (b2-seo) | No article-level data on the index (correct: no single article); `CollectionPage` intentionally not asserted |
-| Data states | PASS | Loading/empty/error/offline/stale panels in `GuideIndexClient` |
+## robots.txt (`apps/web/src/app/robots.ts`)
 
-### `/guides/[id]` (guide detail — `src/app/guides/[id]/page.tsx`)
+- `User-agent: *` with `Allow: /` (the whole public site is crawlable) and
+  `Disallow: /admin/`, `/login`, `/account/`, `/api/` (the more-specific
+  disallow wins over the wildcard allow).
+- `Sitemap:` line is env-driven from the shared `webBaseUrl()`
+  (`NEXT_PUBLIC_WEB_BASE_URL`, fallback `https://sentravyn.example`) — the
+  same single source of truth as the layout's `metadataBase`, so the origin
+  can never drift. No fabricated production domain.
+- Honest policy note: public preparedness content is indexable; stale or
+  unverified data is labelled on the page; page text, not URL structure, is
+  the source of record.
 
-| Item | Status | Evidence / note |
-| --- | --- | --- |
-| Title | PASS | `Safety guide — SENTRAVYN` (page-level metadata); per-guide dynamic title not set at build time because the record loads client-side (`instant = false` escaping `cacheComponents`) |
-| Meta description | PASS | Page-level `metadata.description` |
-| H1 | PASS (client) | Rendered from the real record in `GuideDetailBody` (hazard + jurisdiction); empty/error states have no H1 by design (nothing to title) |
-| Canonical | WARN | URL is stable and in the sitemap (added per published guide in `sitemap.ts`), but no explicit `<link rel="canonical">` tag |
-| robots directives | PASS | Allowed via `/guides/` in `robots.ts`; dynamic route is `instant = false` (rendered per request) |
-| Structured data | PASS (b2-seo) | `TechArticle` emitted by `GuideDetailClient` via `JsonLdScript` **only when the real record has loaded**: author/reviewer only when present, references only when they are genuine URLs, `datePublished`/`dateModified` from the record's `createdAt`/`updatedAt`. No FAQPage, no invented ratings/credentials |
-| Data states | PASS | Loading / error / offline / not-found / stale panels |
+## Sitemap (`apps/web/src/app/sitemap.ts`)
 
-### `/map` (place discovery — `src/app/map/page.tsx`)
+- Constant entries: `/`, `/guides`, `/map`, `/alerts`, `/prepare`, `/about`,
+  `/contact`, `/data-sources`, `/verification`, `/privacy`, `/terms` — the
+  public indexable routes, with **no `lastmod`** (the doc forbids a fake
+  "every build" date; the real content date for a constant route is not
+  available at runtime).
+- Dynamic entries: one per **published guide** (`GET /guides`, which the
+  backend already constrains to APPROVED/PUBLISHED via `publicOnly`),
+  `lastmod` = the guide's real `updatedAt`. Fetched at request time with a
+  3 s timeout; on any failure (offline, non-200, malformed row) the sitemap
+  degrades to the constant routes and logs a warning — it never blocks and
+  never invents entries.
 
-| Item | Status | Evidence / note |
-| --- | --- | --- |
-| Title | PASS | `Emergency map — SENTRAVYN` |
-| Meta description | PASS | Page-level `metadata.description` (states dev-only tiles honestly) |
-| H1 | WARN | The panel uses an `aria-label="Emergency map"` section with an `h2` title; no semantic `<h1>` on the page |
-| Canonical | WARN | None set explicitly |
-| robots directives | PASS | Allowed in `robots.ts` |
-| Structured data | PASS (n/a) | No structured data appropriate to a map UI; correctly none emitted |
-| Data states | PASS | Loading / empty / error / stale / offline all present in `MapPanel` |
+## Structured data (JSON-LD, `apps/web/src/lib/jsonld.ts`)
 
-### Admin app (`apps/admin`) — excluded
+- **Organization + WebSite** (the actual publisher): emitted site-wide in
+  the root layout as an inline `<script type="application/ld+json">`
+  (`JsonLdScript`), so every served page carries it in the HTML. Factual
+  only — no logo, founding data, ratings or invented credentials.
+- **TechArticle** on `/guides/[id]`, emitted only when the real record has
+  loaded (client fetch, `GuideDetailClient`): `headline`, `url`,
+  `inLanguage`, `datePublished` (`createdAt`), `dateModified` (`updatedAt`),
+  `publisher` (inlined Organization), plus **only when the record carries
+  them**: `author`, `reviewer`, `authority`, `lastReviewed`
+  (`lastReviewedAt`) and `isBasedOn` (the guide's recorded http(s) source
+  references — non-URL citation strings are dropped, never forced into a
+  false property). Null fields are omitted, never invented.
+- **BreadcrumbList** on `/guides/[id]`: mirrors the visible "All guides"
+  back-link (Home > Safety guides > this guide).
+- **No FAQPage**: there is no visible FAQ content on the public surface, so
+  none is emitted (the doc requires FAQPage only where actual visible Q&A
+  exists; inventing one is decorative and was rejected).
+- Shape is covered by `apps/web/src/lib/__tests__/jsonld.test.ts` (asserts
+  null optional fields are omitted; asserts no FAQPage/rating fields are
+  ever emitted).
+- Validation in the Rich Results Test / Schema Markup Validator: **NOT RUN**
+  (no live deployment).
 
-- `apps/admin/src/app` contains `login`, `audit`, `guides`, `providers`,
-  `review`, `security` and account-related routes.
-- **Not** in the public sitemap; `/admin/`, `/login`, `/account/`, `/api/`
-  are disallowed in `robots.ts` (the web app is a separate deployable, so the
-  robots rules are defensive rather than load-bearing).
-- Rationale (SECURITY.md 5): user-specific location, private contacts and
-  operational data must not be indexed.
+## Open Graph / social cards
 
-### Routes in flight (sibling workstream) — excluded on purpose
+- `layout.tsx` `openGraph`: `type: 'website'`, `siteName: 'SENTRAVYN'`,
+  factual title/description, all absolute URLs resolving against the
+  env-driven `metadataBase`.
+- `og:image`: **intentionally omitted.** The only real image asset is the
+  SVG manifest icon (`/icons/icon.svg`), which social platforms do not
+  render as an og:image; generating a branded PNG placeholder would
+  fabricate an asset that does not exist, so the tag is left out and a real
+  branded OG asset is a follow-up. No fake image is referenced.
+- No invented ratings, reviews or organization credentials anywhere.
 
-`/alerts`, `/prepare`, `/about`, `/contact`, `/data-sources`, `/verification`,
-`/privacy`, `/terms` do **not exist** in this worktree. Neither `robots.ts`
-nor `sitemap.ts` lists them; both carry a code comment to add each route in
-a follow-up once it exists. No fabricated route entries.
+## llms.txt (`apps/web/public/llms.txt`)
 
-## robots.txt and sitemap (`b2-seo` additions)
-
-- `src/app/robots.ts` — `MetadataRoute.Robots`: allow the existing public
-  routes (`/`, `/guides`, `/guides/`, `/map`); disallow `/admin/`, `/login`,
-  `/account/`, `/api/`; sitemap URL env-driven from the shared
-  `webBaseUrl()` (never a fabricated domain).
-- `src/app/sitemap.ts` — static entries for `/`, `/guides`, `/map` with
-  `lastModified` **omitted** (no real per-page content date is available at
-  runtime; the doc forbids a fake "every build" date) + one entry per
-  **published guide** with the guide's real `updatedAt`, fetched from
-  `GET /guides` with a 3 s timeout; on any API failure the sitemap degrades
-  to the static routes and logs a warning — it never blocks and never
-  invents entries.
+Short, informational: what SENTRAVYN is, the public route list, the
+preparedness disclaimer, and an explicit statement that the file is
+informational for language-model and human readers — **not** a crawler
+contract and not a guarantee that any AI engine or search engine will
+index, rank or cite the content. The authoritative crawling policy remains
+`robots.txt` + `sitemap.xml`.
 
 ## Core Web Vitals
 
@@ -109,29 +121,34 @@ Checks to perform when deployed: LCP, INP and CLS on `/`, `/guides` and
 The map page is the likely LCP risk (canvas + tiles); nothing here claims a
 metric.
 
-## Search engines & discovery — owner action required
+## Search engines & discovery — owner steps (copied from docs/SEARCH-CONSOLE-SETUP.md; all NOT CONFIGURED)
 
-- **Google Search Console:** `NOT CONFIGURED — pending owner`. Steps in
-  `docs/SEO-AEO-GEO.md` (domain property, DNS TXT token). No verification
-  token is stored or claimed; no indexing or ranking is asserted.
-- **Bing Webmaster Tools:** `NOT CONFIGURED — pending owner`. Same rule;
-  sitemap submission happens after real domain control.
-- **IndexNow:** `NOT CONFIGURED — pending owner`. No key generated or
-  hosted; the worker is out of this workstream's scope and must only ever
-  send changed canonical URLs for public pages.
-- `llms.txt`: optional per the doc; not shipped. No claim is made that any
-  AI engine will index or cite SENTRAVYN content.
+| Item | Status |
+| --- | --- |
+| Production domain | **NOT SELECTED** (owner action: purchase/control a real domain, then set `NEXT_PUBLIC_WEB_BASE_URL`) |
+| Google Search Console | **NOT CONFIGURED — PENDING OWNER** (domain property + DNS TXT token or URL-prefix verification at search.google.com/search-console; never invent a token; store issued values in env only after issuance) |
+| Bing Webmaster Tools | **NOT CONFIGURED — PENDING OWNER** (import the verified GSC property, or verify via supported DNS/meta/file methods at bing.com/webmasters) |
+| Sitemap submission | **PENDING DOMAIN** (submit `https://<domain>/sitemap.xml` after real domain control; confirm `/robots.txt` and `/sitemap.xml` respond correctly first) |
+| IndexNow | **NOT CONFIGURED — PENDING OWNER** (generate the key securely, host the key verification file, send changed canonical public URLs only; must be implemented *after* the real domain and key exist; Bing/IndexNow submission does not notify Google and does not guarantee indexing) |
+
+No verification token is stored or claimed; no indexing, ranking,
+verification or AI-citation status is asserted anywhere in this document.
 
 ## Limitations and open items
 
-1. Per-page `canonical` tags are not emitted on `/`, `/guides`, `/map`
-   (they are indexable via the sitemap and stable URLs; explicit canonicals
-   should land with the follow-up pages).
+1. Per-page explicit `canonical` tags are not emitted (stable absolute URLs,
+   the sitemap and `metadataBase` cover canonicalization today; explicit
+   tags are a follow-up).
 2. Per-guide dynamic `<title>`/description are not server-rendered because
-   the guide record loads client-side; the guide-detail structured data is
-   emitted client-side with the same record, so it only exists in the
-   hydrated DOM.
-3. `/guides` and `/guides/[id]` H1s are client-rendered (loading fallback in
-   the pre-hydration HTML).
-4. Crawl of the live site, CWV measurement and webmaster verification all
-   remain `NOT RUN` / `NOT CONFIGURED` until a real deployment exists.
+   the guide record loads client-side (`instant = false`); the guide's
+   TechArticle and BreadcrumbList JSON-LD are emitted client-side with the
+   same record, so that structured data only exists in the hydrated DOM —
+   not in the pre-hydration HTML.
+3. `/guides` and `/guides/[id]` H1s are client-rendered (the pre-hydration
+   HTML carries the Suspense loading fallback).
+4. `og:image` is omitted pending a real branded asset (see OG section).
+5. The eight public content pages are not in this build (sibling
+   workstream); the sitemap/robots reference them as URL entries.
+6. Crawl of the live site, Core Web Vitals measurement, Rich Results
+   validation and all webmaster-account actions remain `NOT RUN` /
+   `NOT CONFIGURED` until a real deployment and owner domain exist.

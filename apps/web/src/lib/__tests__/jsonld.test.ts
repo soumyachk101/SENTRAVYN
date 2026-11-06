@@ -1,5 +1,6 @@
 import {
   guideArticleGraph,
+  guideBreadcrumbGraph,
   siteGraph,
   webBaseUrl,
   type GuideArticleInput,
@@ -79,6 +80,8 @@ describe('guideArticleGraph (TechArticle)', () => {
     headline: 'Earthquake — Berlin',
     author: 'Author One',
     reviewer: 'Reviewer Two',
+    authority: 'Berlin Civil Protection',
+    lastReviewedAt: '2026-11-01T00:00:00Z',
     datePublished: '2026-10-01T00:00:00Z',
     dateModified: '2026-11-01T00:00:00Z',
     language: 'en',
@@ -96,6 +99,11 @@ describe('guideArticleGraph (TechArticle)', () => {
     expect(article.reviewer).toEqual([
       { '@type': 'Person', name: 'Reviewer Two' },
     ]);
+    expect(article.authority).toEqual({
+      '@type': 'Organization',
+      name: 'Berlin Civil Protection',
+    });
+    expect(article.lastReviewed).toBe('2026-11-01T00:00:00Z');
     expect(article.isBasedOn).toEqual([
       { '@type': 'URL', value: 'https://example.org/official-source' },
     ]);
@@ -107,6 +115,18 @@ describe('guideArticleGraph (TechArticle)', () => {
     );
     expect(article).not.toHaveProperty('author');
     expect(article).not.toHaveProperty('reviewer');
+  });
+
+  it('omits authority and lastReviewed when the record has none', () => {
+    const article = firstNode(
+      guideArticleGraph({
+        ...baseGuide,
+        authority: null,
+        lastReviewedAt: null,
+      }),
+    );
+    expect(article).not.toHaveProperty('authority');
+    expect(article).not.toHaveProperty('lastReviewed');
   });
 
   it('omits reference fields entirely when there are no URLs', () => {
@@ -131,5 +151,43 @@ describe('guideArticleGraph (TechArticle)', () => {
     expect(article['@type']).not.toBe('FAQPage');
     expect(article).not.toHaveProperty('ratingValue');
     expect(article).not.toHaveProperty('aggregateRating');
+  });
+});
+
+describe('guideBreadcrumbGraph (BreadcrumbList)', () => {
+  it('mirrors the visible navigation Home > Safety guides > this guide', () => {
+    const graph = guideBreadcrumbGraph(
+      'https://sentravyn.example',
+      'https://sentravyn.example/guides/guide-1',
+      'Earthquake — Berlin',
+    );
+    expect(graph['@context']).toBe('https://schema.org');
+    const crumb = firstNode(graph);
+    expect(crumb['@type']).toBe('BreadcrumbList');
+    const items = crumb.itemListElement as Array<{
+      '@type': string;
+      position: number;
+      name: string;
+      item: string;
+    }>;
+    expect(items).toHaveLength(3);
+    expect(items[0]).toEqual({
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: 'https://sentravyn.example',
+    });
+    expect(items[1]).toEqual({
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Safety guides',
+      item: 'https://sentravyn.example/guides',
+    });
+    expect(items[2]).toEqual({
+      '@type': 'ListItem',
+      position: 3,
+      name: 'Earthquake — Berlin',
+      item: 'https://sentravyn.example/guides/guide-1',
+    });
   });
 });
