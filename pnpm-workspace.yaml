@@ -1,0 +1,85 @@
+packages:
+  - "apps/*"
+  - "backend"
+  - "packages/*"
+
+# pnpm v10+ blocks dependency lifecycle (postinstall) scripts by default.
+# Only allow builds for the native/CLI deps that genuinely need them.
+# prisma:      engine download for the CLI
+# @prisma/engines: engine binaries (prisma generate / migrate)
+# esbuild:       binary sanity check
+# unrs-resolver: Next 16 resolver native binary
+onlyBuiltDependencies:
+  - prisma
+  - "@prisma/engines"
+  - esbuild
+  - unrs-resolver
+
+# Never build (pure no-op install scripts that just print a banner).
+ignoredBuiltDependencies:
+  - core-js
+
+minimumReleaseAgeExclude:
+  - '@expo/cli@58.1.19'
+  - '@expo/config-plugins@58.0.12'
+  - '@expo/config@58.0.11'
+  - '@expo/env@2.5.4'
+  - '@expo/fingerprint@0.21.9'
+  - '@expo/inline-modules@0.2.9'
+  - '@expo/local-build-cache-provider@58.0.11'
+  - '@expo/log-box@58.0.15'
+  - '@expo/metro-config@58.0.21'
+  - '@expo/prebuild-config@58.0.19'
+  - '@expo/router-server@58.0.21'
+  - '@next/env@16.4.5'
+  - '@next/eslint-plugin-next@16.4.5'
+  - '@next/swc-darwin-arm64@16.4.5'
+  - '@next/swc-darwin-x64@16.4.5'
+  - '@next/swc-linux-arm64-gnu@16.4.5'
+  - '@next/swc-linux-arm64-musl@16.4.5'
+  - '@next/swc-linux-x64-gnu@16.4.5'
+  - '@next/swc-linux-x64-musl@16.4.5'
+  - '@next/swc-win32-arm64-msvc@16.4.5'
+  - '@next/swc-win32-x64-msvc@16.4.5'
+  - babel-preset-expo@58.0.24
+  - eslint-config-next@16.4.5
+  - expo-asset@58.0.20
+  - expo-constants@58.0.15
+  - expo-modules-autolinking@58.0.17
+  - expo-modules-core@58.0.30
+  - expo-modules-jsi@58.0.22
+  - expo@58.0.23
+  - next@16.4.5
+  - '@nestjs/swagger@11.4.8'
+  - '@sentry/bundler-plugins@11.11.0'
+  - '@sentry/core@11.11.0'
+  - '@sentry/node@11.11.0'
+  - '@sentry/opentelemetry@11.11.0'
+  - '@sentry/server-runtime-injection@11.11.0'
+  - '@sentry/server-utils@11.11.0'
+
+# pnpm v11: allowBuilds gates which dependency lifecycle scripts may run.
+# Prisma needs its engine binaries built for `prisma generate`/`migrate`.
+# @scarf/scarf (Prisma telemetry) is blocked by policy — no third-party
+# telemetry in the supply chain (SECURITY.md 4).
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true
+  '@scarf/scarf': false
+  esbuild: true
+  # msgpackr-extract (BullMQ's optional native binding) is intentionally not
+  # built: msgpackr falls back to its pure-JS codec, and running a build
+  # script for an optional accelerator is not worth a supply-chain step.
+  msgpackr-extract: false
+
+# Dependency overrides for transitive advisories we do not control directly.
+# - multer (via @nestjs/platform-express): 2.5.0 fixes a pending-response DoS
+#   advisory (GHSA-q7qp-rjg7-q26m).
+# - deepmerge-ts (via @prisma/config): 8.x fixes a stack-exhaustion advisory
+#   (GHSA-ggr8-5vv4-36mx). Prisma is verified still to generate/build after
+#   each override; if an override ever breaks Prisma, it is reverted and
+#   reported — never silently accepted.
+overrides:
+  multer: "2.5.0"
+  deepmerge-ts: "8.0.2"

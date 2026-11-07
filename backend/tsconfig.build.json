@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  // The API deployable compiles src only, so `nest build` keeps the
+  // `dist/main.js` layout the `start`/`dev` scripts expect. The standalone
+  // notification worker is a separate build (tsconfig.worker.json ->
+  // dist-worker) because it is its own deployable (ARCHITECTURE.md 9).
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "test", "dist", "worker", "**/*.spec.ts"]
+}

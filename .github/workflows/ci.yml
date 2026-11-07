@@ -1,0 +1,137 @@
+# SENTRAVYN Phase 1 baseline pipeline.
+#
+# Runs the reproducible local-setup gate from docs/ROADMAP.md Phase 1:
+# format/lint/typecheck/tests/build for every workspace, with the local
+# Postgres+PostGIS and Redis services available to the backend tests.
+#
+# This is a GREEN BASELINE. It does not assert deployment, search-engine or
+# security posture beyond the checks listed here.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "11.9.0"
+
+jobs:
+  baseline:
+    name: "Install, lint, typecheck, test, build"
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: sentravyn
+          POSTGRES_PASSWORD: sentravyn_local_password
+          POSTGRES_DB: sentravyn
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sentravyn"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # Local Postgres+PostGIS (ADR-004: the extension is enabled here for
+      # the dev/CI data model). The CI user creates it on first connection.
+      - name: Enable PostGIS extension
+        run: |
+          PGPASSWORD=sentravyn_local_password psql \
+            -h localhost -U sentravyn -d sentravyn \
+            -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @sentravyn/backend exec prisma generate
+
+      - name: Apply database migrations
+        run: pnpm --filter @sentravyn/backend prisma:migrate
+
+      - name: Lint (all workspaces)
+        run: pnpm lint
+
+      # Format gate (Gate D "Format"): Prettier over the whole tree. The
+      # footer-frames ASCII art is stored in .ts string arrays, which Prettier
+      # leaves content-wise intact; this step fails the build on drift.
+      - name: Format check (Prettier)
+        run: pnpm format:check
+
+      - name: Typecheck (all workspaces)
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build (all workspaces)
+        run: pnpm build
+
+      # Dependency security (SECURITY.md 4): fail on HIGH/CRITICAL vulns in
+      # the resolved tree. Moderate/low advisories are transitive toolchain
+      # issues recorded in docs/RISK-REGISTER.md; they are not suppressed —
+      # the gate only escalates on high/critical so the baseline is honest.
+      - name: Dependency audit (high + critical)
+        run: pnpm audit --audit-level=high
+
+      # Secret scan: never let a credential slip into the repo (SECURITY.md 4).
+      # Scans all git-tracked content (node_modules is gitignored, so excluded).
+      #
+      # Pinned: the action ref is a specific commit (v3 = Node 24 runtime —
+      # GitHub removes Node 20 from runners 2026-09-16, so v2 would stop
+      # working; this repo's timeline is post-cutover). The gitleaks binary
+      # is pinned to GITLEAKS_VERSION=8.24.3 instead of the runtime-unpinned
+      # "very latest" install, so the exact signed release is deterministic.
+      #
+      # Config: the action runs `detect` at the repo root, where gitleaks
+      # auto-detects .gitleaks.toml (useDefaultConfig=true + a scoped
+      # allowlist for the one deterministic TOTP test fixture in
+      # backend/test/e2e/mfa-sessions.e2e-spec.ts). That allowlist is a
+      # documented exception, not a suppress: real secrets still fail here.
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: "8.24.3"
+
+      # AUTH_JWT_SECRET: no repository secret required. The e2e specs fall
+      # back to an in-process test secret when AUTH_JWT_SECRET is unset.
+      - name: Backend e2e tests
+        env:
+          DATABASE_URL: postgresql://sentravyn:sentravyn_local_password@localhost:5432/sentravyn?schema=public
+          REDIS_URL: redis://localhost:6379
+        run: pnpm --filter @sentravyn/backend test:e2e

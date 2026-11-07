@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="SENTRAVYN (maskable)">
+  <!-- Maskable variant: content inset within the safe zone (inner 80% circle
+       is the maskable-safe region). Deep atmospheric neutral, not neon. -->
+  <rect width="512" height="512" fill="#101418"/>
+  <g fill="none" stroke="#4a6b82" stroke-width="9">
+    <circle cx="256" cy="256" r="120" opacity="0.35"/>
+    <circle cx="256" cy="256" r="84" opacity="0.6"/>
+    <circle cx="256" cy="256" r="52" opacity="0.9"/>
+  </g>
+  <circle cx="256" cy="256" r="24" fill="#f7f5f1"/>
+</svg>

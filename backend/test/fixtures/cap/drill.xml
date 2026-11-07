@@ -1,0 +1,20 @@
+<!--
+  Unknown msgType: exercises a CAP 1.2-invalid <msgType> value (drill).
+  The parser must map it to 'unknown' without guessing a semantic.
+-->
+<cap version="2.0" xmlns="urn:us:government:fema">
+  <alert>
+    <id>urn:oid:1.1.2.3-456:drill</id>
+    <sender>test@alert.test</sender>
+    <issued>2026-09-01T12:00:00+00:00</issued>
+    <status>Actual</status>
+    <msgType>drill</msgType>
+    <scope>Public</scope>
+    <effective>2026-09-01T12:30:00+00:00</effective>
+    <expires>2026-09-01T18:00:00+00:00</expires>
+    <info>
+      <language>en-US</language>
+      <headline>Exercise with non-schema msgType</headline>
+    </info>
+  </alert>
+</cap>

@@ -1,0 +1,37 @@
+# SENTRAVYN
+
+## What this is
+SENTRAVYN is a global public-safety information and preparedness platform:
+authoritative emergency alerts, reviewed hazard-specific protective guidance,
+nearby emergency services and household preparedness. It is an information
+and preparedness platform, not an operational emergency service.
+
+## Public routes
+- /                     Home (overview, modules, preparedness content)
+- /guides               Reviewed safety guides (summaries of official
+                        guidance with source references, review dates and
+                        jurisdiction applicability)
+- /guides/[id]          A single published guide with its body, metadata,
+                        source references and revision history
+- /map                  Place discovery (hospitals, clinics, fire, police,
+                        relief points, shelters) with per-place verification
+                        state. Distance is a calculation, never a safety
+                        recommendation.
+- /alerts, /prepare, /about, /contact, /data-sources,
+  /verification, /privacy, /terms
+                        Public content pages (preparedness, data and
+                        verification policy, legal)
+
+## Preparedness disclaimer
+SENTRAVYN is an information and preparedness platform. It is not a
+substitute for local emergency services, official warnings, professional
+medical care or government evacuation instructions. Official local
+emergency instructions always take precedence over SENTRAVYN guidance.
+Stale or unverified information is labelled as such on the page. A nearby
+place is not automatically a safe shelter.
+
+## Status of this document
+This file is informational for language-model and human readers. It is not
+a crawler contract: nothing here guarantees that any AI engine or search
+engine will index, rank or cite SENTRAVYN content. The authoritative
+crawling policy is in /robots.txt and /sitemap.xml.

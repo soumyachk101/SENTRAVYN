@@ -1,0 +1,46 @@
+# SENTRAVYN local development infrastructure.
+#
+# PostgreSQL + PostGIS and Redis only. Nothing in this file is production
+# configuration (production is Terraform-managed, ARCHITECTURE.md 9).
+#
+# Host ports are overridable via env vars (compose reads CWD `.env`). Defaults
+# keep the standard ports; on a host where 5432 is already taken by another
+# project, set POSTGRES_HOST_PORT (e.g. 5433) and update DATABASE_URL to match.
+# Usage: pnpm db:up  /  pnpm db:down  /  pnpm db:logs
+
+name: sentravyn-local
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: sentravyn-postgres
+    environment:
+      POSTGRES_USER: sentravyn
+      POSTGRES_PASSWORD: sentravyn_local_password
+      POSTGRES_DB: sentravyn
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - sentravyn_pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentravyn -d sentravyn"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: sentravyn-redis
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  sentravyn_pgdata:

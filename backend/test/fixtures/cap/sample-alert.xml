@@ -1,0 +1,26 @@
+<!--
+  Valid CAP alert: exercises a fully-populated record that parses and
+  validates clean (id, msgType alert, scope, headline, times, one <reference>).
+-->
+<cap version="2.0" xmlns="urn:us:government:fema">
+  <alert>
+    <id>urn:oid:1.1.2.3-456</id>
+    <sender>test@alert.test</sender>
+    <issued>2026-09-01T12:00:00+00:00</issued>
+    <status>Actual</status>
+    <msgType>Alert</msgType>
+    <scope>Public</scope>
+    <severity>Extreme</severity>
+    <urgency>Immediate</urgency>
+    <certainty>Observed</certainty>
+    <effective>2026-09-01T12:30:00+00:00</effective>
+    <expires>2026-09-01T18:00:00+00:00</expires>
+    <info>
+      <language>en-US</language>
+      <headline>Severe weather warning in effect</headline>
+      <description>A severe weather warning is in effect for the test region. Monitor official channels.</description>
+      <instruction>Take shelter.</instruction>
+    </info>
+    <reference>urn:oid:1.1.2.3-455</reference>
+  </alert>
+</cap>

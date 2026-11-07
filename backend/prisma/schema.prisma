@@ -1,0 +1,562 @@
+// SENTRAVYN core data model (Phase 1 baseline).
+//
+// Design references:
+//   - docs/ARCHITECTURE.md section 5 (data model concepts)
+//   - ADR-004 (PostGIS policy: geography/geometry columns are added in Phase 4
+//     via reviewed raw SQL, so this schema intentionally uses standard
+//     Postgres types and defers spatial columns).
+//   - ADR-006 (trust model: place/shelter verification attributes).
+//   - ADR-007 (quarantine-by-default ingestion: RawSourceRecord is immutable).
+//
+// Identifier strategy: UUIDv7-like UUIDs (see ARCHITECTURE.md section 5).
+// Every entity carries created/updated timestamps and appropriate indexes.
+//
+// Phase 2 adds Session, AdminReviewDecision, User.passwordHash
+// (docs/ROADMAP.md Phase 2; bcryptjs credential hashing).
+//
+// Phase 4 adds PostGIS geography columns via reviewed SQL migrations
+// (ADR-004; 20260214000002_phase4_place_location), not modeled in Prisma.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  PUBLIC
+  REVIEWER
+  OPERATOR
+  ADMIN
+}
+
+enum AlertStatus {
+  RECEIVED
+  PARSED
+  VALIDATED
+  QUARANTINED
+  PUBLISHED
+  UPDATED
+  EXPIRED
+  CANCELLED
+}
+
+enum AlertVerification {
+  UNVERIFIED
+  REVIEWED
+  OFFICIAL
+}
+
+enum PlaceVerification {
+  UNVERIFIED
+  REVIEWED
+  VERIFIED
+}
+
+enum ShelterVerification {
+  UNVERIFIED
+  EVIDENCE_REVIEW
+  VERIFIED
+}
+
+enum GuideApprovalState {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  RETIRED
+}
+
+enum InformationClass {
+  OFFICIAL_SOURCE
+  SENTRAVYN_SUMMARY
+  THIRD_PARTY
+  USER_SUBMISSION
+  DERIVED_CALCULATION
+  UNVERIFIED_OR_STALE
+}
+
+enum FetchStatus {
+  PENDING
+  SUCCESS
+  PARTIAL
+  FAILED
+  RATE_LIMITED
+  OUTAGE
+}
+
+enum NotificationChannel {
+  WEBSOCKET
+  PUSH_WEB
+  PUSH_FCM
+  PUSH_APNS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  DROPPED
+}
+
+// ---------------------------------------------------------------------------
+// Identity and users
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  displayName  String?
+  role         Role     @default(PUBLIC)
+  // Phase 2 credential (bcryptjs hash; docs/ROADMAP.md Phase 2). Nullable so
+  // seeded and reviewer users can exist without a password.
+  passwordHash String?
+  // Phase 9 MFA (docs/SECURITY.md section 2: MFA required for privileged
+  // administrators). mfaSecret is the base32 TOTP seed (RFC 6238) — the value
+  // an authenticator app uses. It is reproducible secret material, so it is
+  // stored plainly in a dedicated sensitive column and is not one-way hashed
+  // (a hash cannot regenerate TOTP codes). It is never returned by any API
+  // shape. mfaRecoveryCodes holds the sha256 hex of each of the 8 single-use
+  // recovery codes, so a DB leak exposes no usable code. See
+  // backend/src/auth/mfa/mfa.service.ts.
+  mfaSecret          String?
+  mfaEnabled         Boolean  @default(false)
+  mfaRecoveryCodes   String[] @default([])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  preferences          UserPreference[]
+  emergencyContacts    EmergencyContact[]
+  locationShares       LocationShare[]
+  householdPlan        HouseholdPlan?
+  sessions             Session[]
+  adminReviewDecisions AdminReviewDecision[]
+  auditEvents          AuditEvent[]
+}
+
+// Phase 2 identity sessions. The raw refresh token is never stored; only its
+// sha256 hash (tokenHash) is, so a DB leak does not leak usable credentials.
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique // sha256 hex of the refresh token, never the raw token
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model UserPreference {
+  id             String @id @default(uuid())
+  userId         String
+  user           User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Region, hazard-interests, language, reduced-motion and other per-user settings.
+  regionIso      String?
+  language       String @default("en")
+  reducedMotion  Boolean @default(false)
+  notificationOptIn Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Family safety (consent-based)
+// ---------------------------------------------------------------------------
+
+model EmergencyContact {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  relation  String?
+  phone     String?
+  // Consent fields are part of the trust model (ADR-006). Never track without
+  // explicit, informed consent.
+  consent   Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Consent-based location sharing (Phase 7, SECURITY.md 5).
+//
+// A LocationShare is a user-granted, bounded right for OTHERS (the named
+// recipient) to see this user's location for a stated purpose until expiry.
+// The row stores only what is needed: purpose, recipient, a coarse last-known
+// position (round-down to ~1 km, never a precise coordinate) and a precise
+// flag that records whether precise coordinates are permitted. Precise
+// coordinates are never persisted to analytics or logs (SECURITY.md 5:
+// minimize retention; ask at the moment of need; revocable). `active` is a
+// read-time computed flag in the API, not a stored column: a share is active
+// when not revoked and now < expiresAt.
+// ---------------------------------------------------------------------------
+
+model LocationShare {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Who may see the location (a person's name or handle), and why.
+  recipient String
+  purpose   String
+  // Whether this share permits precise coordinates (explicit consent flag).
+  // Coarse-only shares may store a coarse last-known position.
+  preciseConsent Boolean @default(false)
+  // Coarse last-known position (rounded by the client; ~km level). NULL
+  // until the user actually shares a position. Never a precise coordinate.
+  lastKnownLat Float?
+  lastKnownLng Float?
+  lastKnownAt  DateTime?
+  consented   Boolean  @default(true) // created only with explicit consent
+  expiresAt   DateTime // bounded; a share is never open-ended
+  revoked     Boolean  @default(false)
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Household plan (Phase 7). Preparedness data the user maintains about their
+// own household: meeting point, kit checklist and pet considerations. The
+// checklist is a JSON array of { label, done } items, validated at the API
+// boundary. Stored as a single JSONB column (user-private, small, free-form)
+// rather than a second table: it is the user's own scratch data, never a
+// live operational claim, so it has no review/verification lifecycle.
+// ---------------------------------------------------------------------------
+
+model HouseholdPlan {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meetingPoint     String?
+  meetingPointNote String?
+  // JSON: [{ label: string, done: boolean }]
+  kitChecklist Json   @default("[]")
+  petConsiderations String?
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Data providers and ingestion (ADR-007)
+// ---------------------------------------------------------------------------
+
+model DataProvider {
+  id            String   @id @default(uuid())
+  key           String   @unique // stable provider identifier, e.g. "usgs"
+  name          String
+  docUrl        String?
+  category      String   @default("alerts")
+  license       String?
+  attribution   String?
+  enabled       Boolean  @default(false)
+  freshnessPolicyHours Int?
+  // Last time fixture/sample payloads for this provider were seeded (see
+  // docs/DATA-SOURCES.md fixtures). Nullable: only set when seeding has run.
+  lastSeededAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  fetches ProviderFetch[]
+  records RawSourceRecord[]
+}
+
+model ProviderFetch {
+  id           String   @id @default(uuid())
+  providerId   String
+  provider     DataProvider @relation(fields: [providerId], references: [id])
+  status       FetchStatus
+  requestedAt  DateTime @default(now())
+  completedAt  DateTime?
+  itemCount    Int      @default(0)
+  error        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([providerId, requestedAt])
+}
+
+// Immutable raw payload. Never mutated after ingestion (ADR-007).
+model RawSourceRecord {
+  id           String   @id @default(uuid())
+  providerId   String
+  provider     DataProvider @relation(fields: [providerId], references: [id])
+  sourceId     String   // provider-native identifier, preserved
+  sourceUrl    String?
+  payloadHash  String   // content hash for replay/corruption detection
+  rawPayload   String   // original payload, stored verbatim
+  fetchedAt    DateTime
+  ingestedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  // One source record can underlie multiple alerts (one-to-many).
+  alerts Alert[]
+
+  // ADR-007 replay-detection backstop: no duplicate source record for the same
+  // (provider, source) payload. The plain (providerId, sourceId) index
+  // stays for provider-ordered scans; the unique covers replay checking.
+  @@unique([providerId, sourceId, payloadHash])
+  @@index([providerId, sourceId])
+  @@index([ingestedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Alerts and incidents (ADR-005 lifecycle, ADR-007 provenance)
+// ---------------------------------------------------------------------------
+
+model Alert {
+  id            String     @id @default(uuid())
+  providerId    String?
+  sourceRecordId String?
+  sourceRecord  RawSourceRecord? @relation(fields: [sourceRecordId], references: [id])
+  externalRef   String?   // CAP / provider reference, used for dedup + update/cancel
+  status        AlertStatus @default(RECEIVED)
+  verification  AlertVerification @default(UNVERIFIED)
+  informationClass InformationClass @default(OFFICIAL_SOURCE)
+  headline      String
+  issuer        String?
+  severity      String?
+  urgency       String?
+  certainty     String?
+  issuedAt      DateTime?
+  effectiveAt   DateTime?
+  expiresAt     DateTime?
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  revisions  AlertRevision[]
+  incidents  Incident[]
+  decisions  AdminReviewDecision[]
+
+  @@index([status, publishedAt])
+  @@index([externalRef])
+  @@index([verification])
+}
+
+// Alert revisions carry the immutable history (ADR-005 update/cancel).
+model AlertRevision {
+  id         String  @id @default(uuid())
+  alertId    String
+  alert      Alert   @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  revision   Int     @default(1)
+  status     AlertStatus
+  body       String?
+  createdAt  DateTime @default(now())
+
+  @@index([alertId, revision])
+}
+
+model Incident {
+  id          String   @id @default(uuid())
+  alertId     String?
+  alert       Alert?   @relation(fields: [alertId], references: [id])
+  type        String
+  title       String
+  occurredAt  DateTime?
+  affectedRegion String?
+  // Areal footprint (polygon) is added in Phase 4 as a PostGIS geography column
+  // by migration 20260214000002 (ADR-004); no backfill - footprints are
+  // provider-sourced only. The column is not modeled in Prisma.
+  summary     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type, occurredAt])
+}
+
+// ---------------------------------------------------------------------------
+// Places, evidence and shelters (ADR-006 trust model)
+// ---------------------------------------------------------------------------
+
+model Place {
+  id              String @id @default(uuid())
+  name            String
+  kind            String // e.g. "hospital", "shelter", "fire_station"
+  verification    PlaceVerification @default(UNVERIFIED)
+  sourceAuthority String?
+  operationalStatus String?
+  operationalEvidence String?
+  accessibility   String?
+  capacityNote    String?
+  staleSince      DateTime?
+  // lat/lng remain the authoritative editable coordinates. The PostGIS
+  // geography(Point,4326) column 'location' is backfilled from them by
+  // migration 20260214000002 (ADR-004) and kept in sync by
+  // GeoService.updatePlaceLocation; it is not modeled in Prisma.
+  lat             Float?
+  lng             Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  evidence   PlaceEvidence[]
+  shelters   ShelterProfile[]
+  reviewDecisions AdminReviewDecision[]
+
+  @@index([kind, verification])
+}
+
+model PlaceEvidence {
+  id        String  @id @default(uuid())
+  placeId   String
+  place     Place   @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  claim     String
+  sourceUrl String?
+  recordedByUserId String?
+  createdAt DateTime @default(now())
+
+  @@index([placeId])
+}
+
+model ShelterProfile {
+  id           String @id @default(uuid())
+  placeId      String
+  place        Place  @relation(fields: [placeId], references: [id])
+  classification String?
+  hazardApplicability String[]
+  capacity      String?
+  inspectAuthority String?
+  inspectionDate  DateTime?
+  verification  ShelterVerification @default(UNVERIFIED)
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  reviewDecisions AdminReviewDecision[]
+
+  @@index([placeId, verification])
+}
+
+// ---------------------------------------------------------------------------
+// Safety guides and revisions (ADR-009: summary-only, cited)
+// ---------------------------------------------------------------------------
+
+model SafetyGuide {
+  id          String @id @default(uuid())
+  hazardType  String
+  jurisdiction String?
+  language    String @default("en")
+  author      String?
+  reviewer    String?
+  authority   String?
+  approval    GuideApprovalState @default(DRAFT)
+  version     Int @default(1)
+  lastReviewedAt DateTime?
+  references  String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  revisions  GuideRevision[]
+
+  @@index([hazardType, approval])
+}
+
+model GuideRevision {
+  id        String  @id @default(uuid())
+  guideId   String
+  guide     SafetyGuide @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  revision  Int
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([guideId, revision])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (ADR-005 durable fan-out)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String @id @default(uuid())
+  alertId   String?
+  channel   NotificationChannel
+  status    NotificationStatus @default(PENDING)
+  dedupKey  String?
+  receipt   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attempts NotificationAttempt[]
+
+  @@index([alertId, channel])
+  @@index([dedupKey])
+}
+
+model NotificationAttempt {
+  id          String @id @default(uuid())
+  notificationId String
+  notification  Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  attempt     Int
+  sentAt      DateTime @default(now())
+  outcome     NotificationStatus
+  error       String?
+
+  @@index([notificationId, attempt])
+}
+
+// ---------------------------------------------------------------------------
+// Admin review (Phase 2: human verification and audit of alert/place/shelter
+// state; decision values are stored as plain strings, see AdminReviewDecision)
+// ---------------------------------------------------------------------------
+
+model AdminReviewDecision {
+  id        String @id @default(uuid())
+  // Exactly one of the entity ids below is set, matching the decision target.
+  // Each is a real foreign key (Gate C: database-level referential integrity)
+  // so a decision row can never point at a target that does not exist. The
+  // review service validates target existence before any write (Gate E); the
+  // FK is the second line of defence.
+  alertId   String?
+  alert     Alert? @relation(fields: [alertId], references: [id])
+  placeId   String?
+  place     Place? @relation(fields: [placeId], references: [id])
+  shelterId String?
+  shelter   ShelterProfile? @relation(fields: [shelterId], references: [id])
+  // REVIEW_APPROVED, REVIEW_REJECTED, SHELTER_VERIFIED or SHELTER_STALE.
+  decision  String
+  rationale String?
+  actorUserId String
+  actor     User   @relation(fields: [actorUserId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([alertId])
+  @@index([placeId])
+  @@index([shelterId])
+  @@index([actorUserId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Audit (SECURITY.md section 6; Gate E)
+// ---------------------------------------------------------------------------
+
+model AuditEvent {
+  id        String   @id @default(uuid())
+  actorUserId String?
+  actor     User?    @relation(fields: [actorUserId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
