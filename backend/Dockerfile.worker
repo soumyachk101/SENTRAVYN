@@ -1,0 +1,84 @@
+# syntax=docker/dockerfile:1
+
+# SENTRAVYN BullMQ notification worker container image (ARCHITECTURE.md 9:
+# the worker is a SEPARATE deployable from the API so it scales
+# independently). Same build pipeline as backend/Dockerfile (the API image);
+# only the entrypoint and health model differ: the worker has no HTTP port —
+# it consumes the notification queue from Redis and writes durable
+# Notification/NotificationAttempt rows to Postgres.
+#
+# Runtime requirements (worker.main.ts — fail closed):
+#   REDIS_URL    required — the BullMQ queue + dead-letter broker.
+#   DATABASE_URL required — durable notification rows.
+#   FCM_* / APNS_* / WEB_PUSH_VAPID_* optional; without them the affected
+#   push channels are marked DROPPED, never sent.
+#
+# `prisma migrate deploy` runs at deploy time (pipeline), not in the worker.
+
+ARG NODE_VERSION=22
+ARG PNPM_VERSION=11.9.0
+
+# ---------------------------------------------------------------------------
+# 1. Build: install + compile the backend and its workspace dependency.
+# ---------------------------------------------------------------------------
+FROM node:${NODE_VERSION}-slim AS build
+ARG PNPM_VERSION
+# Same OpenSSL shared-lib install as the API image, so `prisma generate`
+# detects openssl-3.x and pulls the matching query-engine variant.
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends libssl3 libstdc++6 ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
+WORKDIR /repo
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+# Root tsconfig the workspace packages extend.
+COPY tsconfig.base.json ./
+COPY packages/shared-types/package.json packages/shared-types/
+COPY backend/package.json backend/
+
+RUN pnpm install --frozen-lockfile
+
+COPY packages/shared-types/ packages/shared-types/
+COPY backend/ backend/
+
+RUN pnpm --filter @sentravyn/shared-types build \
+ && pnpm --filter @sentravyn/backend build \
+ && pnpm --filter @sentravyn/backend worker:build
+
+RUN pnpm --filter @sentravyn/backend deploy /repo/runtime --legacy
+
+# Same Prisma regeneration as the API image: `pnpm deploy` re-lays-out
+# node_modules, so the generated client must be regenerated against the
+# runtime store, or the worker's PrismaService throws "did not initialize
+# yet" on boot (the worker opens its own Prisma client for durable
+# Notification rows — worker.main.ts).
+RUN cd /repo/runtime \
+ && ./node_modules/.bin/prisma generate \
+ && node -e "new (require('@prisma/client').PrismaClient)(); console.log('prisma client OK')"
+
+# ---------------------------------------------------------------------------
+# 2. Runtime: slim, non-root, prebuilt artifacts only.
+# ---------------------------------------------------------------------------
+FROM node:${NODE_VERSION}-slim AS runtime
+# The worker opens its own Prisma client (durable Notification rows) — same
+# native-engine shared-lib requirement as the API image.
+RUN apt-get update -y \
+ && apt-get install -y --no-install-recommends libssl3 libstdc++6 ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+RUN groupadd -g 1001 sentravyn && useradd -u 1001 -g sentravyn -m sentravyn
+WORKDIR /app
+
+COPY --from=build /repo/runtime/node_modules ./node_modules
+COPY --from=build /repo/runtime/package.json ./package.json
+COPY --from=build /repo/backend/dist ./dist
+COPY --from=build /repo/backend/dist-worker ./dist-worker
+
+USER sentravyn
+ENV NODE_ENV=production
+
+# No EXPOSE: the worker is a queue consumer, not a server. The BullMQ client
+# reaches Redis over the network; the liveness signal is that the process is
+# alive and its Redis handles are open (worker.main.ts keeps the process up on
+# those, and only exits via a signal handler).
+CMD ["node", "dist-worker/worker/worker.main.js"]

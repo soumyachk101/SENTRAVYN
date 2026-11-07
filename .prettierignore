@@ -2,15 +2,24 @@
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+# Terraform provider lock file is committed (pins the provider version) but is
+# a hash-pinned generated artifact — never reformatted by Prettier.
+*.lock.hcl
 
 # Build output / generated / caches
 dist/
+dist-worker/
 out/
 .next/
 .turbo/
 .expo/
 coverage/
 node_modules/
+
+# Terraform: the .terraform/ dir holds the downloaded provider binary (an ELF
+# plugin Prettier cannot read); the lock file is committed but unparseable.
+.terraform/
+*.tfstate
 
 # Next.js generated type reference
 next-env.d.ts

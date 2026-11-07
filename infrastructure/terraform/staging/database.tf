@@ -53,9 +53,12 @@ resource "aws_db_instance" "postgres" {
   max_allocated_storage = 80
   storage_encrypted     = true
 
-  # Backup / point-in-time recovery (SECURITY.md 7).
+  # Backup / point-in-time recovery (SECURITY.md 7). `backup_window` is the
+  # valid aws_db_instance argument for the daily automated-backup window
+  # (HH:MM-HH:MM UTC). The optional `preferred_maintenance_window` is left to
+  # the RDS default in this skeleton.
   backup_retention_period = 7
-  preferred_backup_window = "03:00-04:00"
+  backup_window           = "03:00-04:00"
   multi_az                = true
 
   auto_minor_version_upgrade = true

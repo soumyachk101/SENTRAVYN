@@ -12,28 +12,38 @@
  */
 declare module 'web-push' {
   export interface VAPIDDetails {
-    /** A URL identifying the push service user (e.g. `mailto:...`). */
+    /** A URL identifying the push service user (e.g. `https://...` or `mailto:`). */
     subject: string;
-    /** Base64-encoded VAPID public key. */
+    /**
+     * VAPID public key, **URL-safe base64** (base64url, unpadded) — the
+     * encoding `generateVAPIDKeys()` produces and `setVapidDetails` expects
+     * in web-push@3.x. (The v5/v6 API switched to `setServerKeys` +
+     * standard base64; this project pins 3.6.7, which does not have it.)
+     */
     publicKey: string;
-    /** Base64-encoded VAPID private key. */
+    /** VAPID private key, URL-safe base64 (base64url, unpadded). */
     privateKey: string;
   }
 
-  export interface SetServerKeysOptions {
-    vapidDetails: VAPIDDetails;
-  }
-
   /**
-   * Generate a new VAPID keypair (P-256 / ECDSA). The public key is
-   * base64-encoded; the private key is base64-encoded too.
+   * Generate a new VAPID keypair (P-256 / ECDSA). `publicKey` and
+   * `privateKey` are base64url-encoded in web-push@3.x.
    */
   export function generateVAPIDKeys(): VAPIDDetails;
 
   /**
-   * Set the VAPID identity + encryption keys used to send notifications.
+   * Set the VAPID identity + keys used to send notifications. web-push@3.x
+   * API: three positional args (subject, base64url public key, base64url
+   * private key). Pass `null` to clear. This is the v3 surface the pinned
+   * `web-push@3.6.7` actually exports — the newer `setServerKeys({...})`
+   * shape (v5/v6) is NOT available here.
    */
-  export function setServerKeys(options: SetServerKeysOptions): void;
+  export function setVapidDetails(
+    subject: string,
+    publicKey: string,
+    privateKey: string,
+  ): void;
+  export function setVapidDetails(details: null): void;
 
   /**
    * The payload + keys for a single push endpoint.
@@ -79,7 +89,7 @@ declare module 'web-push' {
 
   const webPush: {
     generateVAPIDKeys: typeof generateVAPIDKeys;
-    setServerKeys: typeof setServerKeys;
+    setVapidDetails: typeof setVapidDetails;
     sendNotification: typeof sendNotification;
   };
   export default webPush;
