@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import {
   RedisThrottlerStorage,
+  toRedisSeconds,
   throttlerTracker,
 } from '../src/common/throttling/throttler-storage.service';
 
@@ -60,6 +61,23 @@ describe('RedisThrottlerStorage', () => {
     });
   });
 
+  describe('toRedisSeconds (ms -> Redis seconds) unit conversion', () => {
+    it('converts millisecond durations to whole seconds', () => {
+      expect(toRedisSeconds(60_000)).toBe(60);
+      expect(toRedisSeconds(300_000)).toBe(300);
+      expect(toRedisSeconds(5_000)).toBe(5);
+    });
+
+    it('rounds a fractional second and floors sub-second values to 1', () => {
+      // A sub-second or non-positive expiry must never become 0, because
+      // EXPIRE 0 makes a key persistent — the exact hazard this prevents.
+      expect(toRedisSeconds(1_500)).toBe(2);
+      expect(toRedisSeconds(500)).toBe(1);
+      expect(toRedisSeconds(0)).toBe(1);
+      expect(toRedisSeconds(-1)).toBe(1);
+    });
+  });
+
   describe('live-Redis window + block logic', () => {
     let redis: Redis;
 
@@ -105,9 +123,24 @@ describe('RedisThrottlerStorage', () => {
       const r3 = await storage.increment(tracker, 60_000, 3, 300_000, name);
       expect(r3.totalHits).toBe(3);
       expect(r3.isBlocked).toBe(false);
+
+      // Units regression guard: the 60 s window (ttl=60_000 ms) must land as a
+      // ~60 s key TTL, not 60,000 s. Passing ms straight into EXPIRE would make
+      // the counter persist for ~16.7 h and lock a client out far past its
+      // window — the exact defect a live load run surfaced in 2026-11.
+      const counterTtl = await redis.ttl(`throttle:${name}:${tracker}`);
+      expect(counterTtl).toBeGreaterThan(0);
+      expect(counterTtl).toBeLessThanOrEqual(60);
+
       // The 4th request exceeds the limit of 3 -> a block window opens.
       const r4 = await storage.increment(tracker, 60_000, 3, 300_000, name);
       expect(r4.totalHits).toBeGreaterThan(3);
+
+      // The 300 s block (blockDuration=300_000 ms) must land as a ~300 s key
+      // TTL, not 300,000 s (~3.5 days of 429 lockout).
+      const blockTtl = await redis.ttl(`throttle-block:${name}:${tracker}`);
+      expect(blockTtl).toBeGreaterThan(0);
+      expect(blockTtl).toBeLessThanOrEqual(300);
       // A subsequent request within the block window reports isBlocked.
       const blocked = await storage.increment(
         tracker,

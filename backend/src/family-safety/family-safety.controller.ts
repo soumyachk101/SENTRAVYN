@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/rbac/roles.guard';
 import { CurrentUser, AuthUser } from '../common/rbac/current-user.decorator';
@@ -45,6 +46,7 @@ import {
  */
 @ApiTags('family')
 @Controller('family')
+@SkipThrottle({ auth: true })
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class FamilySafetyController {
   constructor(private readonly family: FamilySafetyService) {}

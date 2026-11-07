@@ -3,6 +3,7 @@ import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/rbac/roles.guard';
 import { Roles } from '../common/rbac/roles.decorator';
@@ -48,6 +49,7 @@ class SyncRequest {
 
 @ApiTags('notifications')
 @Controller('notifications')
+@SkipThrottle({ auth: true })
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class NotificationsController {
   constructor(

@@ -6,6 +6,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { GuidesService } from './guides.service';
 import { GuideDetail, GuideListQuery, PaginatedGuideView } from './guides.dto';
 
@@ -27,6 +28,7 @@ import { GuideDetail, GuideListQuery, PaginatedGuideView } from './guides.dto';
  */
 @ApiTags('guides')
 @Controller('guides')
+@SkipThrottle({ auth: true })
 export class GuidesController {
   constructor(private readonly guides: GuidesService) {}
 

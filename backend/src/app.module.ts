@@ -16,6 +16,7 @@ import { PlacesModule } from './places/places.module';
 import { FamilySafetyModule } from './family-safety/family-safety.module';
 import { GuidesModule } from './guides/guides.module';
 import { NotificationModule } from './notifications/notification.module';
+import { ObservabilityModule } from './observability/observability.module';
 
 @Module({
   imports: [
@@ -52,6 +53,12 @@ import { NotificationModule } from './notifications/notification.module';
     // Phase 9: global rate limiting (SECURITY.md 3) — APP_GUARD ThrottlerGuard,
     // Redis-backed storage (degrades to no-op when REDIS_URL is unset).
     ThrottlingModule,
+    // Phase 9: observability (ARCHITECTURE.md 11; SECURITY.md 4, 5, 7) —
+    // OpenTelemetry tracing (OTEL_EXPORTER_OTLP_ENDPOINT), Sentry error
+    // capture (SENTRY_DSN) and structured request logging. Every piece is
+    // env-gated and a zero-behaviour no-op when its vars are unset, so
+    // local dev and CI stay clean.
+    ObservabilityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

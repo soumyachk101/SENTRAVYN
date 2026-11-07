@@ -53,6 +53,19 @@ export const throttlerTracker: ThrottlerGetTrackerFunction = (req) => {
  * ...), so the same client IP is tracked independently per limit. The hit
  * counter and the block marker live under separate Redis keys.
  */
+/**
+ * Convert a millisecond duration into a whole-seconds value for a Redis
+ * `EXPIRE` / `SET ... EX` command (which take seconds, not ms). The `ttl`
+ * and `blockDuration` the guard hands the storage are milliseconds, so every
+ * Redis expiry must be scaled down by 1000 here. A non-positive or sub-second
+ * value rounds up to 1 s: `EXPIRE 0` would make a key persistent, which is
+ * the exact hazard this helper prevents.
+ */
+export function toRedisSeconds(ms: number): number {
+  const s = Math.round(ms / 1000);
+  return s > 0 ? s : 1;
+}
+
 @Injectable()
 export class RedisThrottlerStorage
   implements ThrottlerStorage, OnModuleDestroy
@@ -137,12 +150,19 @@ export class RedisThrottlerStorage
         };
       }
 
+      // The guard hands us ttl / blockDuration in MILLISECONDS; Redis
+      // EXPIRE / SET ... EX take SECONDS. Converting at this boundary is what
+      // keeps a 60 s window from becoming a 60,000 s (~16.7 h) counter and
+      // a 300 s block from becoming a 300,000 s (~3.5 day) lockout.
+      const ttlSeconds = toRedisSeconds(ttl);
+      const blockSeconds = toRedisSeconds(blockDuration);
+
       await redis.incr(counterKey);
       // Set the TTL on the first hit of the window; subsequent INCRs leave the
       // existing TTL untouched so the window does not slide per request.
       const counterTtl = await redis.ttl(counterKey);
       if (counterTtl < 0) {
-        await redis.expire(counterKey, ttl);
+        await redis.expire(counterKey, ttlSeconds);
       }
       const raw = await redis.get(counterKey);
       const totalHits = raw ? Number.parseInt(raw, 10) : 0;
@@ -150,11 +170,11 @@ export class RedisThrottlerStorage
       // Once the window's cap is exceeded, open a block window so the client
       // cannot keep requesting immediately; the guard surfaces 429 during it.
       if (blockDuration > 0 && totalHits > limit) {
-        await redis.set(blockKey, String(totalHits), 'EX', blockDuration);
+        await redis.set(blockKey, String(totalHits), 'EX', blockSeconds);
       }
       return {
         totalHits,
-        timeToExpire: counterTtl > 0 ? counterTtl : ttl,
+        timeToExpire: counterTtl > 0 ? counterTtl : ttlSeconds,
         isBlocked: false,
         timeToBlockExpire: 0,
       };

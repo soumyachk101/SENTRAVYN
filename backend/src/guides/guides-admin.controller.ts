@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/rbac/roles.guard';
 import { Roles } from '../common/rbac/roles.decorator';
@@ -52,6 +53,7 @@ import {
  */
 @ApiTags('guides-admin')
 @Controller('admin/guides')
+@SkipThrottle({ auth: true })
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class GuidesAdminController {
   constructor(private readonly guides: GuidesService) {}

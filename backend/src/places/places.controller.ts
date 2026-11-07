@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, AuthUser } from '../common/rbac/current-user.decorator';
 import { PlacesService } from './places.service';
@@ -34,6 +35,7 @@ import { PlacesListQueryDto, PlaceEvidenceDto } from './places.dto';
  */
 @ApiTags('places')
 @Controller('places')
+@SkipThrottle({ auth: true })
 export class PlacesController {
   constructor(private readonly places: PlacesService) {}
 
