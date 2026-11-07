@@ -273,12 +273,21 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
       try {
         await redis.connect().catch(() => undefined);
         // Clean slate for the scoped IP so the test is deterministic
-        // regardless of state left by previous runs.
+        // regardless of state left by previous runs. Scoping the delete to the
+        // test's own IP (throttle keys are `throttle:<name>:<ip>` and
+        // `throttle-block:<name>:<ip>`) is required: a global `throttle:*`
+        // wipe would delete the throttle state of every other suite/worker
+        // sharing this Redis and make the gate non-deterministic, which this
+        // scoped-IP design is meant to avoid.
         const staleKeys = await redis
-          .keys('throttle:*')
+          .keys(`throttle:*:${scopedIp}`)
           .catch(() => [] as string[]);
-        if (staleKeys.length > 0) {
-          await redis.del(staleKeys).catch(() => undefined);
+        const staleBlockKeys = await redis
+          .keys(`throttle-block:*:${scopedIp}`)
+          .catch(() => [] as string[]);
+        const stale = [...staleKeys, ...staleBlockKeys];
+        if (stale.length > 0) {
+          await redis.del(stale).catch(() => undefined);
         }
 
         // Boot a dedicated app instance with a strict auth limit. The
@@ -330,10 +339,19 @@ describe('SENTRAVYN Phase 9 hardening (e2e)', () => {
 
         await strictApp.close();
       } finally {
-        // Remove the scoped-IP throttle state so no residue outlives the test.
-        const keys = await redis.keys('throttle:*').catch(() => [] as string[]);
-        if (keys.length > 0) {
-          await redis.del(keys).catch(() => undefined);
+        // Remove ONLY the scoped-IP throttle state so no residue outlives the
+        // test. Scoped by IP (see the setup comment above): a global
+        // `throttle:*` delete here would corrupt the throttle state of every
+        // other suite sharing the Redis and make the gate flaky.
+        const counterKeys = await redis
+          .keys(`throttle:*:${scopedIp}`)
+          .catch(() => [] as string[]);
+        const blockKeys = await redis
+          .keys(`throttle-block:*:${scopedIp}`)
+          .catch(() => [] as string[]);
+        const residue = [...counterKeys, ...blockKeys];
+        if (residue.length > 0) {
+          await redis.del(residue).catch(() => undefined);
         }
         await redis.quit().catch(() => undefined);
         delete process.env.THROTTLE_DEFAULT_LIMIT;
