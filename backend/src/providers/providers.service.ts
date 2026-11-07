@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
 import { ProviderUpsertDto } from './providers.dto';
+import { COVERAGE_NOTE } from '../places/places.service';
 
 /**
  * Data-provider registry service (docs/DATA-SOURCES.md 2).
@@ -36,6 +37,69 @@ export interface ProviderView {
 export interface SeedResult {
   seededKeys: string[];
   lastSeededAt: string;
+}
+
+/**
+ * Public coverage-disclosure view (docs/PHASE-10-LAUNCH-READINESS.md
+ * section 1 "coverage disclosure", docs/DATA-SOURCES.md section 6 "no
+ * fabricated coverage").
+ *
+ * It is *derived from the enabled provider registry*, never from hard-coded
+ * claims: `coveredCategories` is the set of categories with at least one
+ * enabled provider, `enabledProviderCount` / `totalProviderCount` come from
+ * the DataProvider rows, and `coverageNote` is the fixed disclosure literal
+ * shared with the places read path (SAFETY-POLICY.md 1, 6). A map listing
+ * is never proof a place is open, safe or operational — the same literal
+ * the radius-search empty state returns (places.service.ts COVERAGE_NOTE),
+ * so the public disclosure and the data surface say the one identical thing.
+ *
+ * This is a registry-metacode disclosure, not a source of safety claims:
+ * it tells the user which *kinds of data* are currently enabled, so that a
+ * "no coverage" region or a disabled category reads as a real gap, never
+ * as fabricated coverage.
+ */
+export interface CoverageView {
+  /** Fixed disclosure literal; identical to places.service.ts COVERAGE_NOTE. */
+  coverageNote: string;
+  /** True when at least one provider in the registry is enabled. */
+  hasCoverage: boolean;
+  enabledProviderCount: number;
+  totalProviderCount: number;
+  /** Categories (data kinds) with at least one enabled provider. */
+  coveredCategories: string[];
+  /** Categories present in the registry but with no enabled provider — the
+   *  explicit "no coverage" data types the landing/footer must disclose. */
+  uncoveredCategories: string[];
+}
+
+/**
+ * Per-provider fetch-health aggregation (docs/PHASE-10-LAUNCH-READINESS.md
+ * section 3 "provider health surfaced"). Computed from ProviderFetch rows
+ * over a bounded window: success/partial/failure/outage counts, the latest
+ * fetch, and whether the most recent finished fetch is an outage. Read-only;
+ * never mutates registry state.
+ */
+export interface ProviderHealthView {
+  key: string;
+  name: string;
+  enabled: boolean;
+  /** Provider fetch outcomes over the window, or null when no fetch has
+   *  happened yet — "no data" is a different state than "failing". */
+  window: {
+    since: string;
+    success: number;
+    partial: number;
+    failed: number;
+    outages: number;
+    total: number;
+  } | null;
+  lastFetchAt: string | null;
+  lastFetchStatus: string | null;
+  /** True when the most recent finished fetch recorded an OUTAGE. The
+   *  public UI never shows this; it is an admin/stale-provider signal
+   *  (Phase 10 section 3: a stale provider state is admin-visible, never
+   *  public). */
+  lastFetchWasOutage: boolean;
 }
 
 /**
@@ -104,6 +168,112 @@ export class ProvidersService {
       orderBy: { key: 'asc' },
     });
     return rows.map(toProviderView);
+  }
+
+  /**
+   * Public coverage disclosure (Phase 10 section 1). Derives which data
+   * categories are actually covered from the enabled rows of the provider
+   * registry, so the landing/footer/terms disclosure states real coverage,
+   * not a hard-coded claim. An empty registry (or all disabled) is the
+   * `hasCoverage: false` state: the UI then renders "no coverage" rather
+   * than pretending a source is live.
+   *
+   * Read-only: one registry read, no mutation, no audit event (a read of
+   * public registry state is not a PROVIDER_CHANGED).
+   */
+  async coverage(): Promise<CoverageView> {
+    const rows = await this.prisma.dataProvider.findMany({
+      select: { category: true, enabled: true },
+    });
+
+    const totalProviderCount = rows.length;
+    const enabled = rows.filter((r) => r.enabled);
+    const enabledProviderCount = enabled.length;
+
+    // Distinct categories, each listed once, alphabetised so the public
+    // disclosure is deterministic regardless of insertion order.
+    const enabledCategories = new Set(enabled.map((r) => r.category));
+    const allCategories = new Set(rows.map((r) => r.category));
+    const coveredCategories = [...enabledCategories].sort();
+    const uncoveredCategories = [...allCategories]
+      .filter((c) => !enabledCategories.has(c))
+      .sort();
+
+    return {
+      // SAFETY-POLICY.md 1, 6: a listing is never proof a place is open,
+      // safe or operational — the same literal the places read path uses.
+      coverageNote: COVERAGE_NOTE,
+      hasCoverage: enabledProviderCount > 0,
+      enabledProviderCount,
+      totalProviderCount,
+      coveredCategories,
+      uncoveredCategories,
+    };
+  }
+
+  /**
+   * Provider fetch-health aggregation for the admin data-quality surface
+   * (Phase 10 section 3). `sinceHours` bounds the window so a long-running
+   * deployment does not scan every fetch ever recorded; null = unbounded.
+   *
+   * Failure counts include FAILED, RATE_LIMITED and OUTAGE (an outage is a
+   * recorded fetch outcome, not an absence of data — docs/DATA-SOURCES.md,
+   * provider-outage.spec.ts). PENDING fetches are excluded: a fetch that
+   * has not finished is not yet a success or a failure.
+   */
+  async health(sinceHours: number | null): Promise<ProviderHealthView[]> {
+    const providers = await this.prisma.dataProvider.findMany({
+      orderBy: { key: 'asc' },
+    });
+    const since =
+      sinceHours != null && sinceHours > 0
+        ? new Date(Date.now() - sinceHours * 3_600_000)
+        : null;
+
+    const views: ProviderHealthView[] = [];
+    for (const provider of providers) {
+      const window = await this.fetchWindow(provider.id, since);
+      const lastFetch = await this.prisma.providerFetch.findFirst({
+        where: {
+          providerId: provider.id,
+          completedAt: { not: null },
+        },
+        orderBy: { completedAt: 'desc' },
+      });
+      views.push({
+        key: provider.key,
+        name: provider.name,
+        enabled: provider.enabled,
+        window,
+        lastFetchAt: lastFetch?.completedAt?.toISOString() ?? null,
+        lastFetchStatus: lastFetch?.status ?? null,
+        lastFetchWasOutage: lastFetch?.status === 'OUTAGE',
+      });
+    }
+    return views;
+  }
+
+  private async fetchWindow(
+    providerId: string,
+    since: Date | null,
+  ): Promise<NonNullable<ProviderHealthView['window']>> {
+    const rows = await this.prisma.providerFetch.findMany({
+      where: {
+        providerId,
+        ...(since ? { requestedAt: { gte: since } } : {}),
+      },
+      select: { status: true },
+    });
+    const count = (statuses: string[]) =>
+      rows.filter((r) => statuses.includes(r.status)).length;
+    return {
+      since: since?.toISOString() ?? 'unbounded',
+      success: count(['SUCCESS']),
+      partial: count(['PARTIAL']),
+      failed: count(['FAILED', 'RATE_LIMITED']),
+      outages: count(['OUTAGE']),
+      total: rows.length,
+    };
   }
 
   /** Create or update a provider by stable key. */

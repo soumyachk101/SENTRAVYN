@@ -659,16 +659,39 @@ ${infoLineage}${infoCancel}  </info>
     }
 
     // The list endpoint exposes the ingested alert with pagination metadata.
-    const list = await request(app.getHttpServer())
+    //
+    // Isolation note: this suite already isolates its *users* via the runId
+    // suffix (see beforeAll) so it can run against an accumulated dev DB.
+    // The list is ordered publishedAt desc with nulls last, and a freshly
+    // ingested VALIDATED alert has no publishedAt yet — so on a DB that has
+    // accumulated many VALIDATED alerts the new row is NOT guaranteed to sit
+    // on page 1 of 100. Rather than depend on a clean DB, we search every
+    // page (bounded by the reported total) and assert the alert is present
+    // somewhere. On a clean DB it is on page 1 and the loop still works.
+    const firstList = await request(app.getHttpServer())
       .get('/api/v1/alerts?status=VALIDATED&page=1&pageSize=100')
       .expect(200);
-    const listBody = list.body as {
+    const listBody = firstList.body as {
       items: { id: string; status: string }[];
       pagination: { total: number };
     };
     expect(Array.isArray(listBody.items)).toBe(true);
     expect(listBody.pagination.total).toBeGreaterThanOrEqual(1);
-    const listed = listBody.items.find((item) => item.id === gdacsAlertId);
+    let listed = listBody.items.find((item) => item.id === gdacsAlertId);
+    const pageSize = 100;
+    const total = listBody.pagination.total;
+    let page = 2;
+    while (listed === undefined && (page - 1) * pageSize < total) {
+      const next = await request(app.getHttpServer())
+        .get(
+          `/api/v1/alerts?status=VALIDATED&page=${page}&pageSize=${pageSize}`,
+        )
+        .expect(200);
+      listed = (
+        next.body as { items: { id: string; status: string }[] }
+      ).items.find((item) => item.id === gdacsAlertId);
+      page += 1;
+    }
     expect(listed).toBeDefined();
     expect(listed?.status).toBe('VALIDATED');
   });

@@ -59,7 +59,9 @@ describe('SENTRAVYN admin API (e2e)', () => {
     it.each([
       '/api/v1/admin/audit',
       '/api/v1/providers',
+      '/api/v1/providers/health',
       '/api/v1/admin/review/queue?kind=alerts',
+      '/api/v1/admin/review/depth?kind=alerts',
     ])('GET %s expects 401', async (path) => {
       await request(app.getHttpServer()).get(path).expect(401);
     });
@@ -163,6 +165,69 @@ describe('SENTRAVYN admin API (e2e)', () => {
       expect(second.body.seededKeys).toEqual(first.body.seededKeys);
     });
 
+    it('aggregates provider fetch health and RBAC (Phase 10 section 3)', async () => {
+      if (!dbConfigured) {
+        console.log(
+          'SKIP: DATABASE_URL not configured; provider health e2e not run',
+        );
+        return;
+      }
+      // A fresh provider + a mix of finished fetches: one success, one outage.
+      const providerKey = `e2e-health-${runId}`;
+      const provider = await prisma.dataProvider.create({
+        data: { key: providerKey, name: 'E2E Health Provider', enabled: true },
+      });
+      await prisma.providerFetch.create({
+        data: {
+          providerId: provider.id,
+          status: 'SUCCESS',
+          requestedAt: new Date(),
+          completedAt: new Date(),
+        },
+      });
+      await prisma.providerFetch.create({
+        data: {
+          providerId: provider.id,
+          status: 'OUTAGE',
+          requestedAt: new Date(),
+          completedAt: new Date(),
+        },
+      });
+
+      // REVIEWER+ may read; PUBLIC is below the role floor, so 403.
+      await request(app.getHttpServer())
+        .get('/api/v1/providers/health')
+        .set('Authorization', `Bearer ${publicToken}`)
+        .expect(403);
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/providers/health')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      const health = res.body as {
+        key: string;
+        window: {
+          success: number;
+          failed: number;
+          outages: number;
+          total: number;
+        } | null;
+        lastFetchStatus: string | null;
+        lastFetchWasOutage: boolean;
+      }[];
+      expect(Array.isArray(health)).toBe(true);
+      const row = health.find((h) => h.key === providerKey);
+      expect(row).toBeDefined();
+      // Window aggregates the two finished fetches (PENDING is excluded;
+      // no PENDING row exists for this provider, so total is 2).
+      expect(row?.window?.total).toBe(2);
+      expect(row?.window?.success).toBe(1);
+      expect(row?.window?.outages).toBe(1);
+      // The most recent finished fetch (created last) was the outage, so
+      // the stale-provider flag must be on for this provider.
+      expect(row?.lastFetchWasOutage).toBe(true);
+      expect(row?.lastFetchStatus).toBe('OUTAGE');
+    });
+
     it('surfaces PROVIDER_CHANGED in the admin audit trail', async () => {
       if (!dbConfigured) {
         console.log('SKIP: DATABASE_URL not configured; audit e2e not run');
@@ -196,6 +261,50 @@ describe('SENTRAVYN admin API (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
       expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('reports the review-queue depth and alert-threshold signal (Phase 10 section 3)', async () => {
+      if (!dbConfigured) {
+        console.log(
+          'SKIP: DATABASE_URL not configured; review depth e2e not run',
+        );
+        return;
+      }
+      // Seed a quarantined alert so the alerts queue has a known non-zero
+      // depth. The alert row is unambiguously quarantined: no publication,
+      // no review, so its status is the review surface (ADR-007).
+      const alert = await prisma.alert.create({
+        data: {
+          headline: `E2E quarantine alert ${runId}`,
+          status: 'QUARANTINED',
+        },
+      });
+      expect(alert.status).toBe('QUARANTINED');
+
+      // PUBLIC is below the role floor (REVIEWER+), so 403.
+      await request(app.getHttpServer())
+        .get('/api/v1/admin/review/depth?kind=alerts')
+        .set('Authorization', `Bearer ${publicToken}`)
+        .expect(403);
+
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/admin/review/depth?kind=alerts')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      const view = res.body as {
+        kind: string;
+        depth: number;
+        threshold: number;
+        exceedsAlertThreshold: boolean;
+      };
+      expect(view.kind).toBe('alerts');
+      // At least the seeded alert is counted (other e2e data is possible, so
+      // >= 1, not a strict equality).
+      expect(view.depth).toBeGreaterThanOrEqual(1);
+      // threshold is the configured/default positive integer.
+      expect(view.threshold).toBeGreaterThan(0);
+      // The signal is consistent with the two fields.
+      expect(view.exceedsAlertThreshold).toBe(view.depth >= view.threshold);
     });
 
     it('verifies a shelter only with an authority and a date (Gate E)', async () => {

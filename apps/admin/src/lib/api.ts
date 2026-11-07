@@ -20,10 +20,12 @@ import {
   type PlaceQueueItem,
   type AlertQueueItem,
   type PaginatedGuideView,
+  type ProviderHealthView,
   type ProviderUpsertInput,
   type ProviderView,
   type PublicUser,
   type QueueKind,
+  type ReviewQueueDepthView,
   type SeedResult,
   type SessionView,
 } from './types';
@@ -409,6 +411,18 @@ export const providersApi = {
     return request<ProviderView[]>('GET', '/providers');
   },
 
+  /**
+   * Provider fetch-health aggregation (Phase 10 section 3): per-provider
+   * success/partial/failure/outage counts over a bounded window, plus the
+   * most recent finished fetch. REVIEWER+ (admin data-quality surface);
+   * never exposed to the public UI.
+   * `sinceHours` bounds the window; omitted = unbounded.
+   */
+  health(sinceHours?: number): Promise<ProviderHealthView[]> {
+    const qs = sinceHours != null ? `?sinceHours=${Number(sinceHours)}` : '';
+    return request<ProviderHealthView[]>('GET', `/providers/health${qs}`);
+  },
+
   upsert(input: ProviderUpsertInput): Promise<ProviderView> {
     return request<ProviderView>('POST', '/providers', input);
   },
@@ -443,6 +457,18 @@ export const reviewApi = {
 
   decide(input: DecideInput): Promise<DecideResult> {
     return request<DecideResult>('POST', '/admin/review/decide', input);
+  },
+
+  /**
+   * GET /admin/review/depth?kind=... (Phase 10 section 3): the unbounded
+   * queue depth for the kind against the configured alert threshold, plus
+   * the `exceedsAlertThreshold` on-call signal. Read-only.
+   */
+  depth(kind: QueueKind): Promise<ReviewQueueDepthView> {
+    return request<ReviewQueueDepthView>(
+      'GET',
+      `/admin/review/depth?kind=${encodeURIComponent(kind)}`,
+    );
   },
 };
 

@@ -86,6 +86,31 @@ export interface ProviderView {
   lastSeededAt: string | null;
 }
 
+/**
+ * Per-provider fetch-health aggregation (backend GET /providers/health,
+ * Phase 10 section 3 data-quality monitoring). `window` is null when no
+ * fetch has happened — "no data" is a different state from "failing", and
+ * the UI must not render a failing provider from an empty window.
+ */
+export interface ProviderHealthView {
+  key: string;
+  name: string;
+  enabled: boolean;
+  window: {
+    since: string;
+    success: number;
+    partial: number;
+    failed: number;
+    outages: number;
+    total: number;
+  } | null;
+  lastFetchAt: string | null;
+  lastFetchStatus: string | null;
+  /** True when the most recent finished fetch recorded an OUTAGE — the
+   *  admin "stale provider" signal (never surfaced in the public UI). */
+  lastFetchWasOutage: boolean;
+}
+
 export interface ProviderUpsertInput {
   /** Kebab-case, 2-63 chars. */
   key: string;
@@ -164,6 +189,21 @@ export interface DecideResult {
   targetKind: string;
   targetId: string;
   auditAction: string;
+}
+
+/**
+ * Review-queue depth + alert-threshold signal (GET /admin/review/depth,
+ * Phase 10 section 3). `depth` is the unbounded count of items awaiting
+ * review for the kind; `threshold` is the configured
+ * REVIEW_QUEUE_ALERT_THRESHOLD (default 50); `exceedsAlertThreshold` is
+ * the structured signal on-call paging consumes. Read-only: it never
+ * mutates queue state.
+ */
+export interface ReviewQueueDepthView {
+  kind: QueueKind;
+  depth: number;
+  threshold: number;
+  exceedsAlertThreshold: boolean;
 }
 
 export interface AuditEvent {

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { providersApi } from '@/lib/api';
 import { roleAtLeast, useSession } from '@/lib/session';
-import { type ProviderView } from '@/lib/types';
+import { type ProviderHealthView, type ProviderView } from '@/lib/types';
 import {
   Badge,
   describeError,
@@ -28,6 +28,9 @@ import {
 export default function ProvidersPage() {
   const { user, loading } = useSession();
   const isAdmin = roleAtLeast(user?.role, 'ADMIN');
+  // Provider fetch-health + stale watch are an admin data-quality surface
+  // (Phase 10 section 3): visible to REVIEWER+, never public.
+  const canViewHealth = roleAtLeast(user?.role, 'REVIEWER');
 
   const [rows, setRows] = useState<ProviderView[]>([]);
   const [state, setState] = useState<
@@ -236,9 +239,150 @@ export default function ProvidersPage() {
               {isAdmin ? <UpsertForm onSaved={() => load()} /> : null}
             </>
           )}
+
+          {canViewHealth ? <ProviderDataQualityPanel /> : null}
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * Provider data-quality surface (Phase 10 section 3, "data-quality
+ * monitoring"). Shows, per provider, its fetch-health aggregation
+ * (success/partial/failure/outage over the window) and flags a provider as
+ * STALE when its most recent finished fetch was an OUTAGE — an
+ * admin-only signal that a provider has stopped delivering, never shown
+ * in the public UI (a stale provider state is admin-visible, not public).
+ *
+ * States (CLAUDE.md rule 10): loading / empty / error-retry. The window is
+ * unbounded by default; the counts are a read-only view of ProviderFetch
+ * rows, so nothing here mutates registry state.
+ */
+function ProviderDataQualityPanel() {
+  const [health, setHealth] = useState<ProviderHealthView[] | null>(null);
+  const [state, setState] = useState<
+    | { status: 'loading' }
+    | { status: 'error'; error: string }
+    | { status: 'ready' }
+  >({ status: 'loading' });
+
+  const fetchHealth = useCallback(() => {
+    setState({ status: 'loading' });
+    providersApi
+      .health()
+      .then((data) => {
+        setHealth(data);
+        setState({ status: 'ready' });
+      })
+      .catch((err: unknown) => {
+        setHealth(null);
+        setState({ status: 'error', error: describeError(err) });
+      });
+  }, []);
+
+  useEffect(() => {
+    // Route through a locally declared closure so the synchronous
+    // fetch-start (which sets the panel to loading) satisfies the
+    // react-hooks/set-state-in-effect rule (same idiom as the provider
+    // list above and the public web AuthPanel).
+    const begin = () => {
+      void fetchHealth();
+    };
+    begin();
+  }, [fetchHealth]);
+
+  const stale = (health ?? []).filter(
+    (h) => h.window !== null && h.lastFetchWasOutage,
+  );
+
+  return (
+    <div className="panel" aria-labelledby="p-health-heading">
+      <h2 id="p-health-heading">
+        Provider data quality
+        <span className="cell-sub">
+          {' '}
+          (admin-only; never surfaced in the public UI)
+        </span>
+      </h2>
+
+      {state.status === 'loading' ? (
+        <LoadingPanel label="Loading provider fetch health" />
+      ) : state.status === 'error' ? (
+        <ErrorPanel message={state.error} onRetry={fetchHealth} />
+      ) : (health ?? []).length === 0 ? (
+        <EmptyPanel
+          title="No provider fetches recorded"
+          body="Once a provider fetch is recorded (successful or outage), its health aggregates here."
+        />
+      ) : (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th scope="col">Provider</th>
+                <th scope="col">Last fetch</th>
+                <th scope="col">Success / partial</th>
+                <th scope="col">Failed / outages</th>
+                <th scope="col">State</th>
+              </tr>
+            </thead>
+            <tbody>
+              {health!.map((h) => (
+                <tr key={h.key}>
+                  <td>
+                    <div>{h.name}</div>
+                    <div className="cell-sub">
+                      <code className="mono">{h.key}</code>
+                    </div>
+                  </td>
+                  <td>
+                    {h.lastFetchAt ? (
+                      <>
+                        <div>{formatDateTime(h.lastFetchAt)}</div>
+                        <div className="cell-sub">
+                          last status: {h.lastFetchStatus ?? 'unknown'}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="cell-muted">never fetched</span>
+                    )}
+                  </td>
+                  <td>
+                    {h.window
+                      ? `${h.window.success} / ${h.window.partial}`
+                      : 'no data'}
+                  </td>
+                  <td>
+                    {h.window
+                      ? `${h.window.failed} / ${h.window.outages}`
+                      : 'no data'}
+                  </td>
+                  <td>
+                    {h.lastFetchWasOutage ? (
+                      <Badge tone="warn">Stale provider</Badge>
+                    ) : h.window && h.window.total > 0 ? (
+                      <Badge tone="ok">Healthy</Badge>
+                    ) : (
+                      <Badge tone="muted">No data</Badge>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {stale.length > 0 ? (
+        <p className="form-error" role="alert">
+          {stale.length} provider{stale.length === 1 ? '' : 's'} reporting an
+          OUTAGE on their most recent finished fetch (
+          {stale.map((s) => s.key).join(', ')}). Public data from these is
+          labelled stale; investigate the provider before re-enabling.
+        </p>
+      ) : null}
+    </div>
   );
 }
 

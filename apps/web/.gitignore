@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Next.js 16 auto-generated agent-rules file (build artifact)
+AGENTS.md

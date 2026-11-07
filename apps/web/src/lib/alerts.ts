@@ -8,6 +8,7 @@ import type {
   InformationClass,
   Paginated,
 } from '@sentravyn/shared-types';
+import { recordLocalSync } from '@/lib/pwa';
 
 /**
  * Web-side public alerts consumer (Phase 3). Thin wrapper over the shared
@@ -48,7 +49,15 @@ function apiClient(): SentravynApiClient {
 export function listPublicAlerts(
   params: ListAlertsParams = {},
 ): Promise<Paginated<Alert>> {
-  return apiClient().listAlerts(params);
+  // Record the live-sync timestamp so the PWA "last synced" state is real
+  // (Phase 6): a successful public fetch is the sync the banner reports.
+  // recordLocalSync is a no-op on the server / without localStorage.
+  return apiClient()
+    .listAlerts(params)
+    .then((page) => {
+      recordLocalSync();
+      return page;
+    });
 }
 
 /**
@@ -56,7 +65,13 @@ export function listPublicAlerts(
  * (GET /api/v1/alerts/:id, the AlertDetail envelope).
  */
 export function getPublicAlertDetail(id: string): Promise<AlertDetail> {
-  return apiClient().getAlertDetail(id);
+  // Same live-sync recording as the list: the detail fetch is a sync too.
+  return apiClient()
+    .getAlertDetail(id)
+    .then((detail) => {
+      recordLocalSync();
+      return detail;
+    });
 }
 
 /**

@@ -18,6 +18,9 @@ next-env.d.ts
 # Prisma: generated client + applied SQL migrations are DB state; never reformat
 backend/prisma/migrations/
 
+# Generated api-client bundle (gitignored test artifact); never reformat
+packages/api-client/test/client.bundle.mjs
+
 # tsconfig files are JSONC and may carry comments; Prettier would strip them
 **/tsconfig*.json
 
@@ -50,3 +53,4 @@ backend/prisma/migrations/
 # Prettier reflowing them is not worth the diff noise
 *.yml
 *.yaml
+docs/evidence/

@@ -3,22 +3,30 @@ import {
   AdminReviewService,
   AlertQueueItem,
   PlaceQueueItem,
+  ReviewQueueDepthView,
 } from '../src/admin/admin-review.service';
 import {
   AdminReviewDecisionDto,
   QueueKind,
 } from '../src/admin/admin-review.dto';
+import { ConfigService } from '@nestjs/config';
 import type { PrismaService } from '../src/prisma/prisma.service';
 import { AUDIT_ACTIONS } from '../src/audit/audit.service';
 import type { AuditService } from '../src/audit/audit.service';
 
 type MockPrisma = {
-  alert: { findMany: jest.Mock; findUnique: jest.Mock; update: jest.Mock };
+  alert: {
+    findMany: jest.Mock;
+    findUnique: jest.Mock;
+    update: jest.Mock;
+    count: jest.Mock;
+  };
   place: { findUnique: jest.Mock; update: jest.Mock };
   shelterProfile: {
     findMany: jest.Mock;
     findUnique: jest.Mock;
     update: jest.Mock;
+    count: jest.Mock;
   };
   dataProvider: { findMany: jest.Mock };
   adminReviewDecision: { create: jest.Mock };
@@ -30,15 +38,21 @@ type MockAudit = {
 };
 
 // alert.findUnique is used by the 'alert' decision branch (target lookup);
-// findMany by the queue. Both are mocked here.
+// findMany by the queue; count by the depth endpoint (Phase 10 section 3).
 function createPrismaMock(): MockPrisma {
   return {
-    alert: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
+    alert: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
     place: { findUnique: jest.fn(), update: jest.fn() },
     shelterProfile: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      count: jest.fn(),
     },
     dataProvider: { findMany: jest.fn() },
     adminReviewDecision: { create: jest.fn() },
@@ -48,6 +62,18 @@ function createPrismaMock(): MockPrisma {
 
 function createAuditMock(): MockAudit {
   return { record: jest.fn().mockResolvedValue(undefined) };
+}
+
+// ConfigService mock: by default no REVIEW_QUEUE_ALERT_THRESHOLD is set,
+// which exercises the service's documented default (50).
+function createConfigMock(reviewQueueAlertThreshold?: string): ConfigService {
+  const store: Record<string, string> = {};
+  if (reviewQueueAlertThreshold !== undefined) {
+    store.REVIEW_QUEUE_ALERT_THRESHOLD = reviewQueueAlertThreshold;
+  }
+  return {
+    get: jest.fn((key: string) => store[key]),
+  } as unknown as ConfigService;
 }
 
 function decisionDto(
@@ -72,15 +98,116 @@ const USER = { id: 'user-9', role: 'ADMIN', email: 'admin@sentravyn.example' };
 describe('AdminReviewService (SAFETY-POLICY.md 3, Gate E)', () => {
   let prisma: MockPrisma;
   let audit: MockAudit;
+  let config: ConfigService;
   let service: AdminReviewService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
     audit = createAuditMock();
+    config = createConfigMock();
     service = new AdminReviewService(
       prisma as unknown as PrismaService,
       audit as unknown as AuditService,
+      config,
     );
+  });
+
+  describe('depth (Phase 10 section 3, quarantine queue-depth alert threshold)', () => {
+    it("depth('alerts') counts QUARANTINED/RECEIVED alerts and flags the default threshold (50)", async () => {
+      prisma.alert.count.mockResolvedValue(50);
+
+      const view = await service.depth('alerts');
+
+      expect(prisma.alert.count).toHaveBeenCalledWith({
+        where: { status: { in: ['QUARANTINED', 'RECEIVED'] } },
+      });
+      expect(view).toEqual<ReviewQueueDepthView>({
+        kind: 'alerts',
+        depth: 50,
+        threshold: 50,
+        exceedsAlertThreshold: true,
+      });
+      // depth === threshold is the boundary: "reaches" means >=.
+      expect(view.exceedsAlertThreshold).toBe(true);
+    });
+
+    it("depth('alerts') below the threshold does not flag it", async () => {
+      prisma.alert.count.mockResolvedValue(12);
+
+      const view = await service.depth('alerts');
+
+      expect(view).toEqual({
+        kind: 'alerts',
+        depth: 12,
+        threshold: 50,
+        exceedsAlertThreshold: false,
+      });
+    });
+
+    it("depth('places') counts shelter profiles that are not VERIFIED", async () => {
+      prisma.shelterProfile.count.mockResolvedValue(3);
+
+      const view = await service.depth('places');
+
+      expect(prisma.shelterProfile.count).toHaveBeenCalledWith({
+        where: { verification: { not: 'VERIFIED' } },
+      });
+      expect(view).toEqual({
+        kind: 'places',
+        depth: 3,
+        threshold: 50,
+        exceedsAlertThreshold: false,
+      });
+    });
+
+    it('honours a REVIEW_QUEUE_ALERT_THRESHOLD config override', async () => {
+      const configured = createConfigMock('5');
+      const svc = new AdminReviewService(
+        prisma as unknown as PrismaService,
+        audit as unknown as AuditService,
+        configured,
+      );
+      prisma.alert.count.mockResolvedValue(5);
+
+      const view = await svc.depth('alerts');
+
+      // 5 items vs. an operator-retuned threshold of 5: boundary >=.
+      expect(view.threshold).toBe(5);
+      expect(view.exceedsAlertThreshold).toBe(true);
+    });
+
+    it('falls back to the default threshold when the override is non-numeric or non-positive', async () => {
+      for (const bad of ['abc', '0', '-3', '']) {
+        const configured = createConfigMock(bad);
+        const svc = new AdminReviewService(
+          prisma as unknown as PrismaService,
+          audit as unknown as AuditService,
+          configured,
+        );
+        prisma.alert.count.mockResolvedValue(10);
+        const view = await svc.depth('alerts');
+        expect(view.threshold).toBe(50);
+        expect(view.exceedsAlertThreshold).toBe(false);
+      }
+    });
+
+    it('depth for an unknown kind throws BadRequestException without touching prisma', async () => {
+      await expect(
+        service.depth('bogus' as unknown as QueueKind),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.alert.count).not.toHaveBeenCalled();
+      expect(prisma.shelterProfile.count).not.toHaveBeenCalled();
+    });
+
+    it('depth is read-only: it never writes queue state or decision rows', async () => {
+      prisma.alert.count.mockResolvedValue(999);
+
+      await service.depth('alerts');
+
+      expect(prisma.alert.update).not.toHaveBeenCalled();
+      expect(prisma.adminReviewDecision.create).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalled();
+    });
   });
 
   describe('queue', () => {

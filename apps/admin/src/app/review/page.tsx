@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { reviewApi, isPlaceQueue } from '@/lib/api';
 import { useRequireRole } from '@/lib/session';
-import { type AlertQueueItem, type PlaceQueueItem } from '@/lib/types';
+import {
+  type AlertQueueItem,
+  type PlaceQueueItem,
+  type ReviewQueueDepthView,
+} from '@/lib/types';
 import {
   Badge,
   describeError,
@@ -38,6 +42,11 @@ export default function ReviewPage() {
   const placesTabRef = useRef<HTMLButtonElement>(null);
 
   const [items, setItems] = useState<AlertQueueItem[] | PlaceQueueItem[]>([]);
+  // Phase 10 section 3: the unbounded queue depth + alert-threshold signal
+  // for the active tab. Kept alongside the queue so the operator sees the
+  // paging-worthy depth (and whether it has crossed the threshold) next to
+  // the items they are working through. Null when not yet loaded.
+  const [depth, setDepth] = useState<ReviewQueueDepthView | null>(null);
   const [state, setState] = useState<
     | { status: 'loading' }
     | { status: 'error'; error: string }
@@ -51,11 +60,24 @@ export default function ReviewPage() {
 
   const fetchQueue = useCallback(async () => {
     activeTabRef.current = tab;
+    setDepth(null);
     try {
-      const data = await reviewApi.queue(tab);
+      // The depth signal is a second, independent read: if it fails while the
+      // queue succeeds, the queue still renders and the depth panel degrades
+      // to "unknown" rather than taking the whole surface down.
+      const [data, depthView] = await Promise.allSettled([
+        reviewApi.queue(tab),
+        reviewApi.depth(tab),
+      ]);
       if (activeTabRef.current !== tab) return;
-      setItems(data);
-      setState({ status: 'ready' });
+      if (data.status === 'fulfilled') {
+        setItems(data.value);
+        setState({ status: 'ready' });
+      } else {
+        setItems([]);
+        setState({ status: 'error', error: describeError(data.reason) });
+      }
+      setDepth(depthView.status === 'fulfilled' ? depthView.value : null);
     } catch (err: unknown) {
       if (activeTabRef.current !== tab) return;
       setItems([]);
@@ -145,6 +167,8 @@ export default function ReviewPage() {
             </button>
           </div>
 
+          <QueueDepthPanel depth={depth} tab={tab} />
+
           {state.status === 'loading' ? (
             <LoadingPanel label={`Loading ${tab} queue`} />
           ) : state.status === 'error' ? (
@@ -174,6 +198,63 @@ export default function ReviewPage() {
         </>
       )}
     </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
+/**
+ * Queue-depth signal for the active tab (Phase 10 section 3). Shows the
+ * unbounded depth against the configured alert threshold and flags the
+ * on-call-worthy excess. Read-only: it informs the operator, it never acts
+ * on the queue. Degrades to a single "unknown" line when the depth read
+ * failed, so the queue stays usable.
+ */
+function QueueDepthPanel({
+  depth,
+  tab,
+}: {
+  depth: ReviewQueueDepthView | null;
+  tab: 'alerts' | 'places';
+}) {
+  if (depth === null) {
+    return (
+      <div className="card" aria-live="polite">
+        <div className="card__head">
+          <h2 className="card__title">Queue depth</h2>
+          <Badge tone="muted">unknown</Badge>
+        </div>
+        <p className="card__note">
+          The depth signal could not be loaded. The queue itself still works;
+          the threshold check is unavailable.
+        </p>
+      </div>
+    );
+  }
+
+  const label = tab === 'alerts' ? 'alerts' : 'places';
+  return (
+    <div className="card" aria-live="polite">
+      <div className="card__head">
+        <h2 className="card__title">Queue depth ({label})</h2>
+        {depth.exceedsAlertThreshold ? (
+          <Badge tone="warn">At / above threshold</Badge>
+        ) : (
+          <Badge tone="ok">Within threshold</Badge>
+        )}
+      </div>
+      <div className="card__meta">
+        <Meta k="Awaiting review">{depth.depth}</Meta>
+        <Meta k="Alert threshold">{depth.threshold}</Meta>
+      </div>
+      {depth.exceedsAlertThreshold ? (
+        <p className="card__note">
+          {depth.depth} {label} are awaiting review against a threshold of{' '}
+          {depth.threshold}. This is a monitoring signal only; paging on it is
+          the owner-gated on-call workflow.
+        </p>
+      ) : null}
+    </div>
   );
 }
 

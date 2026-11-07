@@ -3,6 +3,7 @@ import type {
   AlertDetail,
   AlertQueueItem,
   ApproveGuideInput,
+  CoverageView,
   AuditEventView,
   AuthRegisterInput,
   AuthTokens,
@@ -197,6 +198,17 @@ export class SentravynApiClient {
   /** GET /providers (any authenticated role). */
   providersList(accessToken: string): Promise<ProviderView[]> {
     return createProvidersClient(this.requester).list(accessToken);
+  }
+
+  /**
+   * GET /coverage (public, unauthenticated; Phase 10 section 1). Registry-
+   * derived disclosure: which data categories are actually enabled. The
+   * landing page, footer and /terms read this to state real coverage; an
+   * empty or all-disabled registry is the `hasCoverage: false` "no
+   * coverage" state, never a fabricated source. No access token.
+   */
+  coverage(): Promise<CoverageView> {
+    return createProvidersClient(this.requester).coverage();
   }
 
   /** POST /providers (ADMIN). Upserts one provider by key. */

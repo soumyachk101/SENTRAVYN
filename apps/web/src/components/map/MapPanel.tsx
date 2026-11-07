@@ -87,6 +87,11 @@ export function MapPanel() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapReadyRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  // MapLibre processes the inline style asynchronously after `new Map`;
+  // addSource/addLayer throw "Style is not done loading" until it completes.
+  // Layer setup is gated on this flag so the marker effect only runs once
+  // the style is usable.
+  const [styleReady, setStyleReady] = useState(false);
   // The marker-click handler reads the current items through a ref so the
   // once-only init effect never captures a stale closure.
   const itemsRef = useRef<PlaceGeoRow[]>([]);
@@ -211,10 +216,16 @@ export function MapPanel() {
       // circle layer opens that place's detail.
       mapRef.current = map;
       mapReadyRef.current = true;
+      // The marker layer can only be added once the inline style is done
+      // processing; `load` fires exactly then.
+      map.on('load', () => {
+        setStyleReady(true);
+      });
       return () => {
         map.remove();
         mapRef.current = null;
         mapReadyRef.current = false;
+        setStyleReady(false);
       };
     } catch {
       // Canvas unavailable (e.g. headless): the data panel still works.
@@ -234,9 +245,12 @@ export function MapPanel() {
 
   // Draw place markers per category. A layer per category so each can be
   // toggled independently. Clicking a marker opens that place's detail.
+  // Gated on `styleReady` (the map's `load` event) because addSource/
+  // addLayer throw "Style is not done loading" until the inline style has
+  // finished processing after `new Map`.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !styleReady) return;
     const items = state.status === 'ready' ? state.items : [];
     itemsRef.current = items;
     const visible = items.filter(
@@ -271,7 +285,14 @@ export function MapPanel() {
       const src = map.getSource('places') as GeoJSONSource | undefined;
       src?.setData(data);
     }
-  }, [state, visibleCategories, center.lat, center.lng, openDetail]);
+  }, [
+    state,
+    visibleCategories,
+    center.lat,
+    center.lng,
+    openDetail,
+    styleReady,
+  ]);
 
   // A stale/unknown state is conveyed per-place by the API's verificationLabel
   // (STALE / EXPIRED / INCOMPLETE) and the staleSince field — the API is the

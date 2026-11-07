@@ -14,6 +14,7 @@ import {
   INFORMATION_CLASS_LABELS,
   listPublicAlerts,
 } from '@/lib/alerts';
+import { PwaSyncBanner } from '@/components/PwaSyncBanner';
 import '@/components/alerts/alerts.css';
 
 /**
@@ -223,11 +224,16 @@ export function AlertsClient() {
         </p>
       </div>
 
+      {/* Visible last-sync / not-live strip (Phase 6, SAFETY-POLICY.md 8):
+          labels cached / offline content as not-live. Persists across the
+          offline state so a not-live view is never read as current. */}
+      <PwaSyncBanner />
+
       {offline ? (
         <div className="alerts-offline" role="status">
           <p>
-            You appear to be offline. Anything shown below reflects the last
-            successful fetch
+            You appear to be offline. SENTRAVYN does not cache live alert data,
+            so anything shown below is from the last fetch in this session
             {fetchedAt ? ` — ${formatStamp(fetchedAt)}` : ''} — it is not live.
           </p>
           <button

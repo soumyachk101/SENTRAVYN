@@ -329,6 +329,40 @@ export interface GuideListParams {
   stale?: boolean;
 }
 
+/**
+ * Public coverage-disclosure envelope (GET /coverage, Phase 10 section 1).
+ * Mirrors the backend CoverageView: which data categories are actually
+ * enabled, derived from the provider registry — never a hard-coded claim.
+ * The landing page, footer and data-sources read this to state real coverage;
+ * an empty or all-disabled registry is the `hasCoverage: false` "no coverage"
+ * state, never a fabricated source (SAFETY-POLICY.md 1, 6).
+ */
+export interface CoverageView {
+  /** Fixed disclosure literal: a listing is not proof a place is open/safe. */
+  coverageNote: string;
+  /** True when at least one provider in the registry is enabled. */
+  hasCoverage: boolean;
+  enabledProviderCount: number;
+  totalProviderCount: number;
+  /** Data categories with at least one enabled provider, sorted. */
+  coveredCategories: string[];
+  /** Categories present but with no enabled provider — the explicit gaps. */
+  uncoveredCategories: string[];
+}
+
+/**
+ * GET /coverage (public). No auth token: this is a public read of registry-
+ * derived disclosure. When the API is unreachable the caller renders the
+ * "no coverage" state rather than a fabricated source, so this does not
+ * swallow the ApiError — the caller decides how to degrade.
+ */
+export async function getCoverage(): Promise<CoverageView> {
+  return apiRequest<CoverageView>({
+    method: 'GET',
+    path: '/coverage',
+  });
+}
+
 export interface PaginatedGuideView {
   items: GuideView[];
   pagination: {

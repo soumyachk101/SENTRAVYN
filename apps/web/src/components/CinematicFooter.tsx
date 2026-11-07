@@ -14,6 +14,7 @@ import {
   FOOTER_FRAME_INTERVAL_MS,
 } from './footwork-frames';
 import Link from 'next/link';
+import { CoverageDisclosure } from './coverage/CoverageDisclosure';
 
 /**
  * Signature cinematic footer (DESIGN.md 4 — mandatory).
@@ -202,6 +203,14 @@ export function CinematicFooter() {
             </ul>
           </div>
         </nav>
+
+        <div className="footwork__coverage">
+          {/* Phase 10 section 1: the registry-derived coverage disclosure,
+              compact form, carried on every page via the footer. States
+              enabled providers / categories from the registry, or the plain
+              "no coverage is claimed" state when nothing is enabled. */}
+          <CoverageDisclosure compact />
+        </div>
 
         <p className="footwork__colophon">
           SENTRAVYN is an information and preparedness platform. It is not a

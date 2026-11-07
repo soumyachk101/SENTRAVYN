@@ -1,0 +1,29 @@
+# SENTRAVYN k6 load-test evidence — 2026-11-06 (definitive run, fixed stack)
+# command: BASE_URL=http://localhost:4000 k6 run load/k6/public-read.js (k6 v0.45.0, classic stages form)
+# host: localhost — Docker PostGIS(5434)+Redis(6380), API on fixed build (throttle units fix + auth-group skips), THROTTLE_DEFAULT_LIMIT=5000
+# RESULT: PASS — k6 exit 0, all thresholds green, API healthy after the run.
+
+     scenarios: (100.00%) 1 scenario, 5 max VUs, 2m30s max duration (incl. graceful stop):
+  █ THRESHOLDS 
+    ✓ 'p(95)<300' p(95)=14.65ms
+    ✓ 'p(95)<300' p(95)=6.55ms
+    http_req_5xx
+    ✓ 'count<1' count=0
+    http_req_duration
+    ✓ 'p(95)<300' p(95)=11.69ms
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+    ✓ 'p(95)<300' p(95)=7.52ms
+    checks_total.......: 1400    11.536236/s
+    checks_succeeded...: 100.00% 1400 out of 1400
+    checks_failed......: 0.00%   0 out of 1400
+    alerts_latency_ms..............: avg=11.24ms min=4.57ms med=8.78ms max=151.89ms p(90)=11.92ms p(95)=14.65ms
+    health_latency_ms..............: avg=4.43ms  min=2.02ms med=4.4ms  max=8.97ms   p(90)=6.11ms  p(95)=6.55ms 
+    http_req_5xx...................: 0      0/s
+    places_latency_ms..............: avg=5.76ms  min=1.77ms med=4.5ms  max=67.64ms  p(90)=6.52ms  p(95)=7.52ms 
+    http_req_duration..............: avg=7.15ms  min=1.77ms med=5.11ms max=151.89ms p(90)=9.68ms  p(95)=11.69ms
+      { expected_response:true }...: avg=7.15ms  min=1.77ms med=5.11ms max=151.89ms p(90)=9.68ms  p(95)=11.69ms
+    http_req_failed................: 0.00%  0 out of 840
+    iteration_duration.............: avg=2.02s   min=2.01s  med=2.01s  max=2.23s    p(90)=2.02s   p(95)=2.02s  
+    iterations.....................: 280    2.307247/s
+    vus............................: 1      min=1        max=5

@@ -208,6 +208,29 @@ export interface SeedResult {
 }
 
 /**
+ * Public coverage-disclosure envelope (GET /coverage, docs/PHASE-10-LAUNCH-READINESS.md
+ * section 1). Derived from the enabled provider registry, never hard-coded:
+ * `hasCoverage` is true only when at least one provider is enabled, and the
+ * covered/uncovered category split is what the landing/footer/terms surfaces
+ * must disclose. An empty or all-disabled registry is the `hasCoverage: false`
+ * "no coverage" state — never a fabricated source (SAFETY-POLICY.md 1, 6).
+ * `coverageNote` is the shared fixed disclosure literal: a map listing is
+ * never proof a place is open, safe or operational.
+ */
+export interface CoverageView {
+  /** Fixed disclosure literal; identical to the places read-path COVERAGE_NOTE. */
+  coverageNote: string;
+  /** True when at least one provider in the registry is enabled. */
+  hasCoverage: boolean;
+  enabledProviderCount: number;
+  totalProviderCount: number;
+  /** Data categories with at least one enabled provider, sorted. */
+  coveredCategories: string[];
+  /** Categories present but with no enabled provider — the explicit gaps. */
+  uncoveredCategories: string[];
+}
+
+/**
  * One row of the admin audit trail (GET /admin/audit, SECURITY.md 6).
  * Actions come from a closed canonical set (backend AUDIT_ACTIONS):
  * ALERT_PUBLISHED, ALERT_UPDATED, ALERT_CANCELLED, SHELTER_VERIFIED,

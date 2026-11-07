@@ -101,4 +101,38 @@ describe('SENTRAVYN API (e2e)', () => {
         .expect(404);
     });
   });
+
+  describe('GET /api/v1/coverage (Phase 10 section 1, public registry-derived)', () => {
+    it('returns the disclosure envelope with no auth token (public read)', async () => {
+      if (!dbConfigured) {
+        console.log('SKIP: DATABASE_URL not configured; coverage e2e not run');
+        return;
+      }
+      // No Authorization header: the route is a public, unauthenticated read.
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/coverage')
+        .expect(200);
+      const view = res.body as {
+        coverageNote: string;
+        hasCoverage: boolean;
+        enabledProviderCount: number;
+        totalProviderCount: number;
+        coveredCategories: string[];
+        uncoveredCategories: string[];
+      };
+      // The disclosure literal is always present — a listing is never proof
+      // a place is open, safe or operational (SAFETY-POLICY.md 1, 6).
+      expect(view.coverageNote).toBe(
+        'a map listing is not proof that a place is open, safe or operational',
+      );
+      // Counts are internally consistent: enabled <= total.
+      expect(view.enabledProviderCount).toBeLessThanOrEqual(
+        view.totalProviderCount,
+      );
+      // hasCoverage is exactly "at least one provider is enabled".
+      expect(view.hasCoverage).toBe(view.enabledProviderCount > 0);
+      expect(Array.isArray(view.coveredCategories)).toBe(true);
+      expect(Array.isArray(view.uncoveredCategories)).toBe(true);
+    });
+  });
 });

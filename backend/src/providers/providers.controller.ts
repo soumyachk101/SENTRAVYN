@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -15,6 +17,7 @@ import { CurrentUser, AuthUser } from '../common/rbac/current-user.decorator';
 import { Roles } from '../common/rbac/roles.decorator';
 import {
   ProvidersService,
+  ProviderHealthView,
   ProviderView,
   SeedResult,
 } from './providers.service';
@@ -51,6 +54,38 @@ export class ProvidersController {
   })
   list(): Promise<ProviderView[]> {
     return this.providers.list();
+  }
+
+  @Get('health')
+  @Roles('REVIEWER', 'OPERATOR', 'ADMIN')
+  @ApiOperation({
+    summary:
+      'Provider fetch-health aggregation (Phase 10 section 3 data-quality monitoring)',
+    description:
+      'Per-provider ProviderFetch outcomes over an optional window ' +
+      '(?sinceHours=N; unbounded when omitted): success/partial/failed/' +
+      'outage counts, the most recent finished fetch and whether it was an ' +
+      'OUTAGE. FAILED counts include RATE_LIMITED; PENDING fetches are ' +
+      'excluded. The outage flag is an admin/stale-provider signal only — ' +
+      'the public UI never surfaces provider health (Phase 10 section 3: ' +
+      'a stale provider state is admin-visible, never public).',
+  })
+  health(
+    @Query('sinceHours') sinceHoursRaw?: string,
+  ): Promise<ProviderHealthView[]> {
+    const sinceHours =
+      sinceHoursRaw === undefined || sinceHoursRaw === ''
+        ? null
+        : Number(sinceHoursRaw);
+    if (
+      sinceHours !== null &&
+      (!Number.isFinite(sinceHours) || sinceHours <= 0)
+    ) {
+      throw new BadRequestException(
+        'sinceHours must be a positive number of hours',
+      );
+    }
+    return this.providers.health(sinceHours);
   }
 
   @Post()

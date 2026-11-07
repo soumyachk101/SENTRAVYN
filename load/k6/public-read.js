@@ -26,7 +26,7 @@
 
 import http from 'k6/http';
 import { check, group, sleep } from 'k6';
-import { Trend } from 'k6/metrics';
+import { Trend, Counter } from 'k6/metrics';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:4000';
 const API = `${BASE_URL}/api/v1`;
@@ -51,20 +51,24 @@ const healthLatency = new Trend('health_latency_ms', true);
 const alertsLatency = new Trend('alerts_latency_ms', true);
 const placesLatency = new Trend('places_latency_ms', true);
 
+// Incremented on any 5xx and gated by the `http_req_5xx` threshold. A JS
+// function cannot live inside `options` (k6 JSON-serializes it), so the 5xx
+// count is a custom Counter metric instead of a function-valued threshold.
+const http5xx = new Counter('http_req_5xx');
+
 export const options = {
-  // Small ramp on purpose: 1 -> 5 VUs over the first minute, hold, drain.
-  scenarios: {
-    publicReadRamp: {
-      exec: 'publicRead',
-      startVUs: 0,
-      duration: '20s',
-      spawnRate: 0.25, // ~1 VU/s for the first 20s (maxVUs caps the total)
-      maxVUs: 5,
-      hold: '80s',
-      rampToVUs: 0,
-      rampToVUsDuration: '20s',
-    },
-  },
+  // Load profile matching the documented intent: 0 -> 5 VUs over the first 20 s,
+  // hold at 5 VUs for 80 s, then drain to 0 over 20 s. Expressed with the stable
+  // classic top-level `vus` + `stages` form, which is portable across k6 v0.x and
+  // v2.x. (The previous `scenarios` block mixed v2-only and classic fields with no
+  // valid executor and did not load on any k6 release — that is why this harness
+  // had never been run.)
+  vus: 5,
+  stages: [
+    { duration: '20s', target: 5 }, // ramp 0 -> 5
+    { duration: '80s', target: 5 }, // hold
+    { duration: '20s', target: 0 }, // drain
+  ],
   thresholds: {
     // Read latency (ARCHITECTURE.md 10): overall + per-endpoint p95.
     http_req_duration: [`p(95)<${LATENCY_P95_MS}`],
@@ -74,18 +78,15 @@ export const options = {
     // Public reads must not fail under the small ramp.
     http_req_failed: ['rate<0.01'],
     // No 5xx from the API.
-    http_status: {
-      check: (r) => r.status >= 500,
-      threshold: 'count<1',
-      abort: 'final',
-    },
+    http_req_5xx: ['count<1'],
   },
 };
 
-export function publicRead() {
+export default function () {
   group('health', () => {
     const res = http.get(`${API}/health/live`);
     healthLatency.add(res.timings.duration);
+    if (res.status >= 500) http5xx.add(1);
     check(res, {
       'health: status 200': (r) => r.status === 200,
     });
@@ -94,6 +95,7 @@ export function publicRead() {
   group('alerts', () => {
     const res = http.get(`${API}/alerts?page=1&pageSize=20`);
     alertsLatency.add(res.timings.duration);
+    if (res.status >= 500) http5xx.add(1);
     check(res, {
       'alerts: status 200': (r) => r.status === 200,
       'alerts: envelope has items[]': (r) =>
@@ -109,6 +111,7 @@ export function publicRead() {
       `${API}/places?lat=40.7&lng=-74.0&radiusMeters=1000&limit=20`,
     );
     placesLatency.add(res.timings.duration);
+    if (res.status >= 500) http5xx.add(1);
     check(res, {
       'places: status 200': (r) => r.status === 200,
       'places: envelope has items[]': (r) =>

@@ -5,7 +5,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/rbac/roles.guard';
 import { Roles } from '../common/rbac/roles.decorator';
 import { CurrentUser, AuthUser } from '../common/rbac/current-user.decorator';
-import { AdminReviewService, DecideResult } from './admin-review.service';
+import {
+  AdminReviewService,
+  DecideResult,
+  ReviewQueueDepthView,
+} from './admin-review.service';
 import { AdminReviewDecisionDto, QueryKindDto } from './admin-review.dto';
 
 /**
@@ -13,6 +17,8 @@ import { AdminReviewDecisionDto, QueryKindDto } from './admin-review.dto';
  *
  * - GET /admin/review/queue?kind=alerts|places: the unverified review
  *   surface, for REVIEWER, OPERATOR and ADMIN.
+ * - GET /admin/review/depth?kind=alerts|places: unbounded queue depth with
+ *   the configured alert threshold (Phase 10 section 3), read-only signal.
  * - POST /admin/review/decide: records a review decision and applies the
  *   minimum state change it implies; REVIEWER, OPERATOR and ADMIN.
  *
@@ -39,6 +45,21 @@ export class AdminReviewController {
   })
   queue(@Query() dto: QueryKindDto) {
     return this.review.queue(dto.kind);
+  }
+
+  @Get('depth')
+  @Roles('REVIEWER', 'OPERATOR', 'ADMIN')
+  @ApiOperation({
+    summary: 'Review-queue depth and alert-threshold signal',
+    description:
+      'Returns the unbounded count of items awaiting review for the given ' +
+      'kind, the configured REVIEW_QUEUE_ALERT_THRESHOLD (default 50), and ' +
+      'whether depth has reached that threshold. Read-only monitoring signal ' +
+      '(Phase 10 section 3); it never mutates queue state. Paging on the ' +
+      'signal is the owner-gated on-call wiring (section 2).',
+  })
+  depth(@Query() dto: QueryKindDto): Promise<ReviewQueueDepthView> {
+    return this.review.depth(dto.kind);
   }
 
   @Post('decide')

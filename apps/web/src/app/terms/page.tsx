@@ -87,6 +87,24 @@ export default function TermsPage() {
           and confirm with official sources before acting.
         </p>
       </div>
+
+      <div className="info-block">
+        <h2>Distance and coverage are calculations, not claims</h2>
+        <p>
+          When SENTRAVYN shows a distance to a place, it is a computed
+          straight-line figure for orientation only. It is not a claim that you
+          can reach a place safely, or that a route is clear, open or
+          survivable. A map listing is not proof a place is open, safe or
+          operational.
+        </p>
+        <p>
+          SENTRAVYN does not claim complete geographic coverage. Where a region
+          or data type has no enabled, reviewed source, coverage is unavailable
+          — that is disclosed on the data-sources page and in the footer, and
+          gaps are never filled with invented shelters, hospitals, numbers or
+          alerts.
+        </p>
+      </div>
     </section>
   );
 }

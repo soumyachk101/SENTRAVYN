@@ -1,10 +1,9 @@
 # SENTRAVYN load / stress harness (k6)
 
 Phase 9 deliverable for the `Load and stress tests` roadmap item: the
-harness, its thresholds and the run instructions. **No k6 run has been
-executed for this change** — this is NOT RUN, not a measured result
-(reason: Phase 9 gate for executed load evidence; the harness is the
-deliverable now, the run happens when a dedicated load environment is up).
+harness, its thresholds and the run instructions. The harness was first
+executed 2026-11-06 against a live local stack (this is no longer NOT RUN —
+see the run record below).
 
 ## Files
 
@@ -15,10 +14,20 @@ deliverable now, the run happens when a dedicated load environment is up).
     response checked only for the `{ items: [] }` envelope, never for
     safety semantics)
 
-  Small ramp: 0 -> 5 VUs over 20 s (`spawnRate: 0.25`), 80 s hold, 20 s
-  drain. Per-endpoint `Trend` metrics (`health_latency_ms`,
-  `alerts_latency_ms`, `places_latency_ms`) plus the k6 built-ins
-  `http_req_duration` / `http_req_failed` / `http_status`.
+  Load profile: 0 -> 5 VUs over 20 s (stages ramp), 80 s hold, 20 s drain.
+  Per-endpoint `Trend` metrics (`health_latency_ms`, `alerts_latency_ms`,
+  `places_latency_ms`) plus the k6 built-in `http_req_duration` /
+  `http_req_failed`, and a custom `Counter` (`http_req_5xx`) gating server
+  errors.
+
+## k6 version
+
+The script uses the classic top-level `vus` + `stages` + string-array
+threshold form, which loads on k6 **v0.x through v2.x** (verified v0.45.0
+and v2.3.0). Do not reintroduce the V2-only `scenarios`/`spawnRate` shape or
+a function-valued threshold — `options` must stay JSON-serializable, so a
+`check: (r) => …` in `options.thresholds` makes the whole script refuse to
+load.
 
 ## Thresholds (targets, matching ARCHITECTURE.md section 10)
 
@@ -32,7 +41,7 @@ harness encodes that:
 | read p95 (`http_req_duration`)     | `LATENCY_P95_MS` default 300 ms  | ARCHITECTURE.md 10 "query latency"                  |
 | per-endpoint p95 (three Trends)    | same 300 ms default              | ARCHITECTURE.md 10 "query latency"                  |
 | failed-request rate                | < 1%                             | public reads must not fail under the small ramp     |
-| 5xx count                          | 0 (`http_status` check)          | API must not return server errors                   |
+| 5xx count                          | 0 (`http_req_5xx` counter)       | API must not return server errors                   |
 | ingestion delay p95 (target)       | `INGESTION_DELAY_P95_MS` = 5000  | ARCHITECTURE.md 10 "ingestion delay" (target only)  |
 | notification delivery p95 (target) | `NOTIFICATION_DELIVERY_P95_MS` = 2000 | ARCHITECTURE.md 10 "notification delivery" (target only) |
 
@@ -69,7 +78,13 @@ BASE_URL=http://localhost:4000 k6 run load/k6/public-read.js
   a target only with a recorded rationale in this file.
 - Record the run report (k6's default output) with the run date, the
   `BASE_URL`, the `THROTTLE_DEFAULT_LIMIT` in effect and the resulting
-  p95/p99. Until that record exists, load tests stay **NOT RUN**.
+  p95/p99.
+
+## Run record
+
+| Date | Host | Throttle in effect | Result | Notes |
+|---|---|---|---|---|
+| 2026-11-06 | localhost (Docker PostGIS+Redis, remapped ports 5434/6380) | `THROTTLE_DEFAULT_LIMIT=5000` (raised per run-instructions) | **PASS** — all thresholds green: p95 health 5.7 ms / alerts 11.1 ms / places 5.1 ms (target 300 ms), `http_req_failed` 0.00%, `http_req_5xx` 0, checks 1400/1400. k6 v0.45.0. | Predecessor run (same day, default 300 limit) failed `http_req_failed` (38.7%) **and** exposed two real defects, both fixed and regression-tested: (1) `RedisThrottlerStorage` fed millisecond `ttl`/`blockDuration` into Redis `EXPIRE`/`SET EX` (seconds) — a 60 s window became ~16.7 h and a 300 s auth block ~3.5 days; fixed in `throttler-storage.service.ts` (`toRedisSeconds`), regression test asserts live key TTLs stay in-window; (2) `places`/`guides`/`guides-admin`/`family`/`notifications` controllers were missing `@SkipThrottle({ auth: true })`, so a public map read was co-governed by the 15/min credential `auth` group — under load this 429'd the public surface and opened long blocks; fixed by restoring the documented decorator (only `auth` + `mfa` remain in the `auth` group), regression test `throttling-groups.spec.ts` locks the design. Run evidence: `docs/evidence/phase-10/load-test-2026-11-06.txt`. |
 
 ## What a PASS would look like
 

@@ -184,4 +184,74 @@ describe('ProvidersService (docs/DATA-SOURCES.md 2)', () => {
     const shuffled = await service.list();
     expect(shuffled.map((v) => v.key)).toEqual(['usgs', 'gdacs']);
   });
+
+  describe('coverage (Phase 10 section 1, public registry-derived disclosure)', () => {
+    it('an empty registry is the no-coverage state, never fabricated coverage', async () => {
+      prisma.dataProvider.findMany.mockResolvedValue([]);
+
+      const view = await service.coverage();
+
+      expect(view.hasCoverage).toBe(false);
+      expect(view.enabledProviderCount).toBe(0);
+      expect(view.totalProviderCount).toBe(0);
+      expect(view.coveredCategories).toEqual([]);
+      expect(view.uncoveredCategories).toEqual([]);
+      // The disclosure literal is the shared COVERAGE_NOTE (SAFETY-POLICY.md 1, 6).
+      expect(view.coverageNote).toBe(
+        'a map listing is not proof that a place is open, safe or operational',
+      );
+    });
+
+    it('an all-disabled registry reads as no coverage even though providers exist', async () => {
+      prisma.dataProvider.findMany.mockResolvedValue([
+        providerRow('gdacs', { category: 'alerts' }),
+        providerRow('usgs', { category: 'events' }),
+      ]);
+
+      const view = await service.coverage();
+
+      expect(view.hasCoverage).toBe(false);
+      expect(view.enabledProviderCount).toBe(0);
+      expect(view.totalProviderCount).toBe(2);
+      // Every present category is uncovered when nothing is enabled.
+      expect(view.coveredCategories).toEqual([]);
+      expect(view.uncoveredCategories).toEqual(['alerts', 'events']);
+    });
+
+    it('mixed enabled/disabled splits categories into covered and uncovered, sorted', async () => {
+      prisma.dataProvider.findMany.mockResolvedValue([
+        providerRow('gdacs', { category: 'alerts', enabled: true }),
+        // Second enabled provider in the same category: covered once, not twice.
+        providerRow('gdacs-2', { category: 'alerts', enabled: true }),
+        providerRow('usgs', { category: 'events' }), // disabled -> uncovered
+        providerRow('copernicus-emdat', {
+          category: 'maps',
+          enabled: true,
+        }),
+      ]);
+
+      const view = await service.coverage();
+
+      expect(view.hasCoverage).toBe(true);
+      expect(view.enabledProviderCount).toBe(3);
+      expect(view.totalProviderCount).toBe(4);
+      // Deterministic: sorted, distinct, regardless of row order.
+      expect(view.coveredCategories).toEqual(['alerts', 'maps']);
+      expect(view.uncoveredCategories).toEqual(['events']);
+    });
+
+    it('coverage() is read-only: no audit event, no upsert or update, one bounded read', async () => {
+      prisma.dataProvider.findMany.mockResolvedValue([
+        providerRow('gdacs', { category: 'alerts', enabled: true }),
+      ]);
+
+      await service.coverage();
+
+      expect(prisma.dataProvider.findMany).toHaveBeenCalledTimes(1);
+      // A public read is not a PROVIDER_CHANGED: no audit, no mutation.
+      expect(audit.record).not.toHaveBeenCalled();
+      expect(prisma.dataProvider.upsert).not.toHaveBeenCalled();
+      expect(prisma.dataProvider.update).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -576,6 +576,13 @@ body {
   color: var(--accent-calm);
 }
 
+/* Phase 10 section 1: the registry-derived coverage disclosure that the
+   footer carries on every page. A compact, calm block above the colophon;
+   the CoverageDisclosure component supplies its own inner styling. */
+.footwork__coverage {
+  margin-top: var(--space-lg);
+}
+
 .footwork__colophon {
   margin-top: var(--space-xl);
   padding-top: var(--space-lg);
@@ -1436,6 +1443,54 @@ body {
 .state-panel__retry:focus-visible {
   outline: 2px solid var(--accent-calm);
   outline-offset: 2px;
+}
+
+/* PWA visible last-sync / not-live strip (Phase 6, SAFETY-POLICY.md 8).
+   A data surface mounts <PwaSyncBanner> to label cached or offline content
+   as not-live. Muted, motion-free treatment built on the state-panel tokens
+   (no neon, DESIGN.md 3). The state token reads as a calm accent when live
+   and shifts to the warning amber whenever the data is not live or the
+   device is offline. */
+.pwa-sync {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: color-mix(in srgb, var(--ink-800) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--slate-500) 22%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--slate-300);
+}
+
+.pwa-sync__state {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 0.3125rem 0.4rem;
+  border-radius: var(--radius-md);
+  color: var(--paper-50);
+  background: var(--accent-calm);
+}
+
+/* A not-live or offline strip must read as a warning, not the calm accent. */
+.pwa-sync[data-not-live='true'] .pwa-sync__state,
+.pwa-sync[data-offline='true'] .pwa-sync__state {
+  background: var(--alert-amber);
+}
+
+.pwa-sync__message {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--paper-100);
+}
+
+.pwa-sync__lastsync {
+  margin: 0 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--slate-300);
 }
 
 @media (max-width: 768px) {

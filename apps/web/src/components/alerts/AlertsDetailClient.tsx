@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import Link from 'next/link';
 import type { Alert, AlertDetail } from '@sentravyn/shared-types';
 import {
@@ -8,6 +14,7 @@ import {
   getPublicAlertDetail,
   INFORMATION_CLASS_LABELS,
 } from '@/lib/alerts';
+import { PwaSyncBanner } from '@/components/PwaSyncBanner';
 import '@/components/alerts/alerts.css';
 
 /**
@@ -125,6 +132,25 @@ export function AlertsDetailClient({ alertId }: { alertId: string }) {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const inflight = useRef(0);
 
+  // Offline detection (CLAUDE.md rule 10): the detail route must have a
+  // distinct offline state, not just the generic fetch-error panel. Same
+  // useSyncExternalStore idiom as the alerts list and the map panel.
+  const isOnline = useSyncExternalStore(
+    (onStoreChange) => {
+      const onUp = () => onStoreChange();
+      const onDown = () => onStoreChange();
+      window.addEventListener('online', onUp);
+      window.addEventListener('offline', onDown);
+      return () => {
+        window.removeEventListener('online', onUp);
+        window.removeEventListener('offline', onDown);
+      };
+    },
+    () => navigator.onLine,
+    () => true,
+  );
+  const offline = !isOnline;
+
   const load = useCallback(async () => {
     inflight.current += 1;
     const seq = inflight.current;
@@ -145,13 +171,17 @@ export function AlertsDetailClient({ alertId }: { alertId: string }) {
   }, [alertId]);
 
   useEffect(() => {
+    // While offline we do not re-fetch: the record shown is whatever was
+    // loaded before, and the offline strip below labels it not-live. This
+    // mirrors the alerts list, which skips the fetch when offline.
+    if (offline) return;
     // Local-closure idiom (same as the guide index): syncs external data
     // into React state without a directly-traced synchronous setState.
     const begin = () => {
       void load();
     };
     begin();
-  }, [load]);
+  }, [load, offline]);
 
   const retry = useCallback(() => {
     void load();
@@ -170,6 +200,29 @@ export function AlertsDetailClient({ alertId }: { alertId: string }) {
           Back to the public alert list
         </Link>
       </p>
+
+      {/* Visible last-sync / not-live strip (Phase 6, SAFETY-POLICY.md 8):
+          any cached or offline view of this record must read as not-live,
+          never as current. */}
+      <PwaSyncBanner />
+
+      {offline ? (
+        <div className="alerts-offline" role="status">
+          <p>
+            You appear to be offline. Anything shown for this record reflects
+            the last time it was fetched on this device — it is not live, and it
+            may be stale.
+          </p>
+          <button
+            type="button"
+            className="alerts-offline__retry"
+            onClick={retry}
+            data-testid="alert-offline-retry"
+          >
+            Try again
+          </button>
+        </div>
+      ) : null}
 
       {state.status === 'loading' ? (
         <div className="state-panel" role="status" aria-live="polite">

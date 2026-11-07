@@ -1,4 +1,5 @@
 import type {
+  CoverageView,
   ProviderUpsertInput,
   ProviderView,
   SeedResult,
@@ -24,6 +25,15 @@ export interface ProvidersSeedInput {
 export interface ProvidersClient {
   /** GET /providers. Registry metadata only; no credential material. */
   list(accessToken: string): Promise<ProviderView[]>;
+
+  /**
+   * GET /coverage. Public, unauthenticated registry-derived disclosure
+   * (Phase 10 section 1). No access token: this is the one read on the
+   * providers surface that does not require auth, so it carries no token.
+   * The landing/footer/terms read this to state real coverage; an
+   * all-disabled registry is the `hasCoverage: false` "no coverage" state.
+   */
+  coverage(): Promise<CoverageView>;
 
   /** POST /providers. Upserts one provider by its stable key. */
   upsert(
@@ -61,6 +71,9 @@ export function createProvidersClient(req: Requester): ProvidersClient {
         '/api/v1/providers',
         accessToken,
       ),
+    // GET /coverage is the public, unauthenticated read — it reuses the plain
+    // `request` (no Bearer header), unlike the auth-gated registry routes.
+    coverage: () => req.request<CoverageView>('GET', '/api/v1/coverage'),
     upsert: (input, accessToken) =>
       req.requestAuthed<ProviderView>(
         'POST',

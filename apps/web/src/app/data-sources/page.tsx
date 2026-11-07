@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { CoverageDisclosure } from '@/components/coverage/CoverageDisclosure';
 import '@/components/static-pages/static-pages.css';
 
 /**
@@ -175,6 +176,15 @@ export default function DataSourcesPage() {
           coverage is unavailable or incomplete — gaps are never filled with
           invented shelters, hospitals, numbers or alerts.
         </p>
+      </div>
+
+      {/* Phase 10 section 1: the registry-derived live coverage disclosure,
+          full form — the live complement to the static register above. It
+          states which categories are enabled right now, or the plain
+          "no live data coverage" state when none is. */}
+      <div className="info-block">
+        <h2>Coverage, right now</h2>
+        <CoverageDisclosure />
       </div>
 
       <div className="info-block" aria-label="Candidate source register">

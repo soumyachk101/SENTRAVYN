@@ -5,6 +5,7 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, AUDIT_ACTIONS } from '../audit/audit.service';
 import { evaluateShelterPolicy } from '../shelters/shelter-policy';
@@ -80,6 +81,24 @@ export interface DecideResult {
   auditAction: string;
 }
 
+/**
+ * Review-queue depth with its configurable alert threshold
+ * (docs/PHASE-10-LAUNCH-READINESS.md section 3, "quarantine queue depth
+ * alert threshold"). `depth` is the true count of items awaiting review
+ * for that kind (unbounded by QUEUE_TAKE, which only caps the list view);
+ * `threshold` is the configured value the operator gets paged at, and
+ * `exceedsAlertThreshold` is the structured signal the on-call workflow
+ * consumes. Exceeding the threshold never mutates queue state: it is a
+ * read-only monitoring signal (Phase 10 section 3; wiring it into an
+ * actual paging system is the owner-gated section-2 item).
+ */
+export interface ReviewQueueDepthView {
+  kind: 'alerts' | 'places';
+  depth: number;
+  threshold: number;
+  exceedsAlertThreshold: boolean;
+}
+
 /** Quarantined/received is the review surface: ADR-007 quarantine-by-default. */
 const QUEUE_STATUSES: ('QUARANTINED' | 'RECEIVED')[] = [
   'QUARANTINED',
@@ -88,6 +107,15 @@ const QUEUE_STATUSES: ('QUARANTINED' | 'RECEIVED')[] = [
 
 const QUEUE_TAKE = 200;
 
+/**
+ * The quarantine queue-depth alert threshold (Phase 10 section 3).
+ * The number of items awaiting review at which the on-call signal fires.
+ * Read from `REVIEW_QUEUE_ALERT_THRESHOLD` at call time (ConfigService,
+ * global in app.module.ts) so an operator can retune it without a restart;
+ * defaults to 50 when unset or non-positive.
+ */
+const DEFAULT_REVIEW_QUEUE_ALERT_THRESHOLD = 50;
+
 @Injectable()
 export class AdminReviewService {
   private readonly logger = new Logger(AdminReviewService.name);
@@ -95,12 +123,66 @@ export class AdminReviewService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly config: ConfigService,
     // Phase 6: publication trigger. Optional so existing constructions
     // (unit tests, pre-Phase-6 deployments) keep working; when present,
     // REVIEW_APPROVED enqueues the durable notification fan-out after the
     // alert row is flipped to PUBLISHED.
     @Optional() private readonly publish?: PublishService,
   ) {}
+
+  /** Resolved threshold: `REVIEW_QUEUE_ALERT_THRESHOLD` when a positive
+   *  integer, else the documented default. Read per call, not cached, so
+   *  a config reload changes the threshold without a process restart. */
+  private alertThreshold(): number {
+    const raw = this.config.get<string>('REVIEW_QUEUE_ALERT_THRESHOLD');
+    const n = raw === undefined || raw === '' ? NaN : Number(raw);
+    return Number.isInteger(n) && n > 0
+      ? n
+      : DEFAULT_REVIEW_QUEUE_ALERT_THRESHOLD;
+  }
+
+  /**
+   * Review-queue depth + alert-threshold signal (Phase 10 section 3).
+   * Counts items awaiting review for one kind (unbounded, unlike the
+   * QUEUE_TAKE-capped list view), returns the configured threshold, and
+   * sets `exceedsAlertThreshold` when depth reaches it. Structured-log the
+   * excess so the observability layer (ARCHITECTURE.md 11) surfaces it in
+   * the same channel as provider-health; paging on the signal is the
+   * owner-gated on-call wiring (section 2), not this method.
+   */
+  async depth(kind: QueueKind): Promise<ReviewQueueDepthView> {
+    let count: number;
+    if (kind === 'alerts') {
+      count = await this.prisma.alert.count({
+        where: { status: { in: QUEUE_STATUSES } },
+      });
+    } else if (kind === 'places') {
+      count = await this.prisma.shelterProfile.count({
+        where: { verification: { not: 'VERIFIED' } },
+      });
+    } else {
+      throw new BadRequestException(`unknown queue kind: ${String(kind)}`);
+    }
+    const threshold = this.alertThreshold();
+    const exceeds = count >= threshold;
+    if (exceeds) {
+      this.logger.warn(
+        JSON.stringify({
+          event: 'review.queue-depth-threshold',
+          kind,
+          depth: count,
+          threshold,
+        }),
+      );
+    }
+    return {
+      kind,
+      depth: count,
+      threshold,
+      exceedsAlertThreshold: exceeds,
+    };
+  }
 
   /**
    * Review queue by kind.

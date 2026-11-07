@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AuthPanel } from '@/components/account/AuthPanel';
+import { CoverageDisclosure } from '@/components/coverage/CoverageDisclosure';
 import { safety } from '@/content/safety';
 
 export const metadata: Metadata = {
@@ -62,6 +63,12 @@ export default function Home() {
           ))}
         </ul>
         <p className="hero__disclaimer">{safety.disclaimer}</p>
+
+        {/* Phase 10 section 1: the registry-derived live coverage
+            disclosure, compact form. Stated from the enabled provider
+            registry, never a hard-coded claim; the no-coverage state is
+            shown plainly when nothing is enabled. */}
+        <CoverageDisclosure compact />
       </div>
     </section>
   );

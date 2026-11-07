@@ -1,0 +1,240 @@
+{
+  "generatedAt": "2026-11-06T17:37:49.723Z",
+  "base": "http://localhost:3000",
+  "server": "next start (production build)",
+  "online": {
+    "onLine": true,
+    "swController": true,
+    "alertCount": 20,
+    "offlineNote": null
+  },
+  "offline": {
+    "onLine": false,
+    "alertCount": 0,
+    "offlineNote": "You appear to be offline. Anything shown below reflects the last successful fetch — it is not live.Try again",
+    "heading": "Public emergency alerts"
+  },
+  "backOnline": {
+    "onLine": true,
+    "alertCount": 20,
+    "offlineNote": null
+  },
+  "viewportRows": [
+    {
+      "viewport": "360x640",
+      "route": "/",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-360x640-home.png"
+    },
+    {
+      "viewport": "360x640",
+      "route": "/alerts",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-360x640-alerts.png"
+    },
+    {
+      "viewport": "360x640",
+      "route": "/map",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-360x640-map.png"
+    },
+    {
+      "viewport": "360x640",
+      "route": "/guides",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-360x640-guides.png"
+    },
+    {
+      "viewport": "360x640",
+      "route": "/prepare",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-360x640-prepare.png"
+    },
+    {
+      "viewport": "360x640",
+      "route": "/verification",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-360x640-verification.png"
+    },
+    {
+      "viewport": "390x844",
+      "route": "/",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-390x844-home.png"
+    },
+    {
+      "viewport": "390x844",
+      "route": "/alerts",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-390x844-alerts.png"
+    },
+    {
+      "viewport": "390x844",
+      "route": "/map",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-390x844-map.png"
+    },
+    {
+      "viewport": "390x844",
+      "route": "/guides",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-390x844-guides.png"
+    },
+    {
+      "viewport": "390x844",
+      "route": "/prepare",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-390x844-prepare.png"
+    },
+    {
+      "viewport": "390x844",
+      "route": "/verification",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-390x844-verification.png"
+    },
+    {
+      "viewport": "768x1024",
+      "route": "/",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-768x1024-home.png"
+    },
+    {
+      "viewport": "768x1024",
+      "route": "/alerts",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-768x1024-alerts.png"
+    },
+    {
+      "viewport": "768x1024",
+      "route": "/map",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-768x1024-map.png"
+    },
+    {
+      "viewport": "768x1024",
+      "route": "/guides",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-768x1024-guides.png"
+    },
+    {
+      "viewport": "768x1024",
+      "route": "/prepare",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-768x1024-prepare.png"
+    },
+    {
+      "viewport": "768x1024",
+      "route": "/verification",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-768x1024-verification.png"
+    },
+    {
+      "viewport": "1024x768",
+      "route": "/",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1024x768-home.png"
+    },
+    {
+      "viewport": "1024x768",
+      "route": "/alerts",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1024x768-alerts.png"
+    },
+    {
+      "viewport": "1024x768",
+      "route": "/map",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1024x768-map.png"
+    },
+    {
+      "viewport": "1024x768",
+      "route": "/guides",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1024x768-guides.png"
+    },
+    {
+      "viewport": "1024x768",
+      "route": "/prepare",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1024x768-prepare.png"
+    },
+    {
+      "viewport": "1024x768",
+      "route": "/verification",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1024x768-verification.png"
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1440x900-home.png"
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/alerts",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1440x900-alerts.png"
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/map",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1440x900-map.png"
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/guides",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1440x900-guides.png"
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/prepare",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1440x900-prepare.png"
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/verification",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1440x900-verification.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "route": "/",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1920x1080-home.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "route": "/alerts",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1920x1080-alerts.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "route": "/map",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1920x1080-map.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "route": "/guides",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1920x1080-guides.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "route": "/prepare",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1920x1080-prepare.png"
+    },
+    {
+      "viewport": "1920x1080",
+      "route": "/verification",
+      "horizontalOverflowPx": 0,
+      "screenshot": "vp-1920x1080-verification.png"
+    }
+  ]
+}
