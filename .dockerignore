@@ -1,0 +1,45 @@
+# Docker build context exclusions.
+#
+# The backend images (backend/Dockerfile, backend/Dockerfile.worker) build with
+# the REPO ROOT as the context (their COPY paths are root-relative), so this
+# file governs them. It keeps the context lean and — most importantly — keeps
+# secrets and prebuilt local artifacts OUT of the image: the image installs
+# from the lockfile and builds its own dist (SECURITY.md 4: no credentials in
+# the image; supply-chain is the lockfile, not local node_modules).
+#
+# Applies to any future app image (web/admin) that shares the root context too.
+
+# Version control + tooling
+.git
+.gitignore
+.github
+.turbo
+.claude
+*.log
+
+# Secrets — never baked into an image (a local .env holds dev credentials).
+.env
+.env.*
+!.env.example
+
+# Local dependency trees — the image runs `pnpm install --frozen-lockfile`.
+**/node_modules
+node_modules
+
+# Prebuilt / generated outputs — the image builds these itself.
+**/dist
+**/dist-worker
+**/.next
+**/.expo
+**/coverage
+**/build
+**/out
+
+# Docs + evidence artifacts: not part of the runtime.
+docs/
+**/__tests__
+*.md
+
+# Prettier/evidence + lock noise the runtime does not need.
+.prettierignore
+**/tsconfig.tsbuildinfo

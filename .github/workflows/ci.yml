@@ -27,6 +27,16 @@ jobs:
   baseline:
     name: "Install, lint, typecheck, test, build"
     runs-on: ubuntu-latest
+    # DATABASE_URL / REDIS_URL are set at JOB scope, not per-step: the
+    # "Apply database migrations" step runs `prisma migrate deploy` before the
+    # e2e step and needs DATABASE_URL in scope or Prisma fails with P1012
+    # ("Environment variable not found: DATABASE_URL"), which historically
+    # skipped every gate after it. The service ports here are 5432/6379
+    # (the CI runner's own, unlike the local remap), so these URLs point at
+    # the service containers started below.
+    env:
+      DATABASE_URL: postgresql://sentravyn:sentravyn_local_password@localhost:5432/sentravyn?schema=public
+      REDIS_URL: redis://localhost:6379
     services:
       postgres:
         image: postgis/postgis:16-3.4
@@ -130,8 +140,65 @@ jobs:
 
       # AUTH_JWT_SECRET: no repository secret required. The e2e specs fall
       # back to an in-process test secret when AUTH_JWT_SECRET is unset.
+      # DATABASE_URL / REDIS_URL are inherited from the job-level env above
+      # (the service containers' ports), so no per-step env is needed.
       - name: Backend e2e tests
-        env:
-          DATABASE_URL: postgresql://sentravyn:sentravyn_local_password@localhost:5432/sentravyn?schema=public
-          REDIS_URL: redis://localhost:6379
         run: pnpm --filter @sentravyn/backend test:e2e
+
+  # ---------------------------------------------------------------------------
+  # Deploy-image gate (ARCHITECTURE.md 9: Docker + Terraform).
+  #
+  # Builds both backend container images (the API and the separate BullMQ
+  # worker) so "the production image compiles and its entrypoints are wired
+  # correctly" is a VERIFIED gate, not an untested Dockerfile. It runs on every
+  # push/PR alongside the baseline (no `needs`), and it does not require the
+  # Postgres/Redis services — it only installs, builds, and docker-builds, so
+  # it can never be red because of a missing DB.
+  #
+  # Pushing the image to a registry (ECR) is a deploy-time, owner-gated step:
+  # the real deploy is Terraform-managed and not yet stood up (Phase 10 §6 is
+  # BLOCKED on infra owner action). This job proves the image builds; it does
+  # not assert a deployment exists.
+  # ---------------------------------------------------------------------------
+  deploy-images:
+    name: "Build deploy images (API + worker)"
+    runs-on: ubuntu-latest
+    env:
+      NODE_VERSION: "22"
+      PNPM_VERSION: "11.9.0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      # The multi-stage Dockerfiles do their own `pnpm install --frozen-lockfile`
+      # and `pnpm build`, so they need no host-side build here — just the
+      # Docker context (the repo root, which carries the workspace files).
+      - name: Build API image
+        run: docker build -f backend/Dockerfile -t sentravyn/api:ci .
+
+      - name: Build worker image
+        run: docker build -f backend/Dockerfile.worker -t sentravyn/worker:ci .
+
+      # Cheap structural proof the images are non-root and carry the runtime
+      # entrypoints — without needing a live DB to fully boot the API.
+      - name: Verify images are non-root with entrypoints
+        run: |
+          for img in sentravyn/api:ci sentravyn/worker:ci; do
+            user=$(docker run --rm --entrypoint sh "$img" -c 'id -un')
+            echo "$img runs as: $user"
+            [ "$user" = "sentravyn" ] || { echo "expected non-root user, got $user"; exit 1; }
+          done
+          docker run --rm --entrypoint sh sentravyn/api:ci -c 'test -f dist/main.js'
+          docker run --rm --entrypoint sh sentravyn/worker:ci -c 'test -f dist-worker/worker/worker.main.js'
+          echo "image structure OK"

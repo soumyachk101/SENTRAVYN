@@ -7,13 +7,6 @@ import type {
   PushAdapter,
 } from '../types';
 
-/** Base64URL -> base64: VAPID keys are distributed base64URL-encoded. */
-function base64urlToBase64(value: string): string {
-  const b64 = value.replace(/-/g, '+').replace(/_/g, '/');
-  const pad = b64.length % 4;
-  return pad ? `${b64}${'='.repeat(4 - pad)}` : b64;
-}
-
 /**
  * Provider-agnostic push adapters (Phase 6; ARCHITECTURE.md 6 step 5).
  *
@@ -92,19 +85,32 @@ export class WebPushAdapter implements PushAdapter {
    * configured keys when present, otherwise the generated keypair. Returns
    * whether a configured keypair is in use so callers can distinguish the
    * unavailability reasons.
+   *
+   * web-push@3.x API: `setVapidDetails(subject, publicKey, privateKey)` with
+   * base64url keys (the v3 validators decode base64url directly). This was
+   * previously written against the newer `setServerKeys({...})` shape that
+   * 3.6.7 does not export, so it threw on every job and dead-lettered the
+   * whole notification queue — the call is now throw-safe and degrades to
+   * "unavailable" instead of propagating (matching the FCM/APNS siblings,
+   * which never throw out of `send()`).
    */
   private prepareVapid(): boolean {
     const configured = this.isConfigured();
-    const { publicKey, privateKey } = this.vapidKeys();
-    webpush.setServerKeys({
-      vapidDetails: {
-        subject:
-          this.config.get<string>('WEB_BASE_URL') ??
-          'https://sentravyn.example',
-        publicKey: base64urlToBase64(publicKey),
-        privateKey: base64urlToBase64(privateKey),
-      },
-    });
+    try {
+      const { publicKey, privateKey } = this.vapidKeys();
+      webpush.setVapidDetails(
+        this.config.get<string>('WEB_BASE_URL') ?? 'https://sentravyn.example',
+        publicKey,
+        privateKey,
+      );
+    } catch (err) {
+      // A malformed configured key must not crash the notification pipeline:
+      // the channel already reports unavailable (no audience) below, so log a
+      // short reason (never the key material) and continue.
+      this.logger.warn(
+        `web-push VAPID setup failed; channel stays unavailable: ${String(err)}`,
+      );
+    }
     return configured;
   }
 

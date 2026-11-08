@@ -10,6 +10,14 @@ module.exports = {
   // shared-app boots; the dedicated strict rate-limit test in
   // mfa-sessions.e2e-spec.ts sets its own env on its own app instance.
   setupFiles: ['<rootDir>/test/e2e/throttle-relaxation.setup.ts'],
+  // Deterministic e2e gate: the suites all boot their own Nest app against ONE
+  // shared Postgres + Redis, so running them in parallel jest workers makes
+  // them contend on DB connections and share the global throttle state, which
+  // produces intermittent whole-suite failures (e.g. an `auth` beforeAll that
+  // registered a user racing a DB connection pool). Serialise the e2e suite so
+  // the gate CI relies on is reproducible; unit tests (jest.config.js) remain
+  // parallel and unaffected.
+  maxWorkers: 1,
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }],
   },

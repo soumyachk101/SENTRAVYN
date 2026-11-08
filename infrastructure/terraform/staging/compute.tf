@@ -17,8 +17,10 @@
 resource "aws_ecs_cluster" "this" {
   name = local.name_prefix
 
-  container_insights_log_options = null
-
+  # Container Insights (cluster-level logging) is off for a staging skeleton;
+  # enable `container_insights = true` only when the monitoring owner wants
+  # it (SECURITY.md 7). It is not a required attribute, so it is omitted
+  # rather than set to an invalid null.
   tags = {
     Name = local.name_prefix
   }
@@ -69,7 +71,9 @@ resource "aws_ecs_service" "api" {
   network_configuration {
     subnets          = values(aws_subnet.app)
     security_groups  = [aws_security_group.app.id]
-    awsvpc_multi_eni = true
+    # Private subnets only — no public IP on the Fargate task
+    # (least exposure; the ALB front in a later phase is the only ingress).
+    assign_public_ip = false
   }
 
   # No load balancer modelled in the skeleton; wire the ALB target group in a
